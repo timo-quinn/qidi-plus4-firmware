@@ -1,0 +1,31 @@
+{
+  "boot": {},
+  "init-scripts": {},
+  "installed-klipper": {
+    "added": 2,
+    "changed": 4
+  },
+  "installed-moonraker": {
+    "added": 11,
+    "changed": 22,
+    "removed": 2
+  },
+  "network": {},
+  "network-manager": {},
+  "qidi-tools": {
+    "changed": 1
+  },
+  "release-payload": {
+    "added": 5,
+    "changed": 7,
+    "removed": 2
+  },
+  "system-defaults": {},
+  "systemd-local": {
+    "added": 1
+  },
+  "systemd-vendor": {},
+  "xindi": {
+    "changed": 2
+  }
+}

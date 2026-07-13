@@ -1,0 +1,5325 @@
+    1dd .0i:<+f
+    1e6 -tU$
+   1041 __gmon_start__
+   1050 _ITM_deregisterTMCloneTable
+   106c _ITM_registerTMCloneTable
+   1086 __cxa_finalize
+   1095 _Py_NoneStruct
+   10a4 PyObject_SetAttr
+   10b5 PyDict_New
+   10c0 PyObject_GetAttr
+   10d1 PyDict_Size
+   10dd PyExc_SystemError
+   10ef PyErr_SetString
+   10ff PyExc_TypeError
+   110f PyErr_Format
+   111c _PyThreadState_UncheckedGet
+   1138 PyFrame_New
+   1144 PyEval_EvalFrameEx
+   1157 _Py_CheckRecursionLimit
+   116f PyThreadState_Get
+   1181 PyObject_Call
+   118f _Py_CheckRecursiveCall
+   11a6 PyErr_Occurred
+   11b5 __stack_chk_guard
+   11c7 PyErr_NormalizeException
+   11e0 PyException_SetTraceback
+   11f9 __stack_chk_fail
+   120a PyMethod_New
+   1217 PyImport_ImportModuleLevelObject
+   1238 PyUnicode_InternFromString
+   1253 PyObject_Free
+   1261 PyUnicode_FromFormat
+   1276 PyObject_GC_UnTrack
+   128a PyObject_ClearWeakRefs
+   12a1 PyObject_GC_Del
+   12b1 PyObject_GetAttrString
+   12c8 PyDict_SetItemString
+   12dd PyExc_AttributeError
+   12f2 PyErr_ExceptionMatches
+   1309 PyErr_Clear
+   1315 PyTuple_Pack
+   1322 _Py_FalseStruct
+   1332 PyCode_New
+   133d _Py_TrueStruct
+   134c PyObject_CallFinalizerFromDealloc
+   136e PyExc_ImportError
+   1380 PyModule_GetName
+   1391 PyUnicode_FromString
+   13a6 PyUnicode_Concat
+   13b7 PyImport_GetModule
+   13ca PyInterpreterState_GetID
+   13e3 PyModule_NewObject
+   13f6 PyModule_GetDict
+   1407 PyUnicode_Type
+   1416 memcmp
+   141d PyObject_RichCompare
+   1432 PyObject_IsTrue
+   1442 _PyUnicode_Ready
+   1453 PyLong_Type
+   145f PyFloat_Type
+   146c PyLong_FromLong
+   147c PyNumber_Add
+   1489 PyNumber_InPlaceAdd
+   149d PyFloat_FromDouble
+   14b0 PyObject_GC_Track
+   14c2 PyExc_RuntimeWarning
+   14d7 PyErr_WarnEx
+   14e4 PyTuple_GetSlice
+   14f5 PyTuple_GetItem
+   1505 PyMem_Malloc
+   1512 PyTuple_New
+   151e PyDict_Next
+   152a PyMem_Free
+   1535 PyErr_NoMemory
+   1544 PyUnicode_Decode
+   1555 PyUnicode_FromStringAndSize
+   1571 PyBytes_FromStringAndSize
+   158b PyObject_Hash
+   1599 PyUnicode_Compare
+   15ab PyList_Type
+   15b7 PyTuple_Type
+   15c4 PyLong_FromSsize_t
+   15d7 PyObject_GetItem
+   15e8 _PyObject_GC_New
+   15f9 PyEval_EvalCodeEx
+   160b PyLong_AsDouble
+   161b PyNumber_Subtract
+   162d PyNumber_Remainder
+   1640 PyLong_FromLongLong
+   1654 PyNumber_Multiply
+   1666 PyNumber_TrueDivide
+   167a PyBaseObject_Type
+   168c PyErr_GivenExceptionMatches
+   16a8 PyList_New
+   16b3 PyExc_StopIteration
+   16c7 PyExc_ValueError
+   16d8 PyTraceBack_Here
+   16e9 _PyObject_GetDictPtr
+   16fe PyObject_Not
+   170b PyUnicode_AsUTF8
+   171c PyCode_NewEmpty
+   172c PyMem_Realloc
+   173a PyObject_GenericGetAttr
+   1752 _PyObject_GenericGetAttrWithDict
+   1773 _PyDict_GetItem_KnownHash
+   178d PyCFunction_Type
+   179e PyMethodDescr_Type
+   17b1 PyFunction_Type
+   17c1 _PyCFunction_FastCallKeywords
+   17df _PyMethodDescr_FastCallKeywords
+   17ff _PyType_Lookup
+   180e PyType_Ready
+   181b PyMethod_Type
+   1829 PyUnicode_Format
+   183a PyObject_Str
+   1847 PyList_Append
+   1855 PyExc_NameError
+   1865 PyObject_GetIter
+   1876 PyObject_Size
+   1884 PyObject_Malloc
+   1894 PyExc_RuntimeError
+   18a7 PyImport_AddModule
+   18ba PyObject_SetAttrString
+   18d1 Py_GetVersion
+   18df PyFrame_Type
+   18ec PyOS_snprintf
+   18fa strrchr
+   1902 __pyx_module_is_main_extras__box_stepper
+   192b PyImport_GetModuleDict
+   1942 PyDict_GetItemString
+   1957 PyImport_Import
+   1967 PyErr_Fetch
+   1973 PyErr_Restore
+   1981 PyDict_SetItem
+   1990 PyObject_SetItem
+   19a1 PyDict_Type
+   19ad _PyDict_SetItem_KnownHash
+   19c7 PyType_Type
+   19d3 PyLong_FromUnsignedLong
+   19eb PyNumber_Absolute
+   19fd _PyLong_Copy
+   1a0a PyErr_SetObject
+   1a1a PyNumber_Long
+   1a28 _PyDict_NewPresized
+   1a3c PyDict_GetItemWithError
+   1a54 PyExc_KeyError
+   1a63 PyNumber_FloorDivide
+   1a78 PyObject_Format
+   1a88 PyInit_box_stepper
+   1a9b PyModuleDef_Init
+   1aac libpthread.so.0
+   1abc libc.so.6
+   1ac6 ld-linux-aarch64.so.1
+   1adc GLIBC_2.17
+   5d7b ykA	
+   5d82 "9<`;
+   6676 	9F`
+   6ba9 #.yah
+   6bc9 s.ya
+   6c75 c/ya
+   6c8b 9ah 9a
+   6d6d C1yO
+   6d78 aH"9a
+   6d82 #9a($9#
+   6e36 2yah%9a
+   6e66 &9aH'9a
+   6f1d c4ya
+   6f22 (9a()9a
+   6f50 ah*9a
+   7015 H,9a
+   701e -9a(.9a
+   7092 6yah/9
+   70da 09aH19a
+   7152 29a(39
+   719e 39ah49
+   7264 aH69
+   72d6 79a(89
+   7368 ah99
+   7379 #=ya
+   7399 s=yI`%
+   73cc aH;9
+   7476 >ya(=9
+   74c8 ah>9a
+   84af 9Q ;
+   85ab yc )
+   85cb yQ =
+   8683 yM@=
+   868b 9L`=
+   8698 aj	9
+   8958 `a	y
+   8afb ykA-
+   8d04 a*!9
+   8d8b yAh"9b
+   8e82 %9t 	
+   8eef yA*&9	
+   8efb y)A0
+   8f10 Ai'9
+   8f1b yJ!0
+   8f8f yAK)9z@
+   8ffa )9@C
+   9010 a)+9
+   9073 y!i,9 
+   907b y!	-9 
+   9086 -9 !
+   908b y!I.9 q
+   911b y!)09 a
+   912b y!i19 
+   9133 y!	29 Q
+   91a3 y!I39 
+   91ae 39?A
+   bce0 `"y9@
+   bd07 R`"99
+   c11b K!|A
+   c9b7 Tu>@
+   cd1f 5`"@
+   cd33 5`&@
+   cd47 5`*@
+   cd5b 5`.@
+   cd6f 5`2@
+   cd83 5`:@
+   cd97 5`N@
+   cdab 5`R@
+   cdbf 5`^@
+   d1d1 	(7`&@
+   d5e3 qC|G
+   d626 C) x
+   d632 C) x
+   dfc3 Tt8@
+   e62e C) x
+   e63a C) x
+   e6ea C)!x
+   e6f6 C) x
+   e81a C) x
+   e85a C) x
+   e8b7 6#T@
+   e9bb 6CT@
+   ea1b T"xe
+   ed12 @9`&@
+   f247 TuRF
+   f393 TuRF
+   f57f mh&Fm
+   f5b7 T:0@
+   f785 'FmT
+   f8ef T o@
+  11a57 5aSF
+  1478e @z r
+  147ea @9@z(7
+  1649e @z`:
+  16515 V(6?
+  1662e @z@<
+  16699 S(6?
+  16803 T58@
+  169ab T P@
+  16b4a @9`%(7@'@
+  16b56 @9A+(6?
+  177dd <(6?
+  18e25 ((6?
+  1a101 ((6?
+  1aacf T8P@
+  1ae2e @z`	
+  1aea5 ((6?
+  1b563 T6l@
+  1b997 T68@
+  1bc3a @9!7(6?
+  1ca8e @z@U
+  1d127 T3P@
+  1d4a6 @9AG(6?
+  2288b T X@
+  22e4f T`c@
+  22e77 T`k@
+  23142 @9@k(7
+  23151 6)6?
+  23452 @9 R(7@'@
+  235d5 E(7@'@
+  241bb T p@
+  245df T;x@
+  278fb *cPF
+  28a05 "(6?
+  29a19 K(6?
+  2a102 @9`%(6
+  2a11a @9a$(6?
+  2b477 T)(Bm9\@
+  2b6e1 b(6?
+  2b84a @9 H(7
+  2b859 Q(6?
+  2d5c2 @9`"(6
+  2d5da @9a!(6?
+  2e07a @9`+(6
+  2e092 @9a*(6?
+  2ea35 X(6?
+  2f035 *(6?
+  2f813 T7l@
+  2fc8e @z`*
+  2fe09 J(6?
+  31183 7a*F
+  391fe @9!+(6?
+  3a6ae @z`%
+  3a719 ^(6?
+  3a9b2 @9`((7
+  3a9be @9!2(6?
+  3d1cb 7B+@
+  3d1df 7B/@
+  3d1f3 7B3@
+  3d207 7B7@
+  3d21b 7B;@
+  3e1ff 7bVA
+  47c6b T!,@
+  48156 C) x
+  48162 C) x
+  539d0 BoxButton
+  539e0 BoxEndstop
+  539f0 BoxExtruderStepper
+  53a08 BoxExtruderStepper.__init__
+  53a28 BoxExtruderStepper._calc_endstop_rate
+  53a50 BoxExtruderStepper.cmd_EXTRUDER_LOAD
+  53a78 BoxExtruderStepper.cmd_EXTRUDER_UNLOAD
+  53aa0 BoxExtruderStepper.cmd_SLOT_PROMPT_MOVE
+  53ac8 BoxExtruderStepper.cmd_SLOT_RFID_READ
+  53af0 BoxExtruderStepper.cmd_SLOT_UNLOAD
+  53b18 BoxExtruderStepper.disable_stepper
+  53b40 BoxExtruderStepper.do_home
+  53b60 BoxExtruderStepper.do_home_repeatedly
+  53b88 BoxExtruderStepper.do_move
+  53ba8 BoxExtruderStepper.drip_move
+  53bc8 BoxExtruderStepper.dwell
+  53be8 BoxExtruderStepper.flush_all_filament
+  53c10 BoxExtruderStepper.get_mcu_endstops
+  53c38 BoxExtruderStepper.get_status
+  53c58 BoxExtruderStepper.led_handle_connect
+  53c80 BoxExtruderStepper.multi_complete.<locals>.<lambda>
+  53cb8 BoxExtruderStepper.multi_complete
+  53ce0 BoxExtruderStepper.runout_button_callback
+  53d10 BoxExtruderStepper.set_led
+  53d30 BoxExtruderStepper.slot_load
+  53d50 BoxExtruderStepper.slot_sync
+  53d70 BoxExtruderStepper.switch_next_slot
+  53d98 BoxExtruderStepper.sync_print_time
+  53dc0 CLEAR_OOZE
+  53dd0 CUT_FILAMENT
+  53ddd MOVE_TO_TRASH
+  53df0 !!Code:QDE_004_001; Message:Slot loading failure, please check the trigger, please reload %s.
+  53e50 !!Code:QDE_004_002; Message:Extruder has been loaded, cannot load %s.
+  53e98 !!Code:QDE_004_003; Message:Slot unloading failure, please unload %s again.
+  53ee8 !!Code:QDE_004_004; Message:Please unload extruder first.
+  53f28 Code:QDE_004_005; Message:Please load the filament to %s first.
+  53f70 Code:QDE_004_006; Message:Extruder loading failure.
+  53fa8 Code:QDE_004_007; Message:Extruder not loaded.
+  53fd8 Code:QDE_004_009; Message:Extruder unloading failure.
+  54010 Code:QDE_004_011; Message:Detected that filament have been loaded, please unload filament first
+  54070 Code:QDE_004_016; Message:The filament has been exhausted, please load the filament to %s.
+  540d0 Code:QDE_004_017; Message:Filament flush failed, please clean and then load the filament in %s.
+  54130 Code:QDE_004_018; Message:No filament specified, %s cannot be automatically replaced.
+  54188 !!Code:QDE_004_019; Message:Please check if your PTFE Tube is bent
+  541d0 !!Code:QDE_004_020; Message:Detected that the filament has been unloaded, please reload.
+  54230 Code:QDE_004_022; Message:No replaceable slot found.
+  54268 DISABLE_DELAY
+  54278 ENDSTOP_SAMPLE_COUNT
+  54290 ENDSTOP_SAMPLE_TIME
+  542a8 EXTRUDER_LOAD
+  542b8 EXTRUDER_UNLOAD
+  542c8 Error during homing move: %s
+  542e8 Error during homing %s: %s
+  54308 ExtruderStepper
+  54318 G1 E100 F300
+  54325 G1 E-1 F1800
+  54332 M106 S255
+  5433c M400
+  54341 G4 P5000
+  5434a CLEAR_FLUSH
+  54356 M106 S0
+  54360 G1 E25 F300
+  54370 G1 X0 Y250 F30000
+  54382 G1 X0 Y50 F30000
+  54393 G1 X0 Y250 F30000
+  543a5 G1 X0 Y50 F30000
+  543b6 G1 X0 Y230 F30000
+  543c8 G1 X0 Y70 F30000
+  543d9 G1 X0 Y230 F30000
+  543eb G1 X0 Y70 F30000
+  543fc G1 X0 Y210 F30000
+  5440e G1 X0 Y90 F30000
+  5441f G1 X0 Y210 F30000
+  54431 G1 X0 Y90 F30000
+  54442 G1 X0 Y190 F30000
+  54454 G1 X0 Y110 F30000
+  54466 G1 X0 Y190 F30000
+  54478 G1 X0 Y110 F30000
+  5448a G1 X0 Y170 F30000
+  5449c G1 X0 Y130 F30000
+  544ae G1 X0 Y170 F30000
+  544c0 G1 X0 Y130 F30000
+  544d2 G1 X0 Y155 F30000
+  544e4 G1 X0 Y145 F30000
+  544f6 G1 X0 Y155 F30000
+  54508 G1 X0 Y145 F30000
+  5451a G1 X0 Y155 F30000
+  5452c G1 X0 Y145 F30000
+  5453e G1 X0 Y300 F15000
+  54550 G1 X38 Y300 F15000
+  54563 G1 X38 Y305 F15000
+  54576 G1 X150 Y305 F15000
+  5458a G1 X50 Y305 F30000
+  5459d G1 X250 Y305 F30000
+  545b1 G1 X50 Y305 F30000
+  545c4 G1 X250 Y305 F30000
+  545d8 G1 X70 Y305 F30000
+  545eb G1 X230 Y305 F30000
+  545ff G1 X70 Y305 F30000
+  54612 G1 X230 Y305 F30000
+  54626 G1 X90 Y305 F30000
+  54639 G1 X210 Y305 F30000
+  5464d G1 X90 Y305 F30000
+  54660 G1 X210 Y305 F30000
+  54674 G1 X110 Y305 F30000
+  54688 G1 X190 Y305 F30000
+  5469c G1 X110 Y305 F30000
+  546b0 G1 X190 Y305 F30000
+  546c4 G1 X130 Y305 F30000
+  546d8 G1 X170 Y305 F30000
+  546ec G1 X130 Y305 F30000
+  54700 G1 X170 Y305 F30000
+  54714 G1 X145 Y305 F30000
+  54728 G1 X155 Y305 F30000
+  5473c G1 X145 Y305 F30000
+  54750 G1 X155 Y305 F30000
+  54764 G1 X145 Y305 F30000
+  54778 G1 X155 Y305 F30000
+  5478c G1 X38 Y305 F15000
+  5479f G1 X38 Y300 F15000
+  547b2 G1 X0 Y300 F15000
+  547c4 G1 X0 Y150 F15000
+  547d8 G1 Y300 F9000
+  547e6 G1 X0 F9000
+  547f2 G1 X0 Y0 F15000
+  54802 M400
+  54808 HOMING_START_DELAY
+  54820 M204 S10000
+  5482c G1 X0 Y150 F15000
+  54840 M204 S10000
+  5484c G1 Y300 F9000
+  5485a G1 X0 F9000
+  54866 G1 X0 Y0 F15000
+  54876 M400
+  54880 M204 S10000
+  54890 G1 X0 Y215 F21000
+  548a2 G1 P1000
+  548ab G1 X0 Y85 E-6.5 F30000
+  548c2 G1 E-1 F60
+  548cd G1 X0 Y215 E-6.5 F30000
+  548e5 G1 E-1 F60
+  548f0 G1 X0 Y295 F21000
+  54902 G1 X40 F21000
+  54910 G1 X85 Y305 F21000
+  54923 G1 P1000
+  5492c G1 X85 E-6.5 F30000
+  54940 G1 E-1 F60
+  5494b G1 X215 E-6.5 F30000
+  54960 G1 E-1 F60
+  5496b G1 X40 Y305 F21000
+  5497e G1 Y295 F21000
+  5498d G1 X0 F21000
+  5499a G1 X0 Y150 F21000
+  549ac M400
+  549b9 M400
+  549c0 MOVE_TO_TRASH
+  549d0 MOVE_TO_TRASH
+  549de M400
+  549e8 NEVER
+  549f8 PAUSE
+  54a00 PrinterPWMLED
+  54a10 QDE_004_001_
+  54a20 QDE_004_002_
+  54a30 QDE_004_003_
+  54a40 QDE_004_004_
+  54a50 QDE_004_005_
+  54a60 QDE_004_006_
+  54a70 QDE_004_007_
+  54a80 QDE_004_009_
+  54a90 QDE_004_011_00
+  54aa0 QDE_004_016_00
+  54ab0 QDE_004_017_00
+  54ac0 QDE_004_018_00
+  54ad0 QDE_004_019_00
+  54ae0 QDE_004_022_00
+  54af0 RELOAD_ALL RFID=1 FIRST=
+  54b10 RFID_READ
+  54b20 SET_FILAMENT_SENSOR SENSOR=box_motion_sensor ENABLE=0
+  54b58 SLOT
+  54b60 SLOT_PROMPT_MOVE
+  54b78 SLOT_UNLOAD
+  54ba0 accel
+  54ba8 accel_t
+  54bb0 add_stepper
+  54bc0 all_endstop_trigger
+  54bd8 asyncio.coroutines
+  54bf0 auto_reload
+  54c00 auto_reload_detect
+  54c18 axes_d
+  54c20 axis_r
+  54c28 b_endstop
+  54c38 b_endstop_state
+  54c48 b_endstop_timer
+  54c58 b_motion
+  54c70 box_button_state
+  54c88 box_count
+  54c98 box_endstop
+  54ca8 box_extras
+  54cb8 box_motion_timer
+  54cd0 box_rfid 
+  54ce0 box_rfid
+  54cf0 box_stepper.py
+  54d00 box_stepper slot
+  54d20 _calc_endstop_rate
+  54d38 calc_move_time
+  54d48 calc_position_from_coord
+  54d68 can_cut
+  54d70 can_load_slot
+  54d80 card_reader_
+  54d90 chelper
+  54d98 cline_in_traceback
+  54db0 cmd_EXTRUDER_LOAD
+  54dc8 cmd_EXTRUDER_UNLOAD
+  54de0 cmd_SLOT_PROMPT_MOVE
+  54df8 cmd_SLOT_RFID_READ
+  54e10 cmd_SLOT_UNLOAD
+  54e20 color_
+  54e28 color_slot
+  54e38 command_error
+  54e48 complete
+  54e58 completions
+  54e68 config
+  54e78 cruise_t
+  54e88 cruise_v
+  54ea0 delay
+  54ea8 diameter
+  54eb8 __dict__
+  54ec8 disable
+  54ed0 disable_stepper
+  54ee0 do_home
+  54ee8 do_home_repeatedly
+  54f00 do_move
+  54f08 __doc__
+  54f10 drip_completion
+  54f20 drip_move
+  54f30 dwell
+  54f40 e_endstop
+  54f50 e_endstop_timer
+  54f60 enable
+  54f68 endstop_triggers
+  54f80 endstops
+  54f90 error
+  54fa0 eventtime
+  54fb0 exclude_tool
+  54fc0 exl_1
+  54fc8 exl_1_accel
+  54fd8 exl_1_speed
+  54fe8 extras.box_stepper
+  55000 extrude_state
+  55010 extruder
+  55020 extruder_load_length_1
+  55038 extruder_load_length_1_accel
+  55058 extruder_load_length_1_speed
+  55078 extruder_load_length_2
+  55090 extruder_load_length_2_accel
+  550b0 extruder_load_length_2_speed
+  550d0 extruder_load_length_3
+  550e8 extruder_load_length_3_accel
+  55108 extruder_load_length_3_speed
+  55128 extruder_stepper
+  55140 extruder_unload_length_1
+  55160 extruder_unload_length_1_accel
+  55180 extruder_unload_length_1_speed
+  551a0 extruder_unload_length_2
+  551c0 extruder_unload_length_2_accel
+  551e0 extruder_unload_length_2_speed
+  55200 ffi_lib
+  55208 ffi_main
+  55218 filament_
+  55228 filament_slot
+  55238 flush_all_filament
+  55250 flush_success
+  55260 force_move
+  55278 gcmd
+  55280 gcode
+  55290 get_endstops
+  552a0 get_ffi
+  552a8 get_key_by_value
+  552c0 get_last_move_time
+  552d8 get_mcu_endstops
+  552f0 get_name
+  55300 get_printer
+  55310 get_reactor
+  55320 get_status
+  55330 get_step_dist
+  55340 get_steppers
+  55350 get_value_by_key
+  55368 hall
+  55370 hall_filament_width_sensor
+  55390 home_start
+  553a0 home_success
+  553b0 home_wait
+  553c8 __import__
+  553d8 __init__
+  553e8 init_box_motion
+  553f8 __init_subclass__
+  55410 _initializing
+  55420 _is_coroutine
+  55430 is_drying
+  55440 isenabled
+  55450 kinematics
+  55460 klippy:ready
+  55470 label_map
+  55480 last_load_slot
+  55498 led_handle_connect
+  554b0 led_state
+  554c0 led_timer
+  554d0 load_config_prefix
+  554e8 load_hub_length_1
+  55500 load_hub_length_1_accel
+  55518 load_hub_length_1_speed
+  55530 load_object
+  55540 load_retry_num
+  55550 lookup_enable
+  55560 lookup_object
+  55570 loop_stepper
+  55580 __main__
+  55590 math
+  555a0 max_steps
+  555b0 mcu_endstop
+  555c0 __metaclass__
+  555d0 __module__
+  555e0 motion
+  555e8 motor_disable
+  555f8 move_d
+  55600 move_t
+  55608 movepos
+  55618 multi_complete
+  55628 __name__
+  55638 name
+  55640 newpos
+  55648 next_cmd_time
+  55658 next_color_slot
+  55668 next_filament_slot
+  55680 next_slot
+  55690 next_vendor_slot
+  556a8 note_kinematic_activity
+  556c8 __prepare__
+  556d8 print_sensor_state_to_log
+  556f8 print_stats
+  55708 print_time
+  55718 printer
+  55720 printing
+  55730 __qualname__
+  55740 r_endstop
+  55750 r_endstop_state
+  55760 range
+  55768 reactor
+  55770 red_value
+  55780 register_callback
+  55798 register_event_handler
+  557b0 register_mux_command
+  557c8 register_timer
+  557d8 replace
+  557e0 respond_info
+  557f0 respond_raw
+  55800 rest_time
+  55810 retry_num
+  55820 retry_step
+  55830 rfid_device
+  55840 rfid_state
+  55850 run_script
+  55860 run_script_from_command
+  55878 _runout
+  55880 runout_
+  55888 runout_button
+  55898 runout_button_callback
+  558b0 runout_num
+  558c0 runout_pin
+  558d8 %s has been sync with Extruder.
+  558f8 save_variable
+  55908 scram
+  55918 self
+  55920 set_led
+  55928 __set_name__
+  55938 set_position
+  55948 set_scram
+  55958 set_trapq
+  55968 shake_for_load_toolhead
+  55980 shake_toolhead
+  55990 slot
+  55998 slot-1
+  559a0 slot_load
+  559b0 slot_load_length_1
+  559c8 slot_load_length_1_accel
+  559e8 slot_load_length_1_speed
+  55a08 slot_load_length_2
+  55a20 slot_load_length_2_accel
+  55a40 slot_load_length_2_speed
+  55a60 slot_load_length_3
+  55a78 slot_load_length_3_accel
+  55a98 slot_load_length_3_speed
+  55ab8 slot_load_length_4
+  55ad0 slot_load_length_4_accel
+  55af0 slot_load_length_4_speed
+  55b10 slot_loaded
+  55b20 slot_not_unload
+  55b30 slot_state
+  55b40 slot_sync
+  55b50 slot_unload_length_1
+  55b68 slot_unload_length_1_accel
+  55b88 slot_unload_length_1_speed
+  55bb0 __spec__
+  55bc0 speed
+  55bc8 split
+  55bd0 sqrt
+  55bd8 start_rfid_read
+  55be8 startpos
+  55bf8 state
+  55c00 stepper
+  55c08 stepper_enable
+  55c18 stepper_endstops
+  55c30 stepper_label
+  55c40 stepper_name
+  55c50 stepper_num
+  55c60 stop_read
+  55c70 success_count
+  55c88 super
+  55c90 switch_next_slot
+  55ca8 sync_print_time
+  55cb8 sync_to_extruder
+  55cd0 temp_stepper
+  55ce0 __test__
+  55cf0 tool_change
+  55d00 toolhead
+  55d10 trapq
+  55d18 trapq_alloc
+  55d28 trapq_append
+  55d38 trapq_finalize_moves
+  55d50 trapq_free
+  55d60 trigger_time
+  55d70 triggered
+  55d80 update_leds
+  55d90 update_time
+  55da0 update_timer
+  55db0 value
+  55db8 value_t
+  55dc0 vendor_
+  55dc8 vendor_slot
+  55dd8 wait
+  55de0 wait_moves
+  55df0 white_value
+  55e08 ffff
+  55e0f @ffff
+  55e1c MbP?
+  55e37 ?%.200s() takes no arguments (%zd given)
+  55e60 %.200s() takes exactly one argument (%zd given)
+  55e90 Bad call flags for CyFunction
+  55eb0 %.200s() takes no keyword arguments
+  55ed8  while calling a Python object
+  55ef8 NULL result without error in PyObject_Call
+  55f28 <cyfunction %U at %p>
+  55f40 cannot import name %S
+  55f58 Interpreter change detected - this module can only be loaded into one interpreter per process.
+  55fb8 name
+  55fc0 __loader__
+  55fd0 loader
+  55fd8 __file__
+  55fe8 origin
+  55ff0 __package__
+  56000 parent
+  56008 __path__
+  56018 submodule_search_locations
+  56038 __annotations__ must be set to a dict object
+  56068 function's dictionary may not be deleted
+  56098 setting function's dictionary to a non-dict
+  560c8 __qualname__ must be set to a string object
+  560f8 __name__ must be set to a string object
+  56120 %.200s() needs an argument
+  56140 __kwdefaults__ must be set to a dict object
+  56170 changes to cyfunction.__kwdefaults__ will not currently affect the values used in function calls
+  561d8 __defaults__ must be set to a tuple object
+  56208 changes to cyfunction.__defaults__ will not currently affect the values used in function calls
+  56268 keywords must be strings
+  56288 unbound method %.200S() needs an argument
+  562b8 %s() got multiple values for keyword argument '%U'
+  562f0 %.200s() keywords must be strings
+  56318 %s() got an unexpected keyword argument '%U'
+  56348 too many values to unpack (expected %zd)
+  56378 /home/mks/klipper/klippy/extras/box_stepper.c
+  563a8 %s (%s:%d)
+  563b8 box_stepper.py
+  563c8 extras.box_stepper.__defaults__
+  563e8 '%.200s' object has no attribute '%U'
+  56410 extras.box_stepper.BoxExtruderStepper.slot_load
+  56440 exactly
+  56448 runout_button_callback
+  56460 %.200s() takes %.8s %zd positional argument%.1s (%zd given)
+  564a0 extras.box_stepper.BoxExtruderStepper.runout_button_callback
+  564e0 drip_move
+  564f0 extras.box_stepper.BoxExtruderStepper.drip_move
+  56520 lambda
+  56528 completions
+  56538 free variable '%s' referenced before assignment in enclosing scope
+  56580 extras.box_stepper.BoxExtruderStepper.multi_complete.lambda
+  565c0 led_handle_connect
+  565d8 extras.box_stepper.BoxExtruderStepper.led_handle_connect
+  56618 sync_print_time
+  56628 extras.box_stepper.BoxExtruderStepper.sync_print_time
+  56660 slot_load
+  56670 cmd_SLOT_PROMPT_MOVE
+  56688 extras.box_stepper.BoxExtruderStepper.cmd_SLOT_PROMPT_MOVE
+  566c8 dwell
+  566d0 extras.box_stepper.BoxExtruderStepper.dwell
+  56700 multi_complete
+  56710 extras.box_stepper.BoxExtruderStepper.multi_complete
+  56748 name '%U' is not defined
+  56768 Module 'box_stepper' has already been imported. Re-initialisation is not supported.
+  567c0 builtins
+  567d0 cython_runtime
+  567e0 __builtins__
+  567f0 does not match
+  56800 extras.box_stepper
+  56818 compile time Python version %d.%d of module '%.100s' %s runtime version %d.%d
+  56868 _cython_3_0_12
+  56878 Shared Cython type %.200s is not a type object
+  568a8 Shared Cython type %.200s has the wrong size, try recompiling
+  568e8 base class '%.200s' is not a heap type
+  56910 extension type '%.200s' has no __dict__ slot, but base type '%.200s' has: either add 'cdef dict __dict__' to the extension type or add '__slots__ = [...]' to the base type
+  569c0 init extras.box_stepper
+  569d8 _calc_endstop_rate
+  569f0 need more than %zd value%.1s to unpack
+  56a18 extras.box_stepper.BoxExtruderStepper._calc_endstop_rate
+  56a58 extras.box_stepper.BoxExtruderStepper.switch_next_slot
+  56a90 switch_next_slot
+  56aa8 at least
+  56ab8 at most
+  56ac0 do_home
+  56ac8 extras.box_stepper.BoxExtruderStepper.do_home
+  56af8 calling %R should have returned an instance of BaseException, not %R
+  56b40 raise: exception class must be a subclass of BaseException
+  56b80 load_config_prefix
+  56b98 extras.box_stepper.load_config_prefix
+  56bc0 slot_sync
+  56bd0 extras.box_stepper.BoxExtruderStepper.slot_sync
+  56c00 do_home_repeatedly
+  56c18 extras.box_stepper.BoxExtruderStepper.do_home_repeatedly
+  56c58 get_mcu_endstops
+  56c70 extras.box_stepper.BoxExtruderStepper.get_mcu_endstops
+  56ca8 get_status
+  56cb8 extras.box_stepper.BoxExtruderStepper.get_status
+  56cf0 disable_stepper
+  56d00 extras.box_stepper.BoxExtruderStepper.disable_stepper
+  56d38 lambda1
+  56d48 extras.box_stepper.BoxExtruderStepper.multi_complete.lambda1
+  56d88 set_led
+  56d90 extras.box_stepper.BoxExtruderStepper.set_led
+  56dc0 extras.box_stepper.BoxExtruderStepper.cmd_EXTRUDER_UNLOAD
+  56e00 cmd_EXTRUDER_UNLOAD
+  56e18 do_move
+  56e20 extras.box_stepper.BoxExtruderStepper.do_move
+  56e50 extras.box_stepper.BoxExtruderStepper.__init__
+  56e80 __init__
+  56e90 flush_all_filament
+  56ea8 extras.box_stepper.BoxExtruderStepper.flush_all_filament
+  56ee8 extras.box_stepper.BoxExtruderStepper.cmd_SLOT_UNLOAD
+  56f20 cmd_SLOT_UNLOAD
+  56f30 cmd_SLOT_RFID_READ
+  56f48 extras.box_stepper.BoxExtruderStepper.cmd_SLOT_RFID_READ
+  56f88 extras.box_stepper.BoxExtruderStepper.cmd_EXTRUDER_LOAD
+  56fc0 cmd_EXTRUDER_LOAD
+  56fd8 _cython_3_0_12.cython_function_or_method
+  57008 __reduce__
+  57018 __module__
+  57028 func_doc
+  57038 __doc__
+  57040 func_name
+  57050 __name__
+  57060 __qualname__
+  57070 func_dict
+  57080 __dict__
+  57090 func_globals
+  570a0 __globals__
+  570b0 func_closure
+  570c0 __closure__
+  570d0 func_code
+  570e0 __code__
+  570f0 func_defaults
+  57100 __defaults__
+  57110 __kwdefaults__
+  57120 __annotations__
+  57130 _is_coroutine
+  57140 box_stepper
+  57150 extras.box_stepper.__pyx_scope_struct__multi_complete
+  5ae48 GCC: (Debian 8.3.0-6) 8.3.0
+  5b110 p	1B
+  5c217 !fnv
+  5ca2f (=	Q
+  5ca77 (	48
+  5ca9e @	)B
+  5cb3c 0	PY
+  5cb70 P	}\
+  5ccdf  	5a
+  5ccec (	]]
+  5cd2d P	xT
+  5cd5a /$	Q
+  5cd67 /*	Q
+  5cd74 /+	Q
+  5cd95 x)`6
+  5cdc0 . 	Q
+  5cdcd .!	Q
+  5cdf4 .$	Q
+  5ce01 .%	Q
+  5ce0e .&	Q
+  5ce1b .'	Q
+  5ce28 .(	Q
+  5ce35 .)	Q
+  5ce42 .*	Q
+  5ce4f .+	Q
+  5ce5c .,	Q
+  5ce69 .-	Q
+  5ce76 ..	Q
+  5ce90 .1	Q
+  5ceb7 .6	Q
+  5ced1 .9	Q
+  5cf05 .B	Q
+  5cf60 .L	Q
+  5cf7c P.`	
+  5cf89 .a	Q
+  5cfc4  	fu
+  5cfd1 (	au
+  5cff8 @	)_
+  5d013 *_is
+  5d087 8	7a
+  5d0ae P	t,
+  5d1d4 *_ts
+  5d22f $	Id
+  5d23c %	6y
+  5d270 8	>M
+  5d2be h	gF
+  5d2cb p	f[
+  5d9f5 $	Ad
+  5da02 (	Rm
+  5da0f 0	?V
+  5da43 P	kr
+  5df8a !		z0
+  5dfa5 #		Q
+  5dfcf &		Q
+  5dfdd '		Q
+  62d0e 4str
+  62e28 7one
+  62f3b ;bad
+  63b49  &4$
+  63ca2 ;bad
+  63d14 7pos
+  63d3e 7tmp
+  63d97 7pos
+  63e16 Umid
+  63e2b Uend
+  63f47 4mkw
+  6402c 4mkw
+  64046 4doc
+  6405f ;bad
+  640d1 ~9h&
+  6410a 7tmp
+  64131 {~5@
+  6413e {~E@
+  641e0 a~6@
+  641ed a~F@
+  64215 t~	@
+  64235 J~?@
+  64242 J~Q@
+  6424f J~a@
+  64290 X~	@
+  642b2 ;~=@
+  64319 7sep
+  64326 ;bad
+  646e4 ;bad
+  647be 5}-h&
+  647c9 =}	Q
+  647eb 7ret
+  6482f U}	@
+  64891 q} @
+  64924 ~}	@
+  6497d 57b0
+  649eb Yobj
+  64a54 ;bad
+  6501f 4obj
+  65025 k|/@
+  65032 k|>@
+  6503f k|O(
+  650a4 s|	Q
+  65122 5.j7
+  65147 e| @
+  65159 e|C@
+  65160 7arg
+  65190 4op1
+  6519d 4op2
+  651d7 J|	Q
+  65200 7lla
+  6520d 7llb
+  6521a 7llx
+  65282 4op1
+  65288 i{6@
+  6528f 4op2
+  65295 i{E@
+  652a2 i{O0
+  652af i{[Q
+  652bc i{hQ
+  652ca {	57b
+  652ee 7llb
+  652fb 7lla
+  65308 7llx
+  65345 4op1
+  65352 4op2
+  6538c U{	57b
+  653b1 7llb
+  653be 7lla
+  653cb 7llx
+  65440 4op1
+  65446 Mz5@
+  6544d 4op2
+  65453 MzD@
+  65460 MzN0
+  6546d MzZQ
+  6547a MzgQ
+  654b0 7lla
+  654bd 7llb
+  654ca 7llx
+  6552c 4op1
+  65539 4op2
+  65573 1z	Q
+  6559c 7llb
+  655a9 7lla
+  655b6 7llx
+  65618 4op1
+  6561e qy;@
+  65625 4op2
+  6562b qyJ@
+  65638 qyT0
+  65645 qya0
+  656b1 4op1
+  656be 4op2
+  657a9 ;bad
+  65878 4op1
+  65885 4op2
+  6590e w?E%
+  65999 w/E%
+  65a4e _bad
+  65d08 4err
+  65d0e qwF@
+  65d1b qwU@
+  65d3b \w=@
+  65d48 \wQ@
+  65d85 4err
+  65d8b TwM@
+  65d98 Tw\@
+  65da5 Twq@
+  65dbf 4cls
+  65dc5 -w<h&
+  65dd0 -wOh&
+  65ddb -w`h&
+  65de2 7mro
+  65e2e w8h&
+  65e39 wIh&
+  65e3f 7mro
+  65e7c w(h&
+  65e87 w9h&
+  65ea3 v@E%
+  65f7b v?E%
+  66003 v0E%
+  661bb Udef
+  661d0 Ucls
+  66353 Udef
+  664cf Udef
+  666a8 Udef
+  66841 7ret
+  66867 lu:@
+  66874 luJ@
+  66880 luZ@
+  668ff au @
+  66911 au@@
+  66918 4arg
+  6691e auP@
+  6692a au_@
+  66999 Yarg
+  66a30 6u$@
+  66bce 4arg
+  67184 \tQf
+  67191 \tYQ
+  6719e \tj@
+  671ab ]t2@
+  671b8 ]tE@
+  671c5 ]tW@
+  671d2 ]tj@
+  67250 It>@
+  6739f 57tmp
+  6747b 57tmp
+  67557 57tmp
+  675c2 {s	Q
+  675ca Ures
+  6764c rs=O
+  676ae js@O
+  676fb cs@O
+  6772f QsA@
+  6773c QsNO
+  67743 57tmp
+  677ae Es=O
+  677ef 3sE@
+  677fc 3sRO
+  67803 57tmp
+  67855 ,sAO
+  67895 57tmp
+  67983 Utmp
+  67a9f 7res
+  67ade 7pos
+  67af6 7key
+  67b1d 7nkw
+  67b6e >r:h&
+  67b9c ;bad
+  67bf8 ,r-@
+  67c12 .r+F
+  67c1f /r+F
+  67c9d 4arg
+  67cca 4src
+  67d6e 4op1
+  67d7b 4op2
+  67db5 xq	Q
+  67dde 7llb
+  67deb 7lla
+  67df8 7llx
+  67e65 4key
+  67fca 57mm
+  67ff3 7key
+  68035 qp5@
+  68040 qpB@
+  6807a Gp7@
+  68087 GpJu
+  68094 Gpc(
+  680c1 4obj
+  681c1 ;bad
+  681f9 4arg
+  6824d 4arg
+  68299 @o:@
+  682a6 @oK(
+  682b3 @o\F
+  682c0 @om@
+  6835d 7pos
+  683d2 $oM(
+  683e6 $o^F
+  683fb %o:@
+  6855c 7key
+  68576 7pos
+  685aa ;bad
+  6862a 7cmp
+  6864a 57cmp
+  6872f an	Q
+  6877e 9n!@
+  68790 9nE@
+  687a8 9ns@
+  687c5 57eq
+  688d2 'n	@
+  688ee 4src
+  68906 7res
+  68922 4src
+  68978 pm1@
+  68993 [m @
+  6899f 4obj
+  689a5 [mK@
+  689b2 [mZ@
+  689f5 Fm @
+  68a01 4obj
+  68a07 FmD@
+  68a14 FmS@
+  68a3c 'm@E%
+  68a49 'mS(
+  68a56 'md(
+  68a62 'mv(
+  68a7f mBE%
+  68b4e lME%
+  68b54 4err
+  68be8 >jE@
+  69d5a MbP?
+  69d9e MbP?
+  69dde ffff
+  6b6ba !j$@
+  6b6dd !jA@
+  6b6ec Ydef
+  6b6f2 !jT\
+  6b731 "j)@
+  6b740 ;bad
+  6ca06 Ec^@
+  6ca15 Utmp
+  6cafe 6ca@
+  6cb14 6cwO
+  6cc7e cfh&
+  6cdb4 57tmp
+  6cea3 dbO@
+  6cecd fb)F
+  6cee2 fb@@
+  6d5b3 ;w%\N
+  6d612 o ,(
+  6db47 57tmp
+  6e642 `HD,
+  6e9f0 57tmp
+  6ec53 57tmp
+  70107 _	4R
+  7040b `HP=
+  71493 9Zs@
+  71642 57tmp
+  71797 57tmp
+  7181f 57tmp
+  718e0 57tmp
+  719a1 57tmp
+  71a16 57tmp
+  71a91 7tmp
+  71ac0 57tmp
+  71b6e 57tmp
+  71be9 7tmp
+  71c2b 57tmp
+  71ca0 57tmp
+  71d1b 7tmp
+  71d83 57tmp
+  71ea3 57tmp
+  71f2b 57tmp
+  71fc6 57tmp
+  71fcd 8]	@
+  71fdb 8]	@
+  72087 57tmp
+  720c3 ~]	@
+  720d1 ~]	@
+  7215b 57tmp
+  7221c 57tmp
+  722b7 57tmp
+  72664 HA`B
+  7366e HH?g
+  744bd HH(m
+  74cf3 HH(p
+  75739 HHkl
+  75ba2 HHXr
+  76649 57tmp
+  76650 |V	@
+  7665e |V	@
+  766f7 57tmp
+  767a5 57tmp
+  76853 57tmp
+  768c0 !W	@
+  769fa 7tmp
+  76a3e 7tmp
+  76a93 57tmp
+  76b0e 7tmp
+  76b72 57tmp
+  76bae "X	@
+  76bbc "X	@
+  76bd0 #X	@
+  76bdf &X	@
+  76bed 7tmp
+  76c51 57tmp
+  76c8d MX	@
+  76c9b MX	@
+  76caf NX	@
+  76cbe QX	@
+  76ccc 7tmp
+  76d69 57tmp
+  76de4 7tmp
+  76e28 7tmp
+  76ec9 57tmp
+  76f8a 57tmp
+  76fc6 @Y	@
+  76fd4 @Y	@
+  76fe8 AY	@
+  76ff7 DY	@
+  77038 57tmp
+  77074 pY	@
+  77082 pY	@
+  77092 sY	@
+  779a9 'Ts@
+  77abc 57tmp
+  77b6a 57tmp
+  77c05 57tmp
+  77c8d 57tmp
+  77d15 57tmp
+  77dc3 57tmp
+  77dca OU	@
+  77dd8 OU	@
+  77eaa 57tmp
+  79aec /Rj@
+  79c95 7tmp
+  79cf9 57tmp
+  79d74 7tmp
+  79db2 57tmp
+  79e60 57tmp
+  79e67 +S	@
+  79e75 +S	@
+  79efb 57tmp
+  79f02 QS	@
+  79f10 QS	@
+  79fa9 57tmp
+  7a2d4 `A /
+  7c509 57tmp
+  7c5b7 57tmp
+  7c5be XQ	@
+  7c5cc XQ	@
+  7c665 57tmp
+  7e343 57tmp
+  7e3b8 57tmp
+  7e4d8 57tmp
+  7e599 57tmp
+  7e66d 57tmp
+  7e6a9 .I	@
+  7e6b7 .I	@
+  7e6c7 1I	@
+  7e6f5 57tmp
+  7e731 OI	@
+  7e73f OI	@
+  7e74f RI	@
+  7e7a3 57tmp
+  7e88a 57tmp
+  7e934 57tmp
+  7e9f5 57tmp
+  7eaa3 57tmp
+  7eaaa DJ	@
+  7eab8 DJ	@
+  7eb64 57tmp
+  7eb6b pJ	@
+  7eb79 pJ	@
+  7ec12 57tmp
+  7ecd3 57tmp
+  7edcd 57tmp
+  7edd4 4K	@
+  7ede2 4K	@
+  7ee55 57tmp
+  7ee5c UK	@
+  7ee6a UK	@
+  7eedd 57tmp
+  7eee4 vK	@
+  7eef2 vK	@
+  7ef9e 57tmp
+  7f05f 57tmp
+  7f16c 57tmp
+  7f173 &L	@
+  7f181 &L	@
+  7f22d 57tmp
+  7f234 VL	@
+  7f242 VL	@
+  7f32d 7tmp
+  7f36f 57tmp
+  7f443 57tmp
+  7f49d 	M	@
+  7f504 57tmp
+  7f540 4M	@
+  7f54e 4M	@
+  7f562 5M	@
+  7f575 6M	@
+  7f584 9M	@
+  7f5c5 57tmp
+  7f601 ZM	@
+  7f60f ZM	@
+  7f61f ]M	@
+  7f64d 57tmp
+  7f689 }M	@
+  7f697 }M	@
+  7f6ab ~M	@
+  7f6c8 7tmp
+  7f730 57tmp
+  7f817 57tmp
+  7f8eb 57tmp
+  7f986 57tmp
+  7fa01 7tmp
+  7fa07 =N	@
+  7fa15 =N	@
+  7fa29 KN	@
+  7fa3c PN	@
+  7fa4f UN	@
+  7fa69 57tmp
+  7fafd nN	@
+  7fb2a 57tmp
+  7fc24 57tmp
+  7fcbf 57tmp
+  7fd1d  O	@
+  7fd2c #O	@
+  7fd5a 57tmp
+  7fd96 AO	@
+  7fda4 AO	@
+  7fdb4 DO	@
+  7fe17 57tmp
+  7fe53 {O	@
+  7fe61 {O	@
+  7fe71 ~O	@
+  7fed8 57tmp
+  7ff86 57tmp
+  80034 57tmp
+  800f5 57tmp
+  80163 ,P	@
+  8017d 57tmp
+  80184 JP	@
+  80192 JP	@
+  8045b :Gf@
+  80485 <G)F
+  8049a <G@@
+  81105 57tmp
+  8117a 57tmp
+  8123b 57tmp
+  81242 S>	@
+  81250 S>	@
+  8130f 57tmp
+  813e3 57tmp
+  81491 57tmp
+  8152c 57tmp
+  81533 	?	@
+  81541 	?	@
+  81648 57tmp
+  8177b 57tmp
+  818d0 57tmp
+  818d7 !@	@
+  818e5 !@	@
+  8198c 57tmp
+  81993 D@	@
+  819a1 D@	@
+  81a60 57tmp
+  81a67 s@	@
+  81a75 s@	@
+  81b21 57tmp
+  81c41 57tmp
+  81cb6 57tmp
+  81d31 7tmp
+  81d99 57tmp
+  81da0 >A	@
+  81dae >A	@
+  81ebf 7tmp
+  81f01 57tmp
+  81fd5 57tmp
+  820f5 57tmp
+  820fc =B	@
+  8210a =B	@
+  82170 7tmp
+  821b8 7tmp
+  821be pB	@
+  821cc pB	@
+  821e0 }B	@
+  821fa 57tmp
+  82307 57tmp
+  8237c 57tmp
+  823f7 7tmp
+  8241f 4C	@
+  82439 57tmp
+  824a7 KC	@
+  824ba lC	@
+  824cd oC	@
+  824e0 rC	@
+  8250d 57tmp
+  825a8 57tmp
+  82643 57tmp
+  826b8 57tmp
+  82733 7tmp
+  82762 57tmp
+  82810 57tmp
+  828ab 57tmp
+  82946 57tmp
+  829bb 57tmp
+  82a36 7tmp
+  82a78 57tmp
+  82b39 57tmp
+  82bfa 57tmp
+  82c01 CE	@
+  82c0f CE	@
+  82c95 57tmp
+  82c9c eE	@
+  82caa eE	@
+  82d56 57tmp
+  82e04 57tmp
+  82ec5 57tmp
+  82ecc &F	@
+  82eda &F	@
+  82f73 57tmp
+  82f7a KF	@
+  82f88 KF	@
+  83034 57tmp
+  830bc 57tmp
+  83178 57tmp
+  83213 57tmp
+  835ab 7=d@
+  835d5 9=)F
+  835ea 9=@@
+  84180 }9	@
+  8419a 57tmp
+  842ba 57tmp
+  8432f 57tmp
+  843dd 57tmp
+  844b1 57tmp
+  8455f 57tmp
+  8460d 57tmp
+  84695 57tmp
+  84730 57tmp
+  847b1 ';	@
+  847c4 ,;	@
+  847d7 /;	@
+  847f1 57tmp
+  84872 G;	@
+  84885 T;	@
+  8489f 57tmp
+  8490d k;	@
+  8493a 57tmp
+  84a5a 57tmp
+  84acf 57tmp
+  84b50 4<	@
+  84b63 9<	@
+  84b7d 57tmp
+  84bfe Q<	@
+  84c11 ^<	@
+  84c24 c<	@
+  84c37 f<	@
+  84c51 57tmp
+  84cd2 ~<	@
+  84cff 57tmp
+  84dad 57tmp
+  84e35 57tmp
+  85150 `AP;
+  85b99 6	W(C
+  85c44 57tmp
+  85c80 W4	@
+  85c8e W4	@
+  85ca2 X4	@
+  85cb5 Y4	@
+  85cc4 \4	@
+  85d77 57tmp
+  85dec 57tmp
+  85e8d 7tmp
+  85ee4 7tmp
+  85f3b 7tmp
+  85f79 57tmp
+  8601a 7tmp
+  86071 7tmp
+  860c8 7tmp
+  86119 57tmp
+  8618e 57tmp
+  86209 7tmp
+  8622b 7tmp
+  8624d 7tmp
+  86282 7tmp
+  862ea 57tmp
+  86326 F6	@
+  86334 F6	@
+  86348 G6	@
+  8635b H6	@
+  8636a K6	@
+  8640a 57tmp
+  864a5 57tmp
+  86579 57tmp
+  8661c *7	@
+  8662f /7	@
+  86649 57tmp
+  866ca G7	@
+  866dd T7	@
+  866f0 Y7	@
+  86703 \7	@
+  8671d 57tmp
+  8679e t7	@
+  867cb 57tmp
+  86879 57tmp
+  8694d 57tmp
+  869fb 57tmp
+  86a83 57tmp
+  86a8a 58	@
+  86a98 58	@
+  86b1e 57tmp
+  86b25 [8	@
+  86b33 [8	@
+  87604 57tmp
+  87679 57tmp
+  87740 7tmp
+  8776f 57tmp
+  877f7 57tmp
+  878de 57tmp
+  8791a $3	@
+  87928 $3	@
+  87938 '3	@
+  87946 7tmp
+  8797b 7tmp
+  87ace b1e@
+  87af8 d1)F
+  87b0d d1@@
+  8a45d !1	W
+  8a565 7tmp
+  8a596 7tmp
+  8a793 I0c@
+  8a7bd K0)F
+  8a7d2 K0@@
+  8b9ec /*h@
+  8b9f9 /*~@
+  8bd41 .	W)[
+  8bda4 57tmp
+  8be3f 57tmp
+  8bf6a 7tmp
+  8bf9b 7tmp
+  8bfd9 57tmp
+  8bfe0 R+	@
+  8bfee R+	@
+  8c041 7tmp
+  8c113 7tmp
+  8c164 57tmp
+  8c20d 57tmp
+  8c2ba 57tmp
+  8c2f6 7,	@
+  8c304 7,	@
+  8c314 :,	@
+  8c493 },	@
+  8c4a0 7tmp
+  8c4a6 ~,	@
+  8c4b4 ~,	@
+  8c614 57tmp
+  8c746 57tmp
+  8c74d Z-	@
+  8c75b Z-	@
+  8c82d 57tmp
+  8c97e 7tmp
+  8c9af 7tmp
+  8c9ff 57tmp
+  8ca7a 7tmp
+  8ca80 D.	@
+  8ca8e D.	@
+  8ca9c D.	@
+  8cbf4 7tmp
+  8cd74 57tmp
+  8cdb0 6/	@
+  8cdbe 6/	@
+  8cdd2 7/	@
+  8cde5 8/	@
+  8cdf8 9/	@
+  8ce07 </	@
+  8ce6e 57tmp
+  8cf42 57tmp
+  8d003 57tmp
+  8d39b })Z@
+  90405 ,&FU
+  90d3e v"1^
+  9142c .(me
+  91867 	.$Ui
+  91f05 !C(}
+  92d2c _(o@
+  92e6f 57tmp
+  92f23 7tmp
+  92f74 57tmp
+  92f7b .)	@
+  92f89 .)	@
+  93207 57tmp
+  9328f 57tmp
+  93296 2(	@
+  932a4 2(	@
+  934e6 `:x=
+  93f57 ;w%\N
+  94068 ;w%\N
+  947e6 &(3C
+  94890 a'W@
+  94b9b 7tmp
+  94bd9 57tmp
+  94c15 5'	@
+  94c23 5'	@
+  94c33 8'	@
+  94d98 |&h@
+  94dc2 ~&)F
+  94dd7 ~&@@
+  94ec9 hAPc
+  954ce ;w%\N
+  955d3 ;w%\N
+  9739d p C3
+  979b0 8$	W
+  979b9 =$	W
+  97a77 )$	@
+  97a9d .$	@
+  97ab0 6$	@
+  97abf 9$	@
+  97acd 7tmp
+  97afe 7tmp
+  97c4a 7tmp
+  97d05 57tmp
+  97d8d 57tmp
+  97e41 7tmp
+  97e7f 57tmp
+  97ebb +%	@
+  97ec9 +%	@
+  97ed9 .%	@
+  97ef4 57tmp
+  97f30 K%	@
+  97f3e K%	@
+  97f4e N%	@
+  97fa2 57tmp
+  97fde z%	@
+  97fec z%	@
+  97ffc }%	@
+  99615 ;$&6
+  9b39a m"p@
+  9b47b 57tmp
+  9b516 57tmp
+  9b5b1 57tmp
+  9b819 hA`w
+  9c00e ;w%\N
+  9c9f4 57tmp
+  9cb2b )!\@
+  9cb55 +!)F
+  9cb6a +!@@
+  9ccaa HApV
+  9e35f g X@
+  9e389 i )F
+  9e39e i @@
+  9f401 57tmp
+  9f49c 57tmp
+  9f57e 57tmp
+  9f68a 57tmp
+  9f7d0 57tmp
+  9f86b 57tmp
+  9f8e0 57tmp
+  a065a ~M/D
+  a0663 ~D<D
+  a225d 57tmp
+  a22d2 57tmp
+  a2380 57tmp
+  a2d22 hHZs
+  a31e7 hH}t
+  a3900 `A`n
+  a451e 57tmp
+  a45df 57tmp
+  a46a0 57tmp
+  a47d3 57tmp
+  a486e 57tmp
+  a498e 57tmp
+  a4c5d XA D
+  a7126 57tmp
+  a71f5 57tmp
+  a72a3 57tmp
+  a732b 57tmp
+  a73c6 57tmp
+  a7482 57tmp
+  a7564 57tmp
+  a7612 57tmp
+  a76c0 57tmp
+  a778f 57tmp
+  a787b 57tmp
+  a78f0 57tmp
+  a79d7 57tmp
+  a7abe 57tmp
+  a7b6c 57tmp
+  a7c40 57tmp
+  a7cc8 57tmp
+  a7d3d 57tmp
+  a7deb 57tmp
+  a7ef8 57tmp
+  a7f93 57tmp
+  a8054 57tmp
+  a8115 57tmp
+  a81d6 57tmp
+  a8297 57tmp
+  a838c 57tmp
+  a8427 57tmp
+  a84d5 57tmp
+  a911f 7len
+  a9180 Ytyp
+  a91e7 7len
+  a9288 7res
+  ab2fb p C3
+  ab7c2 ffff
+  ab7e8 ffff
+  ab871 ffff
+  ac410 !\(}
+  accfa ;w%\N
+  ace0b ;w%\N
+  b0f51 im	=D
+  b16c4 im	A 
+  b1841 Xm	tj
+  b55f2 HH@4
+  b5a34 HH1:
+  b607b HHa<
+  b6dab HHj7
+  b741f HHR?
+  b79b0 HH\A
+  b7c6e HNiB
+  b7e46 HH*C
+  b8249 HHlD
+  b883b HH@E
+  b8db4 HNJG
+  b8fe6 HH-H
+  b9859 HHfK
+  b9a7d HH'L
+  b9d16 HH!M
+  ba00e HHWN
+  ba786 HH1Q
+  bab31 HHzR
+  c4cda @Hwb
+  c4ee0 @H8c
+  c5269 @HEg
+  c55d5 @Hxh
+  c6026 @H)f
+  c676c @H]k
+  c6cb9 @H>m
+  c7e84 @H6|
+  c8fa2 @HS~
+  c9399 @Nyt
+  c95dd @H6u
+  c9c12 @H@w
+  c9f3d @H_x
+  ca484 @HCz
+  ca786 @Hu{
+  cc81a /home/mks/klipper/klippy/extras
+  cc83a /usr/lib/gcc/aarch64-linux-gnu/8/include
+  cc863 /usr/include/aarch64-linux-gnu/bits
+  cc887 /usr/include/aarch64-linux-gnu/bits/types
+  cc8b1 /usr/include
+  cc8be /usr/include/python3.7m
+  cc8d6 /usr/include/aarch64-linux-gnu/sys
+  cc8fa box_stepper.c
+  cc90b stddef.h
+  cc917 types.h
+  cc922 struct_FILE.h
+  cc933 FILE.h
+  cc93d stdio.h
+  cc948 sys_errlist.h
+  cc959 errno.h
+  cc964 stdint-intn.h
+  cc975 unistd.h
+  cc981 getopt_core.h
+  cc992 stdint-uintn.h
+  cc9a4 pyport.h
+  cc9b0 math.h
+  cc9ba time.h
+  cc9c4 time.h
+  cc9ce object.h
+  cc9da methodobject.h
+  cc9ec structmember.h
+  cc9fe descrobject.h
+  cca0f objimpl.h
+  cca1c pyhash.h
+  cca28 pydebug.h
+  cca35 bytearrayobject.h
+  cca4a bytesobject.h
+  cca5b unicodeobject.h
+  cca6e longobject.h
+  cca7e longintrepr.h
+  cca8f boolobject.h
+  cca9f floatobject.h
+  ccab0 complexobject.h
+  ccac3 rangeobject.h
+  ccad4 memoryobject.h
+  ccae6 tupleobject.h
+  ccaf7 listobject.h
+  ccb07 dictobject.h
+  ccb17 odictobject.h
+  ccb28 enumobject.h
+  ccb38 setobject.h
+  ccb47 moduleobject.h
+  ccb59 funcobject.h
+  ccb69 classobject.h
+  ccb7a fileobject.h
+  ccb8a pycapsule.h
+  ccb99 pythread.h
+  ccba7 pystate.h
+  ccbb4 frameobject.h
+  ccbc5 traceback.h
+  ccbd4 sliceobject.h
+  ccbe5 cellobject.h
+  ccbf5 iterobject.h
+  ccc05 genobject.h
+  ccc14 weakrefobject.h
+  ccc27 structseq.h
+  ccc36 namespaceobject.h
+  ccc4b codecs.h
+  ccc57 pyerrors.h
+  ccc65 context.h
+  ccc72 modsupport.h
+  ccc82 code.h
+  ccc8c pythonrun.h
+  ccc9b ceval.h
+  ccca6 import.h
+  cccb2 bltinmodule.h
+  cccc3 pyctype.h
+  cccd0 pymem.h
+  cccdb pylifecycle.h
+  cccec warnings.h
+  cccfa string.h
+  ccd06 abstract.h
+  ccd14 eval.h
+  ccd1e <built-in>
+  cd588 	 t 
+  ce351  "  
+  ce5da J   
+  ce883 !f  <
+  ceac1 X   
+  cebb7 1.   
+  cebd9  .   
+  cf041  "  
+  cf140  "  
+  cf6d3 .  .
+  cf92e 	    
+  d01fb j. <
+  d087d t     .
+  d0cc4 .f. 
+  d0d94  t<.
+  d16d8 <   
+  d19aa .f. 
+  d1dcf z #"
+  d1e11 |  -  
+  d2218 z #"
+  d2682  -  
+  d2764 <f. .
+  d2886 .f<.
+  d2943 .f. 
+  d2988 }  . 
+  d2a1d }  . <
+  d2a36  -  
+  d2a57 }. .
+  d2a79 }  ,   
+  d2a9e }  ,  
+  d2ac2 }  , 
+  d2ba7 }.   
+  d2bc8 }.  
+  d2c3a }.  
+  d2c60 }. .
+  d2c84 |  . . 
+  d2cb0 |  -  
+  d2cdb |  -   
+  d2d03 }.  
+  d2d5b |  -  
+  d2d8f }  . 
+  d2e5c |  . 
+  d2e86 |    . 
+  d2e91 }       
+  d2ebf |  - 
+  d2f2d %!. 
+  d2f8c %". 
+  d302e _.. 
+  d30a1 %!  
+  d3ed2 <.<.<
+  d46ca W  <
+  d46e8  . .
+  d4b03 .   
+  d524c <-..<.<
+  d528b     
+  d5360 . .(. 
+  d565c 	 ...
+  d574a /.<..
+  d57eb 	 ..J
+  d5e2f   .< 
+  d6671 X   
+  d71c0 5 . 
+  d756c    .
+  d8126 ~  <
+  d8bcf . . 
+  d8d3a     
+  d9ae1  .  
+  d9bbe 5<< 
+  d9de3 j. .
+  d9f99 j. .
+  da02e <.  
+  da050 !   
+  dad03 ... 
+  daeb6 t ..
+  daf93 <.<.<
+  dafb6 v.. 
+  db259 v.  
+  db884 J . .  
+  db8c0 !!< 
+  db9a7 t  <
+  dbb00 M". 
+  dbe49      
+  dbf2b !   
+  dcb1a c."!
+  dcb44 a."!
+  dcba9 ^."!
+  dce79 ..  .
+  dcf4f .. <
+  dd0ac |    
+  dd295 !  < .
+  dd4df <f<.
+  dd57b  f. 
+  dd697 L.<  
+  dd6aa  <  
+  dd6fa U.    
+  dd79c Y.    
+  dd7a9 `.< 
+  dd7ce 5.   
+  dd7e9 E.   
+  dd831 e.  
+  dd847 V.   
+  dd86b 6.   
+  dd887 Y.     
+  dd88f I%  
+  dd8a5 I.    <. 
+  dd934 >   .
+  dd992 ! . 
+  ddb1e {.. 
+  ddbb2 #!. .
+  ddbd0 {.. 
+  ddbe6 #! .
+  ddbfc %!.  
+  ddc32 #"< 
+  ddc5b f < 
+  ddcd6   . 
+  ddce2 .. X 
+  ddd43 ~.   
+  ddd55 O. . 
+  ddd65 ..  
+  ddd7b W+  
+  dddb1 . . 
+  dde5b  .  
+  de1b5    .
+  deaba .  .
+  df227 [. .  
+  df233  .  
+  df4de .<.<.<
+  dfa2d '==K
+  e0415 Z  .
+  e0699 . . 
+  e0892 3  .
+  e08fe     
+  e0a5b '<. 
+  e1273 s   
+  e127c s.. .
+  e129b 8 . .  
+  e1460 F   
+  e1468 F.. 
+  e147b J.  
+  e1483 J.. 
+  e1685  J.  < 
+  e16a9 ].. 
+  e1813 `   
+  e181b `.<.
+  e182c X.. 
+  e183b \.. .
+  e1844 X   
+  e184c X.. .
+  e1855 P   
+  e1b59 R  <.  <  
+  e1b97 &  <
+  e1ec1  <.  
+  e1ed1     
+  e1ee1 4.   .
+  e2127 !!<.
+  e21c6 <.  
+  e230c u.. 
+  e233d  . <
+  e2525 e   
+  e409e .   
+  e5166 e <    <
+  e51aa 6.. 
+  e551e -..<.<.<
+  e55c8 4.  
+  e561d q.  
+  e60a9  <. 
+  e6103 L.  
+  e623b z   
+  e677c 0 . 
+  e69bb      
+  e7261 	 .<<
+  e72a7     
+  e7444 J     
+  e7895 . . 
+  e805a f . 
+  e81e5 /..<
+  e8286 5<< 
+  e8291 /.< . 
+  e830b J . 
+  e97a0 ^ . . 
+  e9829 `   
+  e9a19 %<  
+  ea7bd  t. 
+  eb05d  f. 
+  eb44e  f. 
+  eca19  f. 
+  ecced  f. 
+  ecd7a  t. 
+  eceeb  t. 
+  ed4c9 .f. 
+  ed5a0 .f<.
+  ed63e  t. 
+  eddc5 #! .
+  eddea #! .
+  ee728   . 
+  eebc8 . ..
+  eed67    .
+  eef19 0 ..
+  ef68b '===
+  f06d0  ... 
+  f284d <.   
+  f30c9 |   
+  f31d9 {   
+  f31f2 {  <
+  f326a {   
+  f330b {   
+  f3336 {   
+  f334f {  <
+  f337c {   
+  f3518 w. .
+  f353e '  .
+  f361d }.-!.
+  f3626 m  <
+  f3649 c, .
+  f36d9 ~   
+  f38d3 z   
+  f38e4 <  .
+  f3908 i: .
+  f3975 y  <
+  f398e y  <
+  f39a7 y  <
+  f3a06 y  <
+  f3a1f y  <
+  f3a38 y  <
+  f3a51 y  <
+  f3a6a y  <
+  f3a83 y  <
+  f3a9c y  <
+  f3af7 y  <
+  f3b10 y  <
+  f3b3d y   
+  f3b70 y  <
+  f3b89 o. .
+  f3b97 y   
+  f41db    .
+  f513b b? <
+  f6da4 #". 
+  f6fcc    <
+  f6fe4 .< .
+  f6ff7 q ..
+  f7052 %! .
+  f70c3      
+  f710d  .  
+  f71c2 n  .
+  f7325 r...
+  f791d    .
+  f8ae6  t. 
+  f8b81  t. 
+  f8c53  t<.
+  f9b80  t. 
+  fae6e  f. 
+  faf57  t. 
+  fb08d  f. 
+  fbfb6  t. 
+  fc733  f. 
+  fcbec  f. 
+  fcc76 <f. 
+  fd1f4 .f. 
+  fd332  t. 
+  fd7e1 .f. 
+  fd8f1 <f. .
+  fd9b3 .f. 
+  fdad2 .f. 
+  fdea9 .X  
+  fe290 <f. .
+  fe508 	   
+  feadf !!J 
+  fecf9  t. 
+  ff2fc  t. 
+  ff38c  f. 
+  ff463  t. 
+  ff5fa  t. 
+  ff6a6 t  .
+  ffc82 " . 
+ 1001b5 j .  
+ 100bb0    .
+ 10271b \    
+ 102749 $.  
+ 103a78 >". 
+ 103a8f Y". 
+ 103a9b M#. 
+ 103aa7 R". 
+ 103ab3 J#. 
+ 103abf H". 
+ 103acb L". 
+ 103ad7 R". 
+ 103aee Q". 
+ 103b31 T". 
+ 103b48 W". 
+ 103b8b U". 
+ 103d05 __pyx_tuple__30
+ 103d15 __pyx_tuple__31
+ 103d25 long long int
+ 103d33 __pyx_n_s_initializing
+ 103d4a __pyx_tuple__36
+ 103d5a __pyx_tuple__38
+ 103d6a __builtin_memcmp
+ 103d7b __pyx_codeobj__91
+ 103d8d __pyx_codeobj__93
+ 103d9f __pyx_codeobj__95
+ 103db1 __Pyx_CyFunction_get_name
+ 103dcb __pyx_codeobj__97
+ 103ddd PyExc_StopIteration
+ 103df1 nb_lshift
+ 103dfb __Pyx_CyFunction_reduce
+ 103e13 _disable_importlib
+ 103e26 __pyx_k_lookup_enable
+ 103e3c PySuper_Type
+ 103e49 __pyx_n_s_home_start
+ 103e5e __pyx_n_s_axes_d
+ 103e6f gc_was_enabled
+ 103e7e __pad5
+ 103e85 __pyx_v_config
+ 103e94 __pyx_k_trapq_free
+ 103ea7 __Pyx_InitCachedBuiltins
+ 103ec0 __pyx_k_c
+ 103eca __pyx_k_d
+ 103ed4 __pyx_k_e
+ 103ede __pyx_bisect_code_objects
+ 103ef8 __Pyx_StringTabEntry
+ 103f0d __pyx_k_i
+ 103f17 __pyx_freelist_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 103f5f __pyx_codeobj__111
+ 103f72 __pyx_k_s
+ 103f7c __pyx_k_completions
+ 103f90 __pyx_int_neg_80
+ 103fa1 __pyx_k_state
+ 103faf __pyx_n_u_card_reader
+ 103fc5 __pyx_k_value_t
+ 103fd5 GNU C17 8.3.0 -mlittle-endian -mabi=lp64 -g -g -O2 -fwrapv -fstack-protector-strong -fPIC
+ 10402f __pyx_v_next_filament_slot
+ 10404a suboffsets
+ 104055 __pyx_n_s_vendor
+ 104066 __pyx_k_home_success
+ 10407b __pyx_n_s_drip_completion
+ 104095 __pyx_k_CLEAR_OOZE
+ 1040a8 kwargs
+ 1040af _freeres_buf
+ 1040bc _Py_NoneStruct
+ 1040cb allocfunc
+ 1040d5 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_45set_led
+ 104113 __pyx_CyFunctionType
+ 104128 async_gen_finalizer
+ 10413c __pyx_k_self
+ 104149 PyModule_Type
+ 104157 __pyx_k_stepper_num
+ 10416b __pyx_k_BoxExtruderStepper_slot_load
+ 104190 PyByteArray_Type
+ 1041a1 __pyx_v_triggered
+ 1041b3 signgam
+ 1041bb PyTuple_GetItem
+ 1041cb allow_newer
+ 1041d7 type_name
+ 1041e1 nb_and
+ 1041e8 __Pyx_CyFunction_CallAsMethod
+ 104206 __pyx_k_next_slot
+ 104218 __Pyx_PyList_GetSlice
+ 10422e _PyType_Lookup
+ 10423d __pyx_n_s_completions
+ 104253 __pyx_tuple__55
+ 104263 PyVarObject
+ 10426f __pyx_n_s_kinematics
+ 104284 __pyx_L12_bool_binop_done
+ 10429e __pyx_n_s_r_endstop_state
+ 1042b8 __pyx_k_stop_read
+ 1042ca PyObject_RichCompare
+ 1042df __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_6sync_print_time
+ 104324 num_max
+ 10432c __pyx_n_s_BoxButton
+ 104340 __pyx_k_register_mux_command
+ 10435d __pyx_k_trapq_finalize_moves
+ 10437a __pyx_L34_except_error
+ 104391 __pyx_v_extruder_unload_length_2_speed
+ 1043b8 PyUnicode_FromFormat
+ 1043cd __pyx_k_register_event_handler
+ 1043ec __pyx_v_e
+ 1043f6 pyexitmodule
+ 104403 __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS
+ 104431 __pyx_n_s_accel
+ 104441 __pyx_v_i
+ 10444b mp_subscript
+ 104458 kwdefs
+ 10445f PyDict_New
+ 10446a __Pyx_PyInt_AddObjC
+ 10447e __pyx_n_s_sqrt
+ 10448d __pyx_k_temp_stepper
+ 1044a2 __pyx_k_CUT_FILAMENT_MOVE_TO_TRASH
+ 1044c5 PyDict_Next
+ 1044d1 vret
+ 1044d6 _PyAsyncGenASend_Type
+ 1044ec __pyx_n_s_BoxExtruderStepper_do_home_repea
+ 104517 __pyx_k_trapq_append
+ 10452c func_kwdefaults
+ 10453c __pyx_v_loop_stepper
+ 104551 gc_next
+ 104559 __pyx_k_last_load_slot
+ 104570 PyGC_Head
+ 10457a __pyx_k_Error_during_homing_move_s
+ 10459d __pyx_n_s_next_vendor_slot
+ 1045b8 __pyx_k_BoxExtruderStepper_set_led
+ 1045db __pyx_int_neg_5
+ 1045eb __Pyx_CodeObjectCacheEntry
+ 104606 PyModuleDef_Slot
+ 104617 __pyx_n_s_color_slot
+ 10462c visit
+ 104632 __pyx_tuple__67
+ 104642 PyContextVar_Type
+ 104654 ml_name
+ 10465c PyLong_FromUnsignedLong
+ 104674 __pyx_k_Code_QDE_004_004_Message_Please
+ 10469c __pyx_n_s__114
+ 1046ab __pyx_n_s_value_t
+ 1046bd __pyx_clineno
+ 1046cb _PyAIterWrapper_Type
+ 1046e0 PyModuleDef
+ 1046ec __pyx_n_s_extruder_load_length_1
+ 10470d __pyx_n_s_extruder_load_length_2
+ 10472e __pyx_n_s_extruder_load_length_3
+ 10474f Py_NoUserSiteDirectory
+ 104766 __pyx_L13_try_end
+ 104778 instance_class
+ 104787 __pyx_n_s_load_config_prefix
+ 1047a4 __pyx_k_auto_reload_detect
+ 1047bf PyExc_ImportError
+ 1047d1 PyGen_Type
+ 1047dc _py_tmp
+ 1047e4 __pyx_n_s_exl_1
+ 1047f4 shape
+ 1047fa PyASCIIObject
+ 104808 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_23get_mcu_endstops
+ 10484f sq_inplace_repeat
+ 104861 __pyx_k_EXTRUDER_LOAD
+ 104877 __pyx_tuple__70
+ 104887 __pyx_k_BoxExtruderStepper_do_move
+ 1048aa __pyx_int_100
+ 1048b8 __pyx_v_accel
+ 1048c6 __pyx_n_s_filament_slot
+ 1048de __pyx_n_s_qualname
+ 1048f1 _PyCoreConfig
+ 1048ff __pyx_n_s_get_mcu_endstops
+ 10491a stringtab_initialized
+ 104930 getdate_err
+ 10493c _PyLong_DigitValue
+ 10494f tp_dealloc
+ 10495a PyErr_NoMemory
+ 104969 iternextfunc
+ 104976 __pyx_k_extruder_unload_length_2_accel
+ 10499d __pyx_k_toolhead
+ 1049ae __pyx_n_s_box_button_state
+ 1049c9 PyExc_Warning
+ 1049d7 __pyx_n_s_ffi_main
+ 1049ea __pyx_n_s_wait
+ 1049f9 in_coroutine_wrapper
+ 104a0e __pyx_k_diameter
+ 104a1f __Pyx_PyObject_Call
+ 104a33 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_21do_home
+ 104a73 __pyx_n_s_sync_print_time
+ 104a8d __pyx_v_accel_t
+ 104a9d __pyx_n_s_white_value
+ 104ab3 b_handler
+ 104abd __pyx_n_s_NOW
+ 104acb __pyx_v_endstops
+ 104adc PyMethodDescr_Type
+ 104aef __pyx_dict_version
+ 104b02 __pyx_k_SLOT_PROMPT_MOVE
+ 104b1b __pyx_v_state
+ 104b29 __pyx_k_split
+ 104b37 __Pyx_CodeObjectCache
+ 104b4d PyImport_Import
+ 104b5d co_filename
+ 104b69 __pyx_k_force_move
+ 104b7c __pyx_L39_try_end
+ 104b8e setattrfunc
+ 104b9a __Pyx_PyLong_AbsNeg
+ 104bae __pyx_k_SLOT
+ 104bbb _PyAsyncGenWrappedValue_Type
+ 104bd8 __pyx_CyFunction_members
+ 104bf1 __pyx_n_s_do_home_repeatedly
+ 104c0e long double
+ 104c1a _PyMethodWrapper_Type
+ 104c30 PyLong_FromLongLong
+ 104c44 __Pyx_PyObject_GetAttrStr_ClearAttributeError
+ 104c72 floatval
+ 104c7b __pyx_v_box_endstop
+ 104c8f PyObject_SetItem
+ 104ca0 __pyx_n_s_prepare
+ 104cb2 PyThreadState_Get
+ 104cc4 __pyx_int_1000
+ 104cd3 __pyx_n_s_run_script
+ 104ce8 __pyx_n_s_QDE_004_016_00
+ 104d01 __pyx_k_ExtruderStepper
+ 104d19 __pyx_n_s_max
+ 104d27 PyWrapperDescr_Type
+ 104d3b __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_44set_led
+ 104d79 PyCFunction_Type
+ 104d8a __pyx_k_extras_box_stepper
+ 104da5 __pyx_k_init_box_motion
+ 104dbd __pyx_n_s_stepper_endstops
+ 104dd8 _IO_wide_data
+ 104de6 __pyx_v_exl_1_speed
+ 104dfa internal
+ 104e03 __pyx_v_completions
+ 104e17 __pyx_n_s_is_drying
+ 104e2b __pyx_L5_unpacking_failed
+ 104e45 use_tracing
+ 104e51 __pyx_kp_s_G1_Y300_F9000_G1_X0_F9000_G1_X0
+ 104e7c __pyx_k_BoxExtruderStepper_runout_button
+ 104ea5 PyExc_UnicodeDecodeError
+ 104ebe __pyx_n_s_runout_button
+ 104ed6 curexc_value
+ 104ee3 __pyx_k_initializing
+ 104ef8 context_ver
+ 104f04 __pyx_float_0_
+ 104f13 defaults_tuple
+ 104f22 __pyx_n_s_BoxExtruderStepper_cmd_EXTRUDER_2
+ 104f4e __pyx_n_s_stepper_name
+ 104f65 id_mutex
+ 104f6e dest
+ 104f73 __pyx_n_s_box_extras
+ 104f88 tstate_head
+ 104f94 tp_weaklist
+ 104fa0 boundscheck
+ 104fac module_name_str
+ 104fbc __Pyx_PyType_Ready
+ 104fcf __pyx_int_150
+ 104fdd __pyx_k_set_led
+ 104fed __Pyx_PyInt_BoolEqObjC
+ 105004 __pyx_codeobj__89
+ 105016 part
+ 10501b PyObject_GetIter
+ 10502c __pyx_float_1_
+ 10503b __Pyx_RaiseArgtupleInvalid
+ 105056 m_size
+ 10505d tp_new
+ 105064 __pyx_n_s_slot_unload_length_1_speed
+ 105089 PyTuple_Pack
+ 105096 co_kwonlyargcount
+ 1050a8 __pyx_v_wait
+ 1050b5 m_index
+ 1050bd __pyx_v_slot_unload_length_1
+ 1050da PyLongObject
+ 1050e7 __Pyx__ImportDottedModule
+ 105101 __pyx_n_s_PrinterPWMLED
+ 105119 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_33cmd_EXTRUDER_UNLOAD
+ 105165 PyClassMethodDescr_Type
+ 10517d ma_values
+ 105187 _PyErr_StackItem
+ 105198 __pyx_k_motion
+ 1051a7 __pyx_L1_error
+ 1051b6 nb_inplace_xor
+ 1051c5 __Pyx_is_valid_index
+ 1051da inplace
+ 1051e2 __pyx_k_card_reader
+ 1051f6 __pyx_n_s_calc_move_time
+ 10520f __pyx_k_sum
+ 10521b __pyx_tp_traverse_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 105266 __pyx_v_pos
+ 105272 __pyx_k_box_count
+ 105284 dump_refs
+ 10528e __pyx_n_s_mcu_endstop
+ 1052a4 __pyx_float_99999_9
+ 1052b8 __pyx_v_movepos
+ 1052c8 __pyx_k_BoxExtruderStepper_get_status
+ 1052ee __pyx_L9_exception_handled
+ 105309 __pyx_v_extruder_unload_length_1_speed
+ 105330 PyOS_InputHook
+ 10533f PyThreadState
+ 10534d PyUnicode_2BYTE_KIND
+ 105362 cyfunc
+ 105369 allow_py2_metaclass
+ 10537d interned
+ 105386 PyLong_AsDouble
+ 105396 PyDictIterItem_Type
+ 1053aa __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_9do_move
+ 1053e7 __pyx_k_PAUSE
+ 1053f5 __pyx_k_speed
+ 105403 tp_base
+ 10540b __pyx_k_can_load_slot
+ 105421 argdefs
+ 105429 __pyx_k_NEVER
+ 105437 data1
+ 10543d data2
+ 105443 __pyx_n_s_success_count
+ 10545b PyObject_Str
+ 105468 f_back
+ 10546f __pyx_k_printing
+ 105480 kwtuple
+ 105488 __pyx_k_runout_button
+ 10549e __Pyx_VerifyCachedType
+ 1054b5 hash1
+ 1054bb hash2
+ 1054c1 return_eq
+ 1054cb __pyx_k_asyncio_coroutines
+ 1054e6 __pyx_n_s_init
+ 1054f5 __pyx_k_get_name
+ 105506 __pyx_L9_exit_scope
+ 10551a PyBytes_FromStringAndSize
+ 105534 __pyx_n_s_HOMING_START_DELAY
+ 105551 __Pyx_ImportDottedModule
+ 10556a _unused2
+ 105573 __pyx_v_motion
+ 105582 PyList_New
+ 10558d PyStaticMethod_Type
+ 1055a1 __pyx_mdef_6extras_11box_stepper_1load_config_prefix
+ 1055d6 __pyx_n_s_BoxExtruderStepper_cmd_EXTRUDER
+ 105600 __Pyx_PyObject_CallNoArg
+ 105619 PyModuleDef_Base
+ 10562a __pyx_k_shake_toolhead
+ 105641 MAJOR_MINOR
+ 10564d tp_basicsize
+ 10565a tp_members
+ 105665 _PyLong_One
+ 105671 __pyx_k_rest_time
+ 105683 __Pyx_PyFunction_FastCallDict
+ 1056a1 empty_list
+ 1056ac PyExc_EnvironmentError
+ 1056c3 __pyx_k_PrinterPWMLED
+ 1056d9 __pyx_k_retry_num
+ 1056eb bufferinfo
+ 1056f6 PyBytes_Type
+ 105703 was_sq_slice
+ 105710 __pyx_k_led
+ 10571c __Pyx_ErrFetchInState
+ 105732 PyImport_GetModuleDict
+ 105749 __pyx_L40_except_continue
+ 105763 tmp_value
+ 10576d program_invocation_name
+ 105785 py_frame
+ 10578e __Pyx_CyFunction_set_kwdefaults
+ 1057ae tp_flags
+ 1057b7 PyExc_SyntaxError
+ 1057c9 __pyx_k_extruder_unload_length_1_accel
+ 1057f0 PyTryBlock
+ 1057fb destructor
+ 105806 PyCode_New
+ 105811 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_35cmd_SLOT_PROMPT_MOVE
+ 10585e PyExc_SystemExit
+ 10586f __pyx_int_300
+ 10587d __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_21do_home
+ 1058bb __pyx_n_s_config
+ 1058cc tp_setattro
+ 1058d8 __pyx_n_s_DISABLE_DELAY
+ 1058f0 _PyCFunction_FastCallKeywords
+ 10590e _PyOS_ReadlineTState
+ 105923 __pyx_k_flush_all_filament
+ 10593e __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_43cmd_SLOT_RFID_READ
+ 105987 _py_xdecref_tmp
+ 105997 PyListIter_Type
+ 1059a7 dev_mode
+ 1059b0 djbx33a
+ 1059b8 __pyx_n_s_EXTRUDER_LOAD
+ 1059d0 __pyx_k_success_count
+ 1059e6 PyImport_GetModule
+ 1059f9 __pyx_n_s_slot_sync
+ 105a0d __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_47led_handle_connect
+ 105a56 __pyx_k_trigger_time
+ 105a6b is_str
+ 105a72 __pyx_L4_unpacking_done
+ 105a8a _PyNotImplemented_Type
+ 105aa1 codec_error_registry
+ 105ab6 __pyx_k_M400
+ 105ac3 exc_type2
+ 105acd __Pyx_PyErr_GetTopmostException
+ 105aed __pyx_k_slot_not_unload
+ 105b05 new_max
+ 105b0d __pyx_n_s_error
+ 105b1d __pyx_cur_scope
+ 105b2d __pyx_n_s_trapq
+ 105b3d f_lasti
+ 105b45 __pyx_n_s_next_filament_slot
+ 105b62 PyUnicode_AsUTF8
+ 105b73 PyReversed_Type
+ 105b83 __pyx_n_s_startpos
+ 105b96 __pyx_n_s_led_timer
+ 105baa PyMem_Realloc
+ 105bb8 __Pyx_Raise
+ 105bc4 stderr
+ 105bcb __pyx_k_hall_filament_width_sensor
+ 105bee __pyx_L6_unpacking_done
+ 105c06 __pyx_k_led_state
+ 105c18 __pyx_v_slot_unload_length_1_accel
+ 105c3b thread_id
+ 105c45 __pyx_n_s_start_rfid_read
+ 105c5f is_subclass
+ 105c6b __pyx_n_s_led_handle_connect
+ 105c88 __pyx_n_s_register_callback
+ 105ca4 argname
+ 105cac PyImport_FrozenModules
+ 105cc3 ob_base
+ 105ccb PyFrame_Type
+ 105cd8 __pyx_k_load_retry_num
+ 105cef PyObject_SetAttrString
+ 105d06 readonly
+ 105d0f __pyx_int_neg_20
+ 105d20 __pyx_v_slot_unload_length_1_speed
+ 105d43 __Pyx_PyCMethod
+ 105d53 __pyx_n_s_runout_2
+ 105d66 __Pyx__CyFunction_dealloc
+ 105d80 __pyx_v_extruder_load_length_1_accel
+ 105da5 __Pyx_ImportFrom
+ 105db6 __Pyx_PyObject_GetAttrStr
+ 105dd0 am_anext
+ 105dd9 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_7sync_print_time
+ 105e1e ignore_environment
+ 105e31 __Pyx_ListComp_Append
+ 105e47 __pyx_k_BoxExtruderStepper_sync_print_ti
+ 105e70 __pyx_k_retry_step
+ 105e83 __pyx_n_s_test
+ 105e92 _PyMainInterpreterConfig
+ 105eab __pyx_n_s_slot_load_length_4_accel
+ 105ece PyExc_ValueError
+ 105edf __pyx_codeobj__78
+ 105ef1 __pyx_n_s_add_stepper
+ 105f07 __Pyx_check_single_interpreter
+ 105f26 PyNumber_InPlaceAdd
+ 105f3a PyExc_RuntimeError
+ 105f4d __pyx_kp_s_Code_QDE_004_009_Message_Extrude
+ 105f79 co_extra_freefuncs
+ 105f8c Py_buffer
+ 105f96 __uint8_t
+ 105fa0 dictptr
+ 105fa8 __pyx_v_box_rfid
+ 105fb9 __pyx_k_calc_endstop_rate
+ 105fd3 __pyx_n_s_ExtruderStepper
+ 105fed __pyx_k_DISABLE_DELAY
+ 106003 __pyx_k_QDE_004_017_00
+ 10601a __Pyx_PyUnicode_Equals
+ 106031 __pyx_k_axis_r
+ 106040 __pyx_k_kinematics
+ 106053 PyExc_FloatingPointError
+ 10606c __pyx_b
+ 106074 __pyx_k_delay
+ 106082 __pyx_d
+ 10608a PyUnicode_WCHAR_KIND
+ 10609f _vtable_offset
+ 1060ae __pyx_n_s_box_motion_timer
+ 1060c9 __pyx_m
+ 1060d1 __pyx_r
+ 1060d9 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_29cmd_SLOT_UNLOAD
+ 106121 __pyx_n_s_all_endstop_trigger
+ 10613f __pyx_L5_argtuple_error
+ 106157 tp_init
+ 10615f __pyx_v_extruder_load_length_1_speed
+ 106184 PyTypeObject
+ 106191 nb_remainder
+ 10619e __Pyx_CalculateMetaclass
+ 1061b7 tp_free
+ 1061bf return_ne
+ 1061c9 ucs2
+ 1061ce ucs4
+ 1061d3 PyExc_ResourceWarning
+ 1061e9 __pyx_int_360
+ 1061f7 __pyx_n_s_register_event_handler
+ 106218 nb_inplace_remainder
+ 10622d __pyx_n_s_r_endstop
+ 106241 _Py_NotImplementedStruct
+ 10625a __pyx_kp_s_Code_QDE_004_005_Message_Please
+ 106285 __pyx_n_s_do_home
+ 106297 eval_frame
+ 1062a2 module_search_path_env
+ 1062b9 __pyx_pymod_exec_box_stepper
+ 1062d6 __pyx_k_get_step_dist
+ 1062ec __pyx_n_s_get_step_dist
+ 106304 PyErr_Occurred
+ 106313 PyUnicode_Compare
+ 106325 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_39flush_all_filament
+ 106370 PyRangeIter_Type
+ 106381 PyModuleDef_Init
+ 106392 __pyx_k_color_slot
+ 1063a5 PyCapsule_Type
+ 1063b4 __pyx_builtin_sum
+ 1063c6 __pyx_kp_s_Code_QDE_004_002_Message_Extrud
+ 1063f1 __pyx_v_runout_pin
+ 106404 __pyx_n_s_note_kinematic_activity
+ 106426 __pyx_CyFunctionType_type
+ 106440 __pyx_k_range
+ 10644e __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_5get_status
+ 106490 __pyx_L11
+ 10649a __pyx_n_s_load_object
+ 1064b0 ternaryfunc
+ 1064bc __pyx_v_axis_r
+ 1064cb __pyx_n_s_MOVE_TO_TRASH
+ 1064e3 __pyx_n_s_cmd_EXTRUDER_UNLOAD
+ 106501 const_zero
+ 10650c im_weakreflist
+ 10651b __pyx_k_move_d
+ 10652a nb_index
+ 106533 __pyx_n_s_flush_success
+ 10654b limit
+ 106551 __pyx_k_move_t
+ 106560 __pyx_k_1A
+ 10656b __pyx_k_1B
+ 106576 __pyx_k_1C
+ 106581 __pyx_k_1D
+ 10658c PySet_Type
+ 106597 __pyx_8genexpr1__pyx_v_d
+ 1065b0 __pyx_n_s_vendor_slot
+ 1065c6 sq_contains
+ 1065d2 tp_setattr
+ 1065dd __pyx_n_s_BoxExtruderStepper_multi_complet
+ 106608 PyDictObject
+ 106615 __pyx_cython_runtime
+ 10662a m_ml
+ 10662f __pyx_n_s_b_endstop_state
+ 106649 __pyx_kp_s_Code_QDE_004_020_Message_Detect
+ 106674 s1_is_unicode
+ 106682 __pyx_outer_scope
+ 106694 __pyx_n_s_max_steps
+ 1066a8 __pyx_n_s_extruder_load_length_2_accel
+ 1066cf __pyx_k_box_stepper_py
+ 1066e6 _PyDict_GetItem_KnownHash
+ 106700 __Pyx_PyVectorcall_FastCallDict
+ 106720 __pyx_k_cmd_SLOT_UNLOAD
+ 106738 PyUnicode_Decode
+ 106749 __pyx_k_2A
+ 106754 __pyx_k_2B
+ 10675f __pyx_k_2C
+ 10676a __pyx_k_2D
+ 106775 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_14disable_stepper
+ 1067bb __timezone
+ 1067c6 __pyx_L20
+ 1067d0 __Pyx__GetException
+ 1067e4 __pyx_k_calc_position_from_coord
+ 106805 ascii
+ 10680b module_search_paths
+ 10681f PyExc_NameError
+ 10682f __pyx_n_s_slot_load_length_2_speed
+ 106852 PyFrozenSet_Type
+ 106863 __pyx_v_toolhead
+ 106874 __pyx_k_name
+ 106881 suffix
+ 106888 __Pyx_RaiseTooManyValuesError
+ 1068a6 nb_subtract
+ 1068b2 PyErr_Fetch
+ 1068be modules_by_index
+ 1068cf executable
+ 1068da __pyx_k_3A
+ 1068e5 __pyx_k_3B
+ 1068f0 nb_absolute
+ 1068fc __pyx_k_3D
+ 106907 PyFrameObject
+ 106915 ob_type
+ 10691d PyExc_ImportWarning
+ 106931 __pyx_n_s_gcmd
+ 106940 __Pyx_CyFunction_get_closure
+ 10695d async_gen_firstiter
+ 106971 inquiry
+ 106979 num_threads
+ 106985 import_time
+ 106991 PyNumber_Add
+ 10699e __pyx_L10_except_error
+ 1069b5 tp_getattr
+ 1069c0 __Pyx_PyBool_FromLong
+ 1069d6 __pyx_v_move_d
+ 1069e5 pvalue
+ 1069ec __Pyx_PyImport_AddModuleRef
+ 106a08 PyTupleObject
+ 106a16 __pyx_v_move_t
+ 106a25 __pyx_k_4A
+ 106a30 __pyx_k_4B
+ 106a3b __pyx_k_4C
+ 106a46 __pyx_k_4D
+ 106a51 __pyx_kp_s_Code_QDE_004_017_Message_Filamen
+ 106a7d __pyx_n_s_get_last_move_time
+ 106a9a __pyx_k_load_hub_length_1_accel
+ 106aba __pyx_n_s_can_cut
+ 106acc _Py_ctype_tolower
+ 106ade _IO_backup_base
+ 106aee __pyx_L25_exit_scope
+ 106b03 __pyx_k_slot_load
+ 106b15 py_funcname
+ 106b21 __pyx_n_s_BoxExtruderStepper_get_mcu_endst
+ 106b4c __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_32cmd_EXTRUDER_UNLOAD
+ 106b96 __Pyx_get_runtime_version
+ 106bb0 nbases
+ 106bb7 __pyx_v_filament_slot
+ 106bcd __Pyx_check_binary_version
+ 106be8 __pyx_k_MOVE_TO_TRASH
+ 106bfe __pyx_n_s_cline_in_traceback
+ 106c1b __pyx_v_slot_sync
+ 106c2d __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_19multi_complete
+ 106c72 __pyx_n_s_tool_change
+ 106c88 PyOS_snprintf
+ 106c96 __Pyx_CyFunction_InitDefaults
+ 106cb4 nb_invert
+ 106cbe __pyx_k_flush_success
+ 106cd4 m_clear
+ 106cdc __pyx_k_Code_QDE_004_009_Message_Extrude
+ 106d05 __pyx_k_b_motion
+ 106d16 PyModule_NewObject
+ 106d29 __Pyx_PyObject_CallMethO
+ 106d42 _sys_errlist
+ 106d4f __pyx_n_s_BoxExtruderStepper_switch_next_s
+ 106d7a empty_dict
+ 106d85 __pyx_n_s_doc
+ 106d93 c_profileobj
+ 106da0 warnoptions
+ 106dac __pyx_kp_s_klippy_ready
+ 106dc4 nb_inplace_floor_divide
+ 106ddc __pyx_k_box_extras
+ 106def is_true
+ 106df7 __pyx_k_BoxExtruderStepper_cmd_SLOT_RFID
+ 106e20 stdin
+ 106e26 __pyx_k_multi_complete
+ 106e3d __pyx_L11_bool_binop_done
+ 106e57 __pyx_v_home_success
+ 106e6c _PyGC_generation0
+ 106e7e __Pyx_RaiseDoubleKeywordsError
+ 106e9d new_args
+ 106ea6 parts_tuple
+ 106eb2 __pyx_n_s_delay
+ 106ec2 optopt
+ 106ec9 __Pyx_CyFunction_set_annotations
+ 106eea PyExc_OSError
+ 106ef8 __pyx_n_s_slot
+ 106f07 im_self
+ 106f0f __pyx_n_s_slot_load_length_3_accel
+ 106f32 __pyx_k__59
+ 106f3e __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_8do_move
+ 106f7b __pyx_kp_s_Code_QDE_004_011_Message_Detecte
+ 106fa7 __pyx_k_s_has_been_sync_with_Extruder
+ 106fcd kwds2
+ 106fd3 __pyx_n_s_zip
+ 106fe1 max_count
+ 106feb _IO_read_end
+ 106ff8 PyErr_ExceptionMatches
+ 10700f descrsetfunc
+ 10701c __pyx_v_print_time
+ 10702f __pyx_k_extruder_unload_length_2_speed
+ 107056 tp_as_sequence
+ 107065 kind
+ 10706a __pyx_v_exl_1
+ 107078 initfunc
+ 107081 PyExc_TabError
+ 107090 __pyx_k_load_config_prefix
+ 1070ab _IO_save_base
+ 1070b9 __Pyx_PyInt_FloorDivideObjC
+ 1070d5 PyExc_RuntimeWarning
+ 1070ea __pyx_k_get_printer
+ 1070fe __pyx_moduledef
+ 10710e __pyx_n_s_get_steppers
+ 107125 PyFloat_Type
+ 107132 __pyx_tuple__101
+ 107143 __pyx_n_s_print_stats
+ 107159 __pyx_tuple__103
+ 10716a __pyx_v_rfid_device
+ 10717e __pyx_tuple__105
+ 10718f __pyx_tuple__107
+ 1071a0 __pyx_tuple__109
+ 1071b1 __pyx_k_BoxExtruderStepper_multi_complet_2
+ 1071dc PyExc_BlockingIOError
+ 1071f2 __pyx_lineno
+ 1071ff __pyx_k_exclude_tool
+ 107214 __pyx_code_cache
+ 107225 __Pyx_CyFunction_CallMethod
+ 107241 __pyx_k_register_timer
+ 107258 __pyx_n_s__60
+ 107266 nb_divmod
+ 107270 __pyx_n_s_filament
+ 107283 __pyx_k_slot_state
+ 107296 _IO_write_end
+ 1072a4 _Py_CheckRecursionLimit
+ 1072bc __pyx_kp_s_M204_S10000_M83_G1_X0_Y215_F2100
+ 1072e8 __pyx_v_temp_stepper
+ 1072fd __pyx_k_r_endstop_state
+ 107315 _PyFrameEvalFunction
+ 10732a __pyx_tuple__112
+ 10733b __pyx_n_s_box_count
+ 10734f __pyx_n_s_get_reactor
+ 107365 f_localsplus
+ 107372 _stop
+ 107378 _PyByteArray_empty_string
+ 107392 __pyx_int_neg_260
+ 1073a4 __pyx_n_s_runout_pin
+ 1073b9 __Pyx_CyFunction_set_name
+ 1073d3 __pyx_k_disable_stepper
+ 1073eb pyexitfunc
+ 1073f6 __Pyx_PyInt_SubtractCObj
+ 10740f __pyx_n_s_runout_num
+ 107424 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_43cmd_SLOT_RFID_READ
+ 10746f function
+ 107478 PyDictIterKey_Type
+ 10748b __pyx_n_s_runout
+ 10749c exact
+ 1074a2 __Pyx_InBases
+ 1074b0 __pyx_n_s_super
+ 1074c0 descrgetfunc
+ 1074cd __pyx_v_slot_load_length_3_speed
+ 1074ee coerce_c_locale
+ 1074fe __pyx_k_gcmd
+ 10750b _IO_buf_base
+ 107518 __pyx_kp_u_gc
+ 107526 PyFloat_FromDouble
+ 107539 m_doc
+ 10753f ssizeargfunc
+ 10754c __pyx_v_load_hub_length_1_accel
+ 10756c __pyx_k_ENDSTOP_SAMPLE_TIME
+ 107588 __pyx_k_do_home_repeatedly
+ 1075a3 __Pyx_PyInt_MultiplyCObj
+ 1075bc __uint16_t
+ 1075c7 __pyx_n_s_get_key_by_value
+ 1075e2 __Pyx_GetItemInt_Fast
+ 1075f8 PyMappingMethods
+ 107609 __pyx_mstate
+ 107616 __pyx_L27_unpacking_done
+ 10762f __pyx_n_s_ENDSTOP_SAMPLE_COUNT
+ 10764e __Pyx_Py3ClassCreate
+ 107663 __pyx_k_extruder_stepper
+ 10767c __pyx_n_s_hall
+ 10768b __pyx_float_0_001
+ 10769d _PyObject_GenericGetAttrWithDict
+ 1076be object_name
+ 1076ca __Pyx_CyFunction_Vectorcall_CheckArgs
+ 1076f0 program
+ 1076f8 __pyx_kp_s_G1_E25_F300
+ 10770f equals
+ 107716 __pyx_n_s_extruder_load_length_1_accel
+ 10773d __pyx_k_lookup_object
+ 107753 __pyx_k_print_sensor_state_to_log
+ 107775 install_signal_handlers
+ 10778d __pyx_k_triggered
+ 10779f __Pyx_CyFunction_get_defaults
+ 1077bd PyObject_GC_Del
+ 1077cd __pyx_k_axes_d
+ 1077dc __pyx_n_s_set_trapq
+ 1077f0 nb_float
+ 1077f9 __pyx_n_s_BoxExtruderStepper_led_handle_co
+ 107824 nb_inplace_rshift
+ 107836 __pyx_n_s_next_slot
+ 10784a __pyx_v_max_steps
+ 10785c __pyx_n_s_BoxEndstop
+ 107871 PyDictKeysObject
+ 107882 __pyx_k_Code_QDE_004_017_Message_Filamen
+ 1078ab __pyx_filename
+ 1078ba PyMem_Malloc
+ 1078c7 PyExc_NotImplementedError
+ 1078e1 __pyx_n_s_print_sensor_state_to_log
+ 107905 __pyx_k_mcu_endstop
+ 107919 __pyx_v_exl_1_accel
+ 10792d sdigit
+ 107934 __pyx_k_vendor
+ 107943 __Pyx_CyOrPyCFunction_GET_SELF
+ 107962 __pyx_k_respond_info
+ 107977 sq_length
+ 107981 before_forkers
+ 107990 Py_UTF8Mode
+ 10799c PyErr_SetObject
+ 1079ac __pyx_k_Code_QDE_004_019_Message_Please
+ 1079d4 __pyx_kp_s_G1_X0_Y250_F30000_G1_X0_Y50_F300
+ 107a00 __pyx_L9_unpacking_done
+ 107a18 co_lnotab
+ 107a22 arg_passed_twice
+ 107a33 PyExc_ConnectionRefusedError
+ 107a50 code_line
+ 107a5a _IO_marker
+ 107a65 __pyx_n_s_command_error
+ 107a7d __pyx_dynamic_args
+ 107a90 __pyx_n_s_BoxExtruderStepper_cmd_SLOT_UNLO
+ 107abb printfunc
+ 107ac5 _PyWeakref_RefType
+ 107ad8 padding
+ 107ae0 am_await
+ 107ae9 calculate_metaclass
+ 107afd __pyx_k_cmd_SLOT_PROMPT_MOVE
+ 107b1a __pyx_tp_dealloc_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 107b64 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_17_calc_endstop_rate
+ 107bad __pyx_k_set_trapq
+ 107bbf __pyx_v_axes_d
+ 107bce __pyx_L28_continue
+ 107be1 __pyx_t_13
+ 107bec PyExc_UnboundLocalError
+ 107c04 __pyx_empty_tuple
+ 107c16 __pyx_k_update_leds
+ 107c2a PyObject_Free
+ 107c38 __pyx_n_s_switch_next_slot
+ 107c53 PyObject_Not
+ 107c60 __pyx_v_ffi_lib
+ 107c70 __pyx_n_s_extruder_unload_length_2_accel
+ 107c99 getattrofunc
+ 107ca6 __pyx_n_s_next_color_slot
+ 107cc0 PyExc_BrokenPipeError
+ 107cd6 __pyx_v_hall
+ 107ce3 PyNullImporter_Type
+ 107cf7 __pyx_n_s_extrude_state
+ 107d0f PyNumber_FloorDivide
+ 107d24 __pyx_n_s_value
+ 107d34 compact
+ 107d3c __pyx_nargs
+ 107d48 margs
+ 107d4e _IO_lock_t
+ 107d59 _IO_read_ptr
+ 107d66 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_18multi_complete
+ 107dab PyListRevIter_Type
+ 107dbe __pyx_n_s_extruder_load_length_3_speed
+ 107de5 __pyx_v_stepper_enable
+ 107dfc __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_41switch_next_slot
+ 107e43 PyUnicodeIter_Type
+ 107e56 descr
+ 107e5c __pyx_float_0_05
+ 107e6d __pyx_k_dict
+ 107e7a func_globals
+ 107e87 PyLongRangeIter_Type
+ 107e9c __pyx_n_s_slot_load_length_2_accel
+ 107ebf codecs_initialized
+ 107ed2 __pyx_L4_break
+ 107ee1 __environ
+ 107eeb unsafe
+ 107ef2 __pyx_n_s_update_timer
+ 107f09 __pyx_n_s_reactor
+ 107f1b defaults_pyobjects
+ 107f2e m_slots
+ 107f36 _flags2
+ 107f3e PyNumber_Multiply
+ 107f50 tp_version_tag
+ 107f5f __pyx_k_extruder_unload_length_1_speed
+ 107f86 __pyx_k_slot_unload_length_1
+ 107fa3 __pyx_k_M204_S10000_M83_G1_X0_Y215_F2100
+ 107fcc sq_ass_item
+ 107fd8 __pyx_k_BoxExtruderStepper_cmd_EXTRUDER
+ 108000 __pyx_n_s_QDE_004_022_00
+ 108019 __pyx_n_s_eventtime
+ 10802d __pyx_L0
+ 108036 __Pyx__ExceptionReset
+ 10804c imported_module
+ 10805c __pyx_L3
+ 108065 __pyx_L4
+ 10806e __pyx_L5
+ 108077 PyEllipsis_Type
+ 108087 __pyx_L7
+ 108090 __pyx_L9
+ 108099 __pyx_k_e_endstop_timer
+ 1080b1 __pyx_v_runout_button
+ 1080c7 __pyx_lambda_funcdef_lambda1
+ 1080e4 __pyx_k_HOMING_START_DELAY
+ 1080ff xoptions
+ 108108 __pyx_k_command_error
+ 10811e _IO_write_ptr
+ 10812c __pyx_n_s_get_value_by_key
+ 108147 __pyx_v_extruder_unload_length_1_accel
+ 10816e __pyx_k_b_endstop_timer
+ 108186 __pyx_k_label_map
+ 108198 PyErr_SetString
+ 1081a8 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_30cmd_EXTRUDER_LOAD
+ 1081f0 __pyx_n_s_init_box_motion
+ 10820a __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_33cmd_EXTRUDER_UNLOAD
+ 108254 PyLong_FromSsize_t
+ 108267 PyExc_ConnectionAbortedError
+ 108284 __pyx_k_update_timer
+ 108299 c_traceobj
+ 1082a4 __pyx_pw_6extras_11box_stepper_1load_config_prefix
+ 1082d7 __pyx_float__001
+ 1082e8 PyBufferProcs
+ 1082f6 getattrfunc
+ 108302 __pyx_n_s_spec
+ 108311 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_46led_handle_connect
+ 10835a __pyx_k_home_wait
+ 10836c exc_state
+ 108376 Py_hash_t
+ 108380 __pyx_v_slot_loaded
+ 108394 sq_inplace_concat
+ 1083a6 __pyx_module_is_main_extras__box_stepper
+ 1083cf Py_HasFileSystemDefaultEncoding
+ 1083ef __pyx_n_s_movepos
+ 108401 sq_repeat
+ 10840b func_defaults
+ 108419 __pyx_k_extrude_state
+ 10842f __pyx_k_BoxExtruderStepper__calc_endstop
+ 108458 _PyCFunctionFastWithKeywords
+ 108475 __pyx_n_s_endstops
+ 108488 __pyx_n_s_chelper
+ 10849a __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_4get_status
+ 1084da __pyx_n_s_slot_load_length_4_speed
+ 1084fd hashfunc
+ 108506 __pyx_tuple__10
+ 108516 __pyx_tuple__11
+ 108526 __pyx_tuple__12
+ 108536 PyThread_type_lock
+ 108549 __pyx_tuple__14
+ 108559 __pyx_tuple__15
+ 108569 __pyx_tuple__16
+ 108579 __pyx_k_BoxExtruderStepper_do_home
+ 10859c __pyx_tuple__18
+ 1085ac __pyx_tuple__19
+ 1085bc __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_11dwell
+ 1085f8 submodule
+ 108602 faulthandler
+ 10860f _PyThreadState_UncheckedGet
+ 10862b newargs
+ 108633 __pyx_k_b_endstop
+ 108645 __pyx_n_s_c
+ 108651 __pyx_n_s_d
+ 10865d __pyx_n_s_e
+ 108669 __pyx_n_s_is_coroutine
+ 108680 reprfunc
+ 108689 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_14multi_complete_lambda
+ 1086d5 __pyx_n_s_i
+ 1086e1 __pyx_n_s_s
+ 1086ed __pyx_k_add_stepper
+ 108701 try_unpack
+ 10870c codec_search_path
+ 10871e __pyx_k_next_filament_slot
+ 108739 __pyx_tuple__20
+ 108749 __pyx_tuple__21
+ 108759 __pyx_tuple__22
+ 108769 __pyx_tuple__23
+ 108779 recursion_depth
+ 108789 __pyx_tuple__25
+ 108799 __pyx_tuple__26
+ 1087a9 __pyx_tuple__27
+ 1087b9 __pyx_tuple__28
+ 1087c9 __pyx_tuple__29
+ 1087d9 __Pyx_RaiseNeedMoreValuesError
+ 1087f8 __pyx_k_prepare
+ 108808 PyErr_Format
+ 108815 __pyx_k_slot_unload_length_1_accel
+ 108838 nb_inplace_power
+ 108849 tp_as_number
+ 108856 __pyx_k_led_handle_connect
+ 108871 PyMem_Free
+ 10887c __Pyx_PyInt_MultiplyObjC
+ 108895 PyList_Type
+ 1088a1 __pyx_k_Code_QDE_004_011_Message_Detecte
+ 1088ca __pyx_k_get
+ 1088d6 PyCmpWrapper_Type
+ 1088e8 __pyx_tuple__32
+ 1088f8 __pyx_tuple__33
+ 108908 __pyx_tuple__34
+ 108918 __pyx_tuple__35
+ 108928 __pyx_n_s_box_endstop
+ 10893e __pyx_tuple__37
+ 10894e __pyx_n_s_self
+ 10895d __pyx_tuple__39
+ 10896d __pyx_v_slot_load_length_1
+ 108988 __pyx_v_slot_load_length_2
+ 1089a3 __pyx_v_slot_load_length_3
+ 1089be __pyx_v_slot_load_length_4
+ 1089d9 nb_int
+ 1089e0 __pyx_n_s_BoxExtruderStepper_drip_move
+ 108a07 PyExc_SystemError
+ 108a19 __Pyx_InitConstants
+ 108a2d __pyx_CyFunction_init
+ 108a43 c_tracefunc
+ 108a4f PyCFunctionObject
+ 108a61 __pyx_v_next_slot
+ 108a73 __Pyx_CyFunction_set_dict
+ 108a8d ob_fval
+ 108a95 utf8
+ 108a9a __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_2runout_button_callback
+ 108ae6 __pyx_tuple__40
+ 108af6 __pyx_tuple__41
+ 108b06 __pyx_tuple__42
+ 108b16 __pyx_n_s_color
+ 108b26 __pyx_tuple__44
+ 108b36 __pyx_tuple__45
+ 108b46 __pyx_tuple__46
+ 108b56 __pyx_tuple__47
+ 108b66 __pyx_tuple__48
+ 108b76 __pyx_tuple__49
+ 108b86 PyErr_Clear
+ 108b92 __pyx_k_get_mcu_endstops
+ 108bab __pyx_k_super
+ 108bb9 dlopenflags
+ 108bc5 nb_inplace_true_divide
+ 108bdc PyNumber_Remainder
+ 108bef PyExc_UnicodeWarning
+ 108c04 __pyx_8genexpr4__pyx_v_es
+ 108c1e __pyx_n_s_accel_t
+ 108c30 __pyx_n_s_stepper_enable
+ 108c49 __pyx_k_complete
+ 108c5a __pyx_v_trigger_time
+ 108c6f __pyx_n_s_loop_stepper
+ 108c86 __pyx_k_pos
+ 108c92 __Pyx_PyFunction_FastCallNoKw
+ 108cb0 __pyx_k_set_name
+ 108cc1 __pyx_tuple__50
+ 108cd1 __pyx_tuple__51
+ 108ce1 __pyx_tuple__52
+ 108cf1 __pyx_tuple__53
+ 108d01 __pyx_tuple__54
+ 108d11 __pyx_tuple__56
+ 108d21 __pyx_tuple__57
+ 108d31 __pyx_tuple__58
+ 108d41 use_cline
+ 108d4b __pyx_pyinit_module
+ 108d5f wstr
+ 108d64 PyLong_Type
+ 108d70 __Pyx_CyFunction_get_annotations
+ 108d91 __Pyx_PyObject_IsTrue
+ 108da7 __pyx_n_s_scram
+ 108db7 __pyx_n_s_drip_move
+ 108dcb __pyx_k_init_subclass
+ 108de1 PyInterpreterState_GetID
+ 108dfa __pyx_n_s_BoxExtruderStepper_flush_all_fil
+ 108e25 wstr_length
+ 108e31 tp_descr_set
+ 108e3e __Pyx_ImportDottedModule_WalkParts
+ 108e61 __pyx_k_G1_E25_F300
+ 108e75 __pyx_n_s_BoxExtruderStepper_sync_print_ti
+ 108ea0 nb_power
+ 108ea9 __pyx_k_EXTRUDER_UNLOAD
+ 108ec1 __pyx_tuple__61
+ 108ed1 __pyx_tuple__63
+ 108ee1 __pyx_tuple__65
+ 108ef1 _PySet_Dummy
+ 108efe __pyx_tuple__68
+ 108f0e __pyx_k_vendor_slot
+ 108f22 __pyx_callargs
+ 108f31 __pyx_k_load_object
+ 108f45 __pyx_pf_6extras_11box_stepper_2__defaults__
+ 108f72 PyMethod_Type
+ 108f80 __pyx_n_s_rest_time
+ 108f94 co_stacksize
+ 108fa1 tp_hash
+ 108fa9 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_35cmd_SLOT_PROMPT_MOVE
+ 108ff4 show_ref_count
+ 109003 __pyx_v_endstop_triggers
+ 10901c __pyx_n_s_retry_num
+ 109030 __pyx_n_s_extruder_load_length_2_speed
+ 109057 __pyx_k_G1_Y300_F9000_G1_X0_F9000_G1_X0
+ 10907f __pyx_kp_u_isenabled
+ 109094 _IO_buf_end
+ 1090a0 __pyx_n_s_exl_1_accel
+ 1090b6 __pyx_tuple__72
+ 1090c6 __pyx_tuple__73
+ 1090d6 __pyx_tuple__75
+ 1090e6 __pyx_tuple__77
+ 1090f6 visitproc
+ 109100 __pyx_tuple__79
+ 109110 short unsigned int
+ 109123 __pyx_L26_unpacking_failed
+ 10913e __pyx_n_s_cmd_EXTRUDER_LOAD
+ 10915a __pyx_n_s_slot_load_length_1_accel
+ 10917d f_trace_lines
+ 10918b __pyx_CyFunctionObject
+ 1091a2 __pyx_k_cruise_t
+ 1091b3 __pyx_k_cruise_v
+ 1091c4 __pyx_int_900
+ 1091d2 __pyx_n_s_printer
+ 1091e4 m_base
+ 1091eb __pyx_n_s_get_endstops
+ 109202 PyDictKeys_Type
+ 109212 tp_print
+ 10921b __pyx_k_update_time
+ 10922f gc_prev
+ 109237 ma_used
+ 10923f __pyx_v_self
+ 10924c nb_inplace_lshift
+ 10925e PyExc_BufferError
+ 109270 PyExc_InterruptedError
+ 109287 __pyx_k_RELOAD_ALL_RFID_1_FIRST
+ 1092a7 tp_as_async
+ 1092b3 __pyx_k_extruder_load_length_3_accel
+ 1092d8 __pyx_tuple__81
+ 1092e8 __pyx_tuple__83
+ 1092f8 __pyx_tuple__85
+ 109308 __pyx_tuple__86
+ 109318 __pyx_tuple__88
+ 109328 __pyx_k_do_home
+ 109338 _IO_codecvt
+ 109344 co_names
+ 10934d __pyx_k_drip_completion
+ 109365 nb_true_divide
+ 109374 tp_richcompare
+ 109383 _IO_read_base
+ 109391 __pyx_pyframe_localsplus_offset
+ 1093b1 __Pyx_CyFunction_get_kwdefaults
+ 1093d1 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_24do_home_repeatedly
+ 10941a PyTuple_GetSlice
+ 10942b __pyx_k_BoxExtruderStepper_cmd_SLOT_PROM
+ 109454 PyObject_SetAttr
+ 109465 tp_iter
+ 10946d PyODictItems_Type
+ 10947f __pyx_tuple__90
+ 10948f __pyx_v_eventtime
+ 1094a1 __pyx_k_stepper_name
+ 1094b6 __pyx_tuple__94
+ 1094c6 __pyx_tuple__96
+ 1094d6 num_expected
+ 1094e3 __pyx_tuple__98
+ 1094f3 __pyx_tuple__99
+ 109503 __pyx_k_do_move
+ 109513 __pyx_n_s_dwell
+ 109523 PyTraceBack_Type
+ 109534 __pyx_mstate_global_static
+ 10954f local_type
+ 10955a __pyx_k_calc_move_time
+ 109571 __pyx_k_red_value
+ 109583 __pyx_kwvalues
+ 109592 ob_refcnt
+ 10959c after_forkers_parent
+ 1095b1 argstuple
+ 1095bb __pyx_n_s_BoxExtruderStepper
+ 1095d8 __pyx_n_s_init_subclass
+ 1095f0 __pyx_k_run_script
+ 109603 uintval
+ 10960b local_tb
+ 109614 __pyx_k_runout_pin
+ 109627 __pyx_k_load_hub_length_1_speed
+ 109647 __pyx_v_speed
+ 109655 func_doc
+ 10965e __pyx_k_runout_num
+ 109671 __pyx_k_stepper_label
+ 109687 __pyx_k_slot_load_length_4_accel
+ 1096a8 PyImport_ImportModuleLevelObject
+ 1096c9 co_cellvars
+ 1096d5 Py_GetVersion
+ 1096e3 func_code
+ 1096ed __Pyx_PyObject_IsTrueAndDecref
+ 10970c __pyx_n_s_led_state
+ 109720 utf8_length
+ 10972c __pyx_n_s_SLOT
+ 10973b __pyx_v_update_time
+ 10974f __Pyx__ExceptionSwap
+ 109764 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_31cmd_EXTRUDER_LOAD
+ 1097ac __pyx_k_MOVE_TO_TRASH_M400
+ 1097c7 __pyx_arg_c
+ 1097d3 nb_inplace_matrix_multiply
+ 1097ee tp_alloc
+ 1097f7 __pyx_k_tool_change
+ 10980b local_value
+ 109817 __pyx_k_QDE_004_016_00
+ 10982e __pyx_L38_try_continue
+ 109845 PyObject_GetAttr
+ 109856 builtins_copy
+ 109864 setter
+ 10986b exc_info
+ 109874 _shortbuf
+ 10987e __pyx_temp
+ 109889 tp_bases
+ 109892 __pyx_k_get_last_move_time
+ 1098ad lenfunc
+ 1098b5 __pyx_float__000015
+ 1098c9 f_executing
+ 1098d5 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_15disable_stepper
+ 10991d __pyx_k_module
+ 10992c __pyx_n_s_slot_load_length_3_speed
+ 10994f __pyx_k_slot_load_length_3_speed
+ 109970 func_is_coroutine
+ 109982 func_module
+ 10998e __Pyx_CyFunction_set_doc
+ 1099a7 __pyx_n_s_BoxExtruderStepper_multi_complet_2
+ 1099d4 PyContextToken_Type
+ 1099e8 __pyx_n_s_state
+ 1099f8 __pyx_v_success_count
+ 109a0e __pyx_v_flush_success
+ 109a24 invalid_keyword
+ 109a34 __pyx_k_gcode
+ 109a42 __pyx_k_BoxEndstop
+ 109a55 bf_getbuffer
+ 109a62 f_globals
+ 109a6c __pyx_k_main
+ 109a79 unsigned char
+ 109a87 PyComplex_Type
+ 109a96 message
+ 109a9e __pyx_n_s_motor_disable
+ 109ab6 __pyx_n_s_QDE_004_011_00
+ 109acf __pyx_v_next_vendor_slot
+ 109ae8 __pyx_k_extruder
+ 109af9 __pyx_k_disable
+ 109b09 PyDict_SetItemString
+ 109b1e __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_42cmd_SLOT_RFID_READ
+ 109b67 __pyx_tstate
+ 109b74 __pyx_v_extruder_load_length_3_accel
+ 109b99 defaults_getter
+ 109ba9 __Pyx_RaiseClosureNameError
+ 109bc5 __pyx_k_print_stats
+ 109bd9 __pyx_v_slot_load_length_3_accel
+ 109bfa __pyx_k_can_cut
+ 109c0a __Pyx_CreateCodeObjectForTraceback
+ 109c2d nmodule_search_path
+ 109c41 __pyx_k_BoxExtruderStepper_get_mcu_endst
+ 109c6a PyExc_DeprecationWarning
+ 109c83 PyObject_GC_UnTrack
+ 109c97 PyExc_ReferenceError
+ 109cac __Pyx_validate_bases_tuple
+ 109cc7 expat
+ 109ccd __pyx_n_s_trapq_finalize_moves
+ 109cec PyDictValues_Type
+ 109cfe expected_basicsize
+ 109d11 ob_item
+ 109d19 __pyx_n_s_home_success
+ 109d30 nparts
+ 109d37 __pyx_kp_s_G1_E100_F300_G1_E_1_F1800_M106_S
+ 109d63 PyUnicode_Kind
+ 109d72 __Pyx_CyFunction_get_doc
+ 109d8b __pyx_k_sync_print_time
+ 109da3 __Pyx_modinit_global_init_code
+ 109dc2 __pyx_L8_error
+ 109dd1 __pyx_8genexpr2__pyx_v_s
+ 109dea PyDict_Type
+ 109df6 tz_dsttime
+ 109e01 __pyx_v_load_hub_length_1_speed
+ 109e21 __pyx_k_endstop_triggers
+ 109e3a f_builtins
+ 109e45 __pyx_pf_6extras_11box_stepper_load_config_prefix
+ 109e77 __pyx_n_s_extruder_unload_length_1_accel
+ 109ea0 __pyx_v_extruder_load_length_1
+ 109ebf __pyx_v_extruder_load_length_2
+ 109ede __pyx_v_extruder_load_length_3
+ 109efd __pyx_t_14
+ 109f08 _Py_ctype_toupper
+ 109f1a __pyx_t_18
+ 109f25 __pyx_vectorcallfunc
+ 109f3a __pyx_t_19
+ 109f45 __pyx_k_shake_for_load_toolhead
+ 109f65 m_init
+ 109f6c ma_version_tag
+ 109f7b meth_found
+ 109f86 __pyx_int_3000
+ 109f95 m_free
+ 109f9c __pyx_n_s_QDE_004_018_00
+ 109fb5 nb_positive
+ 109fc1 __Pyx_copy_object_array
+ 109fd9 __pyx_v_rest_time
+ 109feb __pyx_k_NOW
+ 109ff7 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper___init__
+ 10a034 __pyx_n_s_extruder_load_length_1_speed
+ 10a05b __off_t
+ 10a063 PySlice_Type
+ 10a070 f_code
+ 10a077 __pyx_k_motor_disable
+ 10a08d nb_inplace_subtract
+ 10a0a1 function_name
+ 10a0af Py_FileSystemDefaultEncodeErrors
+ 10a0d0 _PyUnicode_Ready
+ 10a0e1 encoding
+ 10a0ea PyOS_ReadlineFunctionPointer
+ 10a107 __pyx_n_s_trapq_alloc
+ 10a11d __pyx_tuple__13
+ 10a12d retval
+ 10a134 __pyx_kp_u_enable
+ 10a146 co_code
+ 10a14e recursion_critical
+ 10a161 __pyx_tuple__17
+ 10a171 __pyx_k_print_time
+ 10a184 __pyx_L30_unpacking_failed
+ 10a19f __pyx_k_extruder_load_length_2_accel
+ 10a1c4 __pyx_n_s_BoxExtruderStepper_set_led
+ 10a1e9 __pyx_n_s_sum
+ 10a1f7 __pyx_k_BoxExtruderStepper_do_home_repea
+ 10a220 co_firstlineno
+ 10a22f __Pyx_CyFunction_get_qualname
+ 10a24d __pyx_kp_s_2A
+ 10a25b PyObject_ClearWeakRefs
+ 10a272 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_14multi_complete_1lambda1
+ 10a2c2 co_extra
+ 10a2cb __pyx_k_exl_1
+ 10a2d9 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_7sync_print_time
+ 10a320 PyExc_IOError
+ 10a32e __pyx_n_s_register_mux_command
+ 10a34d __pyx_k_BoxExtruderStepper_cmd_EXTRUDER_2
+ 10a377 PyDict_SetItem
+ 10a386 __pyx_k_BoxExtruderStepper
+ 10a3a1 py_code
+ 10a3a9 __pyx_k_white_value
+ 10a3bd nb_multiply
+ 10a3c9 __pyx_freecount_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 10a412 __Pyx_GetItemInt_Generic
+ 10a42b __pyx_tp_new_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 10a471 __Pyx_crop_slice
+ 10a482 __Pyx_modinit_type_init_code
+ 10a49f __pyx_n_s_BoxExtruderStepper_slot_load
+ 10a4c6 _dictkeysobject
+ 10a4d6 __pyx_v_cp
+ 10a4e1 __pyx_n_s_SLOT_PROMPT_MOVE
+ 10a4fc __pyx_int_neg_3000
+ 10a50f PySequenceMethods
+ 10a521 tp_is_gc
+ 10a52a __pyx_n_s_diameter
+ 10a53d __pyx_n_s_slot_load
+ 10a551 __pyx_k_Code_QDE_004_005_Message_Please
+ 10a579 __pyx_moduledef_slots
+ 10a58f func_weakreflist
+ 10a5a0 __pyx_n_s_extruder_unload_length_1
+ 10a5c3 __pyx_n_s_extruder_unload_length_2
+ 10a5e6 PyODictKeys_Type
+ 10a5f7 __pyx_kp_s_s_has_been_sync_with_Extruder
+ 10a620 __pyx_n_s_split
+ 10a630 __pyx_n_s_load_hub_length_1
+ 10a64c __pyx_k_run_script_from_command
+ 10a66c __pyx_n_s_save_variable
+ 10a684 nxoption
+ 10a68d __pyx_kp_u__59
+ 10a69c __pyx_k_slot_load_length_3_accel
+ 10a6bd _err_stackitem
+ 10a6cc __Pyx_CyFunction_init_defaults
+ 10a6eb __pyx_kp_s_M400
+ 10a6fb __pyx_n_s_BoxExtruderStepper_do_move
+ 10a720 __pyx_n_s_toolhead
+ 10a733 __uint32_t
+ 10a73e __pyx_kp_s_3D
+ 10a74c __pyx_n_s_printing
+ 10a75f __Pyx_PyObject_FastCall_fallback
+ 10a780 PyInterpreterState
+ 10a793 __pyx_v_next_color_slot
+ 10a7ab /home/mks/klipper/klippy/extras/box_stepper.c
+ 10a7d9 PyZip_Type
+ 10a7e4 __pyx_v_load_hub_length_1
+ 10a7fe PyExc_IsADirectoryError
+ 10a816 kwnames
+ 10a81e PySortWrapper_Type
+ 10a831 __pyx_kp_s_Code_QDE_004_001_Message_Slot_l
+ 10a85c __pyx_dict_cached_value
+ 10a874 __pyx_find_code_object
+ 10a88b __pyx_kp_s_RELOAD_ALL_RFID_1_FIRST
+ 10a8ae use_cline_obj
+ 10a8bc freefunc
+ 10a8c5 __pyx_k_is_drying
+ 10a8d7 __pyx_v_led_state
+ 10a8e9 __pyx_k_load_hub_length_1
+ 10a903 __pyx_string_tab
+ 10a914 long_long
+ 10a91e __pyx_n_s_newpos
+ 10a92f __pyx_k_Code_QDE_004_002_Message_Extrud
+ 10a957 _PyNone_Type
+ 10a964 __Pyx_inner_PyErr_GivenExceptionMatches2
+ 10a98d __pyx_k_ENDSTOP_SAMPLE_COUNT
+ 10a9aa __pyx_kp_s_Code_QDE_004_004_Message_Please
+ 10a9d5 co_flags
+ 10a9de __Pyx_PyFloat_AddObjC
+ 10a9f4 __pyx_k_slot_load_length_2_accel
+ 10aa15 __pyx_n_s_led
+ 10aa23 __pyx_n_s_sync_to_extruder
+ 10aa3e __Pyx_CyFunction_dealloc
+ 10aa57 co_consts
+ 10aa61 __pyx_n_s_slot_load_length_1
+ 10aa7e __pyx_n_s_slot_load_length_2
+ 10aa9b __pyx_n_s_slot_load_length_3
+ 10aab8 __pyx_n_s_slot_load_length_4
+ 10aad5 __pyx_kp_s_MOVE_TO_TRASH_M400
+ 10aaf3 ml_flags
+ 10aafc __pyx_kp_s_4C
+ 10ab0a PyObject_GC_Track
+ 10ab1c py_result
+ 10ab26 __pyx_type_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 10ab6a __pyx_k_next_vendor_slot
+ 10ab83 __pyx_n_s_extruder_unload_length_2_speed
+ 10abac __pyx_k_runout_button_callback
+ 10abcb __pyx_kp_s_Code_QDE_004_003_Message_Slot_u
+ 10abf6 __pyx_n_s_rfid_device
+ 10ac0c __Pyx_modinit_type_import_code
+ 10ac2b __pyx_k_qualname
+ 10ac3c ml_meth
+ 10ac44 __pyx_k_Code_QDE_004_020_Message_Detect
+ 10ac6c PyEnum_Type
+ 10ac78 tp_as_mapping
+ 10ac86 rt_version
+ 10ac91 PyExc_ArithmeticError
+ 10aca7 PyNumber_Subtract
+ 10acb9 __pyx_k_extruder_load_length_1_speed
+ 10acde trash_delete_later
+ 10acf1 tp_weaklistoffset
+ 10ad03 kw_args
+ 10ad0b PyNumber_Absolute
+ 10ad1d _PyMethodDescr_FastCallKeywords
+ 10ad3d tp_iternext
+ 10ad49 __pyx_k_G1_E100_F300_G1_E_1_F1800_M106_S
+ 10ad72 __Pyx_IternextUnpackEndCheck
+ 10ad8f b_name
+ 10ad96 __pyx_v_extruder_load_length_2_accel
+ 10adbb __pyx_k_ffi_main
+ 10adcc __pyx_n_s_be
+ 10add9 __Pyx__ExceptionSave
+ 10adee _old_offset
+ 10adfa co_varnames
+ 10ae06 __pyx_empty_bytes
+ 10ae18 __pyx_k_save_variable
+ 10ae2e PyExc_FutureWarning
+ 10ae42 py_status
+ 10ae4c __pyx_int_11
+ 10ae59 PyClassMethod_Type
+ 10ae6c __pyx_k_M204_S10000_G1_X0_Y150_F15000
+ 10ae92 _gc_head
+ 10ae9b func_annotations
+ 10aeac __pyx_n_s_BoxExtruderStepper_dwell
+ 10aecf __pyx_n_s_PAUSE
+ 10aedf __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_23get_mcu_endstops
+ 10af28 _PyNamespace_Type
+ 10af3a Py_FrozenFlag
+ 10af48 __pyx_n_s_set_position
+ 10af5f __pyx_n_s_name_2
+ 10af70 co_cell2arg
+ 10af7c PyUnicode_Concat
+ 10af8d __pyx_n_s_NEVER
+ 10af9d PyCompactUnicodeObject
+ 10afb4 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_40switch_next_slot
+ 10affb __pyx_n_s_BoxExtruderStepper_runout_button
+ 10b026 __pyx_v_slot_load_length_2_accel
+ 10b047 __pyx_k_sp
+ 10b052 first_kw_arg
+ 10b05f __pyx_k_isenabled
+ 10b071 is_unsigned
+ 10b07d __pyx_n_s_wait_moves
+ 10b092 __pyx_k_box_button_state
+ 10b0ab PyInstanceMethod_Type
+ 10b0c1 __pyx_kp_s_M204_S10000_G1_Y300_F9000_G1_X0
+ 10b0ec __pyx_k_all_endstop_trigger
+ 10b108 __pyx_n_s_stop_read
+ 10b11c __Pyx_InitGlobals
+ 10b12e PyProperty_Type
+ 10b13e Py_DebugFlag
+ 10b14b __pyx_k_set_scram
+ 10b15d PyExc_UserWarning
+ 10b16f __pyx_L21_error
+ 10b17f __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_37slot_sync
+ 10b1c1 __pyx_k_reactor
+ 10b1d1 _IO_save_end
+ 10b1de __pyx_tuple__43
+ 10b1ee __Pyx_PyObject_CallMethod0
+ 10b209 func_qualname
+ 10b217 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_29cmd_SLOT_UNLOAD
+ 10b25d PyObject
+ 10b266 base_exec_prefix
+ 10b277 keys_are_strings
+ 10b288 __pyx_n_s_next_cmd_time
+ 10b2a0 mp_length
+ 10b2aa __pyx_int_200
+ 10b2b8 __Pyx_TypeName
+ 10b2c7 __pyx_n_s_get_name
+ 10b2da _longobject
+ 10b2e6 _Py_HashSecret_t
+ 10b2f7 __pyx_n_s_es
+ 10b304 tp_itemsize
+ 10b310 objobjproc
+ 10b31b invalid_keyword_type
+ 10b330 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_19multi_complete
+ 10b377 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_14multi_complete_lambda
+ 10b3c5 PyContext_Type
+ 10b3d4 optarg
+ 10b3db __pyx_k_slot_unload_length_1_speed
+ 10b3fe __Pyx_CyFunction_get_globals
+ 10b41b tmp_type
+ 10b424 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_17_calc_endstop_rate
+ 10b46f __pyx_v_cruise_t
+ 10b480 __pyx_v_cruise_v
+ 10b491 PyModule_GetName
+ 10b4a2 Py_hexdigits
+ 10b4af __pyx_n_s_ffi_lib
+ 10b4c1 f_trace
+ 10b4c9 __pyx_k_metaclass
+ 10b4db PyExc_PermissionError
+ 10b4f1 __pyx_k_e_endstop
+ 10b503 __pyx_n_s_can_load_slot
+ 10b51b PyExc_MemoryError
+ 10b52d __pyx_k_stepper_endstops
+ 10b546 __pyx_n_s_SLOT_UNLOAD
+ 10b55c __pyx_k_extruder_load_length_1_accel
+ 10b581 __pyx_k_cmd_EXTRUDER_UNLOAD
+ 10b59d num_pos_args
+ 10b5aa __pyx_L8_unpacking_failed
+ 10b5c4 overflowed
+ 10b5cf PyMemberDescr_Type
+ 10b5e2 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_16_calc_endstop_rate
+ 10b62b tp_del
+ 10b632 __pyx_k_
+ 10b63b stackcheck_counter
+ 10b64e __pyx_k_runout
+ 10b65d PyDict_GetItemWithError
+ 10b675 __pyx_k_box_endstop
+ 10b689 __pyx_n_s_auto_reload
+ 10b69f __pyx_n_s_replace
+ 10b6b1 intern
+ 10b6b8 interp
+ 10b6bf __pyx_v_slot_load_length_4_speed
+ 10b6e0 __pyx_k_BoxExtruderStepper_disable_stepp
+ 10b709 __Pyx_CyFunction_SetDefaultsTuple
+ 10b72b cached_type
+ 10b737 PyMethodObject
+ 10b746 __pyx_v_slot_state
+ 10b759 __pyx_k_be
+ 10b764 __pyx_empty_unicode
+ 10b778 module_dot
+ 10b783 __pyx_k__60
+ 10b78f __pyx_n_s_name
+ 10b79e __pyx_k_QDE_004_019_00
+ 10b7b5 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_25do_home_repeatedly
+ 10b7fe __pyx_k_chelper
+ 10b80e num_found
+ 10b818 attr_name
+ 10b822 PyObject_Hash
+ 10b830 wchar_t
+ 10b838 PyType_Type
+ 10b844 __pyx_L14
+ 10b84e getbufferproc
+ 10b85c __Pyx_PyList_Append
+ 10b870 __pyx_L17
+ 10b87a __pyx_L19
+ 10b884 __pyx_k_BoxExtruderStepper_slot_sync
+ 10b8a9 PyFloatObject
+ 10b8b7 PyTuple_Type
+ 10b8c4 Py_BytesWarningFlag
+ 10b8d8 __pyx_k_movepos
+ 10b8e8 __pyx_k_home_start
+ 10b8fb __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_5get_status
+ 10b93b __pyx_int_10
+ 10b948 nb_xor
+ 10b94f __pyx_int_12
+ 10b95c __pyx_int_13
+ 10b969 __pyx_int_14
+ 10b976 __pyx_int_15
+ 10b983 __pyx_k_cp
+ 10b98e __pyx_n_s_stepper
+ 10b9a0 __pyx_codeobj__100
+ 10b9b3 __pyx_codeobj__102
+ 10b9c6 __pyx_codeobj__104
+ 10b9d9 __Pyx_PyObject_SetAttrStr
+ 10b9f3 __pyx_codeobj__106
+ 10ba06 __pyx_n_s_last_load_slot
+ 10ba1f __pyx_codeobj__108
+ 10ba32 __pyx_n_s_extruder_unload_length_1_speed
+ 10ba5b PyBaseObject_Type
+ 10ba6d __pyx_n_s_QDE_004_001
+ 10ba83 __pyx_n_s_QDE_004_002
+ 10ba99 __pyx_n_s_QDE_004_003
+ 10baaf __pyx_n_s_QDE_004_004
+ 10bac5 __pyx_n_s_QDE_004_005
+ 10badb __pyx_n_s_QDE_004_006
+ 10baf1 __pyx_n_s_QDE_004_007
+ 10bb07 __pyx_n_s_QDE_004_009
+ 10bb1d ssizeobjargproc
+ 10bb2d __pyx_k_next_cmd_time
+ 10bb43 __pyx_n_s_shake_for_load_toolhead
+ 10bb65 __pyx_k_sqrt
+ 10bb72 PyNumberMethods
+ 10bb82 __pyx_k_get_steppers
+ 10bb97 __pyx_mstate_global
+ 10bbab PyEval_EvalFrameEx
+ 10bbbe __pyx_int_20
+ 10bbcb __pyx_n_s_trapq_free
+ 10bbe0 PyExc_KeyError
+ 10bbef __pyx_codeobj__110
+ 10bc02 __pyx_codeobj__113
+ 10bc15 __pyx_n_s_respond_raw
+ 10bc2b __pyx_n_s_calc_endstop_rate
+ 10bc47 __Pyx_CLineForTraceback
+ 10bc5f __Pyx_InitStrings
+ 10bc71 __pyx_n_s_exl_1_speed
+ 10bc87 dummy
+ 10bc8d PyUnicode_InternFromString
+ 10bca8 _frozen
+ 10bcb0 format
+ 10bcb7 PyExc_PendingDeprecationWarning
+ 10bcd7 __pyx_n_s_slot_load_length_1_speed
+ 10bcfa kw_name
+ 10bd02 ndim
+ 10bd07 Py_DontWriteBytecodeFlag
+ 10bd20 __pyx_k_G1_X0_Y250_F30000_G1_X0_Y50_F300
+ 10bd49 am_aiter
+ 10bd52 tp_finalize
+ 10bd5e __pyx_k__114
+ 10bd6b short int
+ 10bd75 __pyx_k_es
+ 10bd80 __pyx_k_exl_1_accel
+ 10bd94 __pyx_v_slot_load_length_4_accel
+ 10bdb5 __pyx_k_extruder_load_length_3_speed
+ 10bdda __pyx_insert_code_object
+ 10bdf3 __pyx_kp_s_Code_QDE_004_016_Message_The_fil
+ 10be1f on_delete_data
+ 10be2e __pyx_kp_s_Code_QDE_004_018_Message_No_fila
+ 10be5a _sys_nerr
+ 10be64 __pyx_k_BoxExtruderStepper___init
+ 10be86 PyObject_GetItem
+ 10be97 __Pyx_IsSubtype
+ 10bea7 tp_mro
+ 10beae __pyx_L11_exit_scope
+ 10bec3 __pyx_k_max
+ 10becf PyFunction_Type
+ 10bedf __pyx_k_accel_t
+ 10beef __pyx_n_s_BoxExtruderStepper___init
+ 10bf13 __pyx_k_RFID_READ
+ 10bf25 factor
+ 10bf2c __pyx_n_s_main
+ 10bf3b __pyx_L14_error
+ 10bf4b __pyx_n_s_label_map
+ 10bf5f __pyx_v_runout_num
+ 10bf72 __Pyx_CyFunction_Vectorcall_NOARGS
+ 10bf95 _PyDict_SetItem_KnownHash
+ 10bfaf PyMap_Type
+ 10bfba tp_getset
+ 10bfc4 was_sq_ass_slice
+ 10bfd5 __pyx_v_all_endstop_trigger
+ 10bff1 __Pyx_CyFunction_New
+ 10c006 __pyx_k_gc
+ 10c011 __Pyx_GetKwValue_FASTCALL
+ 10c02b __pyx_int_50
+ 10c038 __pyx_n_s_slot_loaded
+ 10c04e PyGetSetDef
+ 10c05a _markers
+ 10c063 __pyx_L4_argument_unpacking_done
+ 10c084 _fileno
+ 10c08c __pyx_n_s_mp
+ 10c099 __pyx_n_s_import
+ 10c0aa __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_27slot_load
+ 10c0ec cleanup
+ 10c0f4 tstate_next_unique_id
+ 10c10a __pyx_L6
+ 10c113 __pyx_k_slot_load_length_4_speed
+ 10c134 __pyx_n_s_temp_stepper
+ 10c14b co_zombieframe
+ 10c15a __pyx_L8
+ 10c163 __pyx_k_wait
+ 10c170 stdout
+ 10c177 __pyx_n_s_trapq_append
+ 10c18e _typeobject
+ 10c19a __pyx_n_s_speed
+ 10c1aa __pyx_v_slot_load_length_1_accel
+ 10c1cb codec_search_cache
+ 10c1de __Pyx_PyObject_FastCallDict
+ 10c1fa PyByteArrayIter_Type
+ 10c20f pydefaults
+ 10c21a PyDict_Size
+ 10c226 __pyx_n_s_cmd_SLOT_RFID_READ
+ 10c243 m_module
+ 10c24c __pyx_n_s_home_wait
+ 10c260 fromlist
+ 10c269 PyExc_OverflowError
+ 10c27d __pyx_k_startpos
+ 10c28e newfunc
+ 10c296 num_min
+ 10c29e __ssize_t
+ 10c2a8 __Pyx_CyFunction_get_code
+ 10c2c2 __pyx_n_s_b_endstop
+ 10c2d6 __pyx_t_10
+ 10c2e1 __pyx_t_11
+ 10c2ec __pyx_t_12
+ 10c2f7 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_34cmd_SLOT_PROMPT_MOVE
+ 10c342 __pyx_n_s_rfid_state
+ 10c357 __pyx_t_15
+ 10c362 __pyx_t_16
+ 10c36d __pyx_t_17
+ 10c378 varname
+ 10c380 __pyx_n_s_range
+ 10c390 ptraceback
+ 10c39b PyUnicode_4BYTE_KIND
+ 10c3b0 __pyx_k_error
+ 10c3be PyExc_RecursionError
+ 10c3d3 __pyx_kp_s_Code_QDE_004_007_Message_Extrude
+ 10c3ff __pyx_k_trapq
+ 10c40d __pyx_k_runout_2
+ 10c41e __int32_t
+ 10c428 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_47led_handle_connect
+ 10c473 PyExc_KeyboardInterrupt
+ 10c48b PySetIter_Type
+ 10c49a __pyx_n_s_cp
+ 10c4a7 after_forkers_child
+ 10c4bb __daylight
+ 10c4c6 __pyx_int_neg_100
+ 10c4d8 base_prefix
+ 10c4e4 __pyx_t_20
+ 10c4ef __pyx_t_21
+ 10c4fa __pyx_t_22
+ 10c505 __pyx_t_23
+ 10c510 __pyx_t_24
+ 10c51b __pyx_t_25
+ 10c526 __pyx_t_26
+ 10c531 _Py_CheckRecursiveCall
+ 10c548 tp_name
+ 10c550 PyExc_FileNotFoundError
+ 10c568 __Pyx_PyObject_GetAttrStrNoError
+ 10c589 __pyx_n_s_slot_state
+ 10c59e Py_QuietFlag
+ 10c5ab __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_31cmd_EXTRUDER_LOAD
+ 10c5f5 PyExc_BytesWarning
+ 10c608 tp_doc
+ 10c60f f_blockstack
+ 10c61c __pyx_int_80
+ 10c629 __pyx_int_90
+ 10c636 __Pyx_PyErr_GivenExceptionMatches
+ 10c658 __Pyx_Import
+ 10c665 program_name
+ 10c672 to_name
+ 10c67a __pyx_L6_bool_binop_done
+ 10c693 objobjargproc
+ 10c6a1 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_27slot_load
+ 10c6e1 __pyx_v_extruder_load_length_3_speed
+ 10c706 Py_FileSystemDefaultEncoding
+ 10c723 exc_type1
+ 10c72d PyMethodDef
+ 10c739 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_3runout_button_callback
+ 10c785 zerodivision_check
+ 10c798 __pyx_L31_unpacking_done
+ 10c7b1 wraparound
+ 10c7bc latin1
+ 10c7c3 sq_concat
+ 10c7cd PyDictIterValue_Type
+ 10c7e2 setattrofunc
+ 10c7ef __pyx_k_doc
+ 10c7fb func_vectorcall
+ 10c80b __pyx_k_BoxExtruderStepper_drip_move
+ 10c830 ignore
+ 10c837 owned_metaclass
+ 10c847 _IO_write_base
+ 10c856 __pyx_kp_s_Code_QDE_004_022_Message_No_repl
+ 10c882 co_nlocals
+ 10c88d __pyx_k_register_callback
+ 10c8a7 PyException_SetTraceback
+ 10c8c0 __pyx_k_sync_to_extruder
+ 10c8d9 __pyx_k_slot_load_length_1_accel
+ 10c8fa __pyx_k_mp
+ 10c905 __pyx_n_s_se
+ 10c912 __pyx_n_s_retry_step
+ 10c927 _PyDict_NewPresized
+ 10c93b c_profilefunc
+ 10c949 modname
+ 10c951 __pyx_k_note_kinematic_activity
+ 10c971 __pyx_k_BoxExtruderStepper_multi_complet
+ 10c99a __pyx_builtin_range
+ 10c9ae previous_item
+ 10c9bc __pyx_k_box_motion_timer
+ 10c9d5 __pyx_tuple__92
+ 10c9e5 __pyx_n_s_slot_not_unload
+ 10c9ff _PyObject_GC_New
+ 10ca10 __pyx_L9_break
+ 10ca1f __pyx_k_box_rfid
+ 10ca30 PyErr_NormalizeException
+ 10ca49 __pyx_k_Code_QDE_004_016_Message_The_fil
+ 10ca72 mp_ass_subscript
+ 10ca83 __pyx_n_s_runout_button_callback
+ 10caa4 __pyx_n_s_get_status
+ 10cab9 PyModule_GetDict
+ 10caca prep
+ 10cacf _PyManagedBuffer_Type
+ 10cae5 coerce_c_locale_warn
+ 10cafa __pyx_v_gcmd
+ 10cb07 __pyx_n_s_load_hub_length_1_accel
+ 10cb29 PyImport_AddModule
+ 10cb3c cython_runtime_dict
+ 10cb50 _PyCoroWrapper_Type
+ 10cb64 PyMemoryView_Type
+ 10cb76 __Pyx__GetModuleGlobalName
+ 10cb91 __pyx_k_BoxButton
+ 10cba3 __pyx_k_Code_QDE_004_018_Message_No_fila
+ 10cbcc Py_NoSiteFlag
+ 10cbda Py_OptimizeFlag
+ 10cbea __pyx_n_s_b_motion
+ 10cbfd __pyx_cfilenm
+ 10cc0b __pyx_k_trapq_alloc
+ 10cc1f __pyx_k_Code_QDE_004_007_Message_Extrude
+ 10cc48 __pyx_k_init
+ 10cc55 __pyx_defaults
+ 10cc64 PyLong_FromLong
+ 10cc74 __pyx_L3_unpacking_failed
+ 10cc8e _PyLong_Zero
+ 10cc9b __pyx_k_extruder_load_length_2_speed
+ 10ccc0 context
+ 10ccc8 f_valuestack
+ 10ccd5 __pyx_n_s_update_leds
+ 10cceb modbad
+ 10ccf2 __Pyx_PyInt_RemainderObjC
+ 10cd0c __Pyx_CyFunction_Call
+ 10cd22 modules
+ 10cd2a PyCell_Type
+ 10cd36 curexc_type
+ 10cd42 PyExc_UnicodeTranslateError
+ 10cd5e __pyx_n_s_dict
+ 10cd6d _inittab
+ 10cd76 utf8_mode
+ 10cd80 __pyx_self
+ 10cd8b trash_delete_nesting
+ 10cda0 _cur_column
+ 10cdac ma_keys
+ 10cdb4 __Pyx_CyFunction_repr
+ 10cdca __pyx_v_label_map
+ 10cddc tp_traverse
+ 10cde8 method_name
+ 10cdf4 PyModuleDef_Type
+ 10ce05 full_name
+ 10ce0f __pyx_v_ffi_main
+ 10ce20 _PyWeakref_CallableProxyType
+ 10ce3d __pyx_k_QDE_004_022_00
+ 10ce54 PyBytesIter_Type
+ 10ce65 __pyx_n_s_red_value
+ 10ce79 __pyx_k_is_coroutine
+ 10ce8e co_argcount
+ 10ce9a __Pyx_PyErr_ExceptionMatchesTuple
+ 10cebc PyExc_ZeroDivisionError
+ 10ced4 __Pyx_copy_spec_to_module
+ 10ceee __Pyx_ParseOptionalKeywords
+ 10cf0a __pyx_n_s_gc
+ 10cf17 PyDict_GetItemString
+ 10cf2c hashsalt
+ 10cf35 __pyx_n_s_update_time
+ 10cf4b __pyx_v_error
+ 10cf59 __pyx_k_BoxExtruderStepper_switch_next_s
+ 10cf82 binaryfunc
+ 10cf8d PyExc_ConnectionError
+ 10cfa3 __Pyx_CreateStringTabAndInitStrings
+ 10cfc7 PyNumber_TrueDivide
+ 10cfdb PyUnicode_Type
+ 10cfea __pyx_builtin_max
+ 10cffc show_alloc_count
+ 10d00d __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_25do_home_repeatedly
+ 10d058 __pyx_k_wait_moves
+ 10d06b __pyx_n_s_shake_toolhead
+ 10d084 __Pyx_PyInt_From_long
+ 10d09a __Pyx_GetBuiltinName
+ 10d0af PyODict_Type
+ 10d0bc __pyx_k_get_reactor
+ 10d0d0 Py_ssize_t
+ 10d0db gc_refs
+ 10d0e3 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_12drip_move
+ 10d123 import_func
+ 10d12f PyExc_ConnectionResetError
+ 10d14a _PyLong_Copy
+ 10d157 __pyx_n_s_BoxExtruderStepper_cmd_SLOT_RFID
+ 10d182 __pyx_int_neg_1320
+ 10d195 __pyx_k_se
+ 10d1a0 __pyx_L5_error
+ 10d1af __Pyx_InitCachedConstants
+ 10d1c9 program_invocation_short_name
+ 10d1e7 _PyAsyncGenAThrow_Type
+ 10d1fe __pyx_v_value_t
+ 10d20e __pyx_tp_clear_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 10d256 PyExc_TypeError
+ 10d266 __Pyx_modinit_function_export_code
+ 10d289 PyFilter_Type
+ 10d297 pythread_stacksize
+ 10d2aa __pyx_k_loop_stepper
+ 10d2bf __pyx_k_accel
+ 10d2cd PyUnicode_FromString
+ 10d2e2 func_name
+ 10d2ec traverseproc
+ 10d2f9 f_locals
+ 10d302 __pyx_L42_continue
+ 10d315 Py_IgnoreEnvironmentFlag
+ 10d32e nb_floor_divide
+ 10d33e __pyx_tuple__2
+ 10d34d func_classobj
+ 10d35b __pyx_tuple__4
+ 10d36a __pyx_tuple__5
+ 10d379 __pyx_tuple__6
+ 10d388 __pyx_tuple__7
+ 10d397 __pyx_tuple__8
+ 10d3a6 __off64_t
+ 10d3b0 __pyx_n_s_extruder_stepper
+ 10d3cb PyDictProxy_Type
+ 10d3dc entries
+ 10d3e4 __pyx_n_s_box_rfid_2
+ 10d3f9 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_1__init__
+ 10d439 __pyx_methods
+ 10d447 __pyx_v_extruder_unload_length_1
+ 10d468 __pyx_v_extruder_unload_length_2
+ 10d489 __pyx_L32_error
+ 10d499 __pyx_k_Code_QDE_004_022_Message_No_repl
+ 10d4c2 __pyx_n_s_load_retry_num
+ 10d4db tp_call
+ 10d4e3 PyRange_Type
+ 10d4f0 __pyx_k_next_color_slot
+ 10d508 __Pyx_PyErr_GivenExceptionMatchesTuple
+ 10d52f __pyx_k_rfid_device
+ 10d543 sysdict
+ 10d54b __Pyx_PyList_FromArray
+ 10d562 __pyx_n_s_cmd_SLOT_UNLOAD
+ 10d57c f_gen
+ 10d582 __pyx_float_0_5
+ 10d592 __pyx_v_extruder_load_length_2_speed
+ 10d5b7 nb_inplace_add
+ 10d5c6 PyObject_CallFinalizerFromDealloc
+ 10d5e8 tp_repr
+ 10d5f0 __pyx_n_s_extruder_load_length_3_accel
+ 10d617 __pyx_k_test
+ 10d624 __pyx_kp_s_box_stepper_slot
+ 10d640 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_36slot_sync
+ 10d680 __pyx_v_slot_load_length_2_speed
+ 10d6a1 __pyx_k_get_endstops
+ 10d6b6 nwarnoption
+ 10d6c2 current_id
+ 10d6cd kwd_pos_args
+ 10d6da async_exc
+ 10d6e4 allocated
+ 10d6ee __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_10dwell
+ 10d72a __pyx_7genexpr__pyx_v_sp
+ 10d743 __pyx_8genexpr3__pyx_v_c
+ 10d75c __pyx_kwds
+ 10d767 __pyx_n_s_stepper_num
+ 10d77d /home/mks/klipper/klippy
+ 10d796 bf_releasebuffer
+ 10d7a7 __pyx_int_2000
+ 10d7b6 __pyx_n_s_QDE_004_017_00
+ 10d7cf py_line
+ 10d7d7 tracemalloc
+ 10d7e3 __pyx_obj_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 10d826 __pyx_n_s_trigger_time
+ 10d83d __pyx_k_slot_load_length_1
+ 10d858 __pyx_k_slot_load_length_2
+ 10d873 __pyx_k_slot_load_length_3
+ 10d88e __pyx_k_slot_load_length_4
+ 10d8a9 opterr
+ 10d8b0 __uint64_t
+ 10d8bb __pyx_k_filament
+ 10d8cc __pyx_L45_error
+ 10d8dc __pyx_ptype_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 10d921 __pyx_L5_bool_binop_done
+ 10d93a __pyx_n_s_module
+ 10d94b co_weakreflist
+ 10d95a __pyx_n_s_BoxExtruderStepper_get_status
+ 10d982 is_list
+ 10d98a __Pyx_modinit_variable_export_code
+ 10d9ad ob_digit
+ 10d9b6 __pyx_k_stepper_enable
+ 10d9cd nb_inplace_or
+ 10d9db m_methods
+ 10d9e5 tp_as_buffer
+ 10d9f2 __pyx_n_s_cmd_SLOT_PROMPT_MOVE
+ 10da11 m_copy
+ 10da18 pargs
+ 10da1e Py_IsolatedFlag
+ 10da2e PyAsyncMethods
+ 10da3d __pyx_kp_s_CUT_FILAMENT_MOVE_TO_TRASH
+ 10da63 PyExc_ModuleNotFoundError
+ 10da7d __pyx_k_slot_1
+ 10da8c PyImport_Inittab
+ 10da9d PyUnicode_FromStringAndSize
+ 10dab9 __Pyx_Py3MetaclassPrepare
+ 10dad3 tp_dict
+ 10dadb __pyx_pyargnames
+ 10daec __pyx_kp_s_Error_during_homing_move_s
+ 10db12 releasebufferproc
+ 10db24 __pyx_t_3
+ 10db2e __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_20do_home
+ 10db6c PyObject_Malloc
+ 10db7c __pyx_lambda_funcdef_lambda
+ 10db98 __Pyx_PyMethod_New
+ 10dbab __pyx_n_s_auto_reload_detect
+ 10dbc8 __pyx_v_extruder_unload_length_2_accel
+ 10dbef PyFunctionObject
+ 10dc00 __Pyx_CyFunction_get_dict
+ 10dc1a __Pyx_PyObject_CallOneArg
+ 10dc34 __pyx_k_BoxExtruderStepper_led_handle_co
+ 10dc5d PyBool_Type
+ 10dc69 nb_matrix_multiply
+ 10dc7c Py_InteractiveFlag
+ 10dc8f __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_14multi_complete_1lambda1
+ 10dcdd __pyx_k_start_rfid_read
+ 10dcf5 _Py_PackageContext
+ 10dd08 __pyx_v_mcu_endstop
+ 10dd1c long long unsigned int
+ 10dd33 __pyx_n_s_get
+ 10dd41 __pyx_n_s_run_script_from_command
+ 10dd63 PyEval_EvalCodeEx
+ 10dd75 nb_inplace_multiply
+ 10dd89 initproc
+ 10dd92 PyUnicode_1BYTE_KIND
+ 10dda7 __Pyx_CyFunction_Init
+ 10ddbd PyCode_NewEmpty
+ 10ddcd __pyx_k_3C
+ 10ddd8 tp_clear
+ 10dde1 __pyx_k_BoxExtruderStepper_cmd_SLOT_UNLO
+ 10de0a __pyx_n_s_QDE_004_019_00
+ 10de23 PySeqIter_Type
+ 10de32 __pyx_k_SLOT_UNLOAD
+ 10de46 __pyx_k_extruder_unload_length_1
+ 10de67 __pyx_k_extruder_unload_length_2
+ 10de88 b_dictoffset
+ 10de95 __pyx_CyFunction_methods
+ 10deae core_config
+ 10deba __Pyx_modinit_function_import_code
+ 10dedd use_hash_seed
+ 10deeb __pyx_n_s_slot_unload_length_1
+ 10df0a ob_size
+ 10df12 __pyx_k_get_key_by_value
+ 10df2b __pyx_pymod_create
+ 10df3e PyExc_IndexError
+ 10df4f PyUnicodeObject
+ 10df5f co_name
+ 10df67 PyExc_LookupError
+ 10df79 __Pyx_ErrRestoreInState
+ 10df91 __pyx_k_auto_reload
+ 10dfa5 s2_is_unicode
+ 10dfb3 __pyx_L9_bool_binop_done
+ 10dfcc __pyx_n_s_get_printer
+ 10dfe2 coroutine_origin_tracking_depth
+ 10e002 __pyx_n_s_pos
+ 10e010 __pyx_CyFunction_getsets
+ 10e029 Py_UnbufferedStdioFlag
+ 10e040 on_delete
+ 10e04a __pyx_n_s_BoxExtruderStepper_slot_sync
+ 10e071 nb_negative
+ 10e07d __pyx_k_slot_load_length_2_speed
+ 10e09e __pyx_n_s_motion
+ 10e0af __Pyx_FetchCommonType
+ 10e0c5 __pyx_n_s_stepper_label
+ 10e0dd PyExc_ChildProcessError
+ 10e0f5 defaults_size
+ 10e103 _py_decref_tmp
+ 10e112 sq_item
+ 10e11a PyExc_AttributeError
+ 10e12f __pyx_k_get_ffi
+ 10e13f partial_name
+ 10e14c __pyx_k_QDE_004_001
+ 10e160 __pyx_k_QDE_004_002
+ 10e174 __pyx_k_QDE_004_003
+ 10e188 __pyx_k_QDE_004_004
+ 10e19c __pyx_k_QDE_004_005
+ 10e1b0 __pyx_k_QDE_004_006
+ 10e1c4 __pyx_k_QDE_004_007
+ 10e1d8 __pyx_k_QDE_004_009
+ 10e1ec __pyx_k_cline_in_traceback
+ 10e207 __pyx_n_s_CLEAR_OOZE
+ 10e21c __pyx_k_value
+ 10e22a c_line
+ 10e231 __pyx_k_zip
+ 10e23d __Pyx_modinit_variable_import_code
+ 10e260 tp_descr_get
+ 10e26d __pyx_L19_error
+ 10e27d owned_instance
+ 10e28c nargsf
+ 10e293 nb_reserved
+ 10e29f __pyx_n_s_disable_stepper
+ 10e2b9 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_37slot_sync
+ 10e2f9 __pyx_k_respond_raw
+ 10e30d __pyx_n_s_set_led
+ 10e31f __pyx_v_startpos
+ 10e330 __pyx_int_4
+ 10e33c __pyx_int_5
+ 10e348 __pyx_kp_s_slot_1
+ 10e35a __pyx_k_rfid_state
+ 10e36d __pyx_n_s_extras_box_stepper
+ 10e38a __pyx_v_delay
+ 10e398 __pyx_v_drip_completion
+ 10e3b0 PyExc_Exception
+ 10e3c0 curexc_traceback
+ 10e3d1 tp_getattro
+ 10e3dd __Pyx_CyFunction_Vectorcall_O
+ 10e3fb __pyx_kp_s_M204_S10000_G1_X0_Y150_F15000
+ 10e424 __Pyx_AddTraceback
+ 10e437 fastlocals
+ 10e442 __pyx_k_exl_1_speed
+ 10e456 __pyx_k_ffi_lib
+ 10e466 __Pyx_PyInt_TrueDivideObjC
+ 10e481 _Py_SwappedOp
+ 10e48f __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_26slot_load
+ 10e4cf PyCFunctionWithKeywords
+ 10e4e7 __pyx_n_s_multi_complete
+ 10e500 __pyx_k_replace
+ 10e510 nb_rshift
+ 10e51a __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_41switch_next_slot
+ 10e563 __pyx_k_slot_sync
+ 10e575 moddict
+ 10e57d PyObject_Format
+ 10e58d __pyx_tuple__3
+ 10e59c gilstate_counter
+ 10e5ad __pyx_v_box_count
+ 10e5bf tmptype
+ 10e5c7 kwds_is_tuple
+ 10e5d5 __pyx_n_s_hall_filament_width_sensor
+ 10e5fa __pyx_kp_s_1A
+ 10e608 __pyx_kp_s_1B
+ 10e616 __pyx_kp_s_1C
+ 10e624 __pyx_kp_s_1D
+ 10e632 __pyx_tuple__9
+ 10e641 __pyx_7genexpr__pyx_v_mp
+ 10e65a __pyx_n_s_do_move
+ 10e66c nb_inplace_and
+ 10e67b PyErr_WarnEx
+ 10e688 PyExc_FileExistsError
+ 10e69e __pyx_k_led_timer
+ 10e6b0 PyExc_NotADirectoryError
+ 10e6c9 nb_or
+ 10e6cf __pyx_k_BoxExtruderStepper_dwell
+ 10e6f0 __pyx_k_newpos
+ 10e6ff __pyx_k_extruder_load_length_1
+ 10e71e __pyx_k_extruder_load_length_2
+ 10e73d __pyx_k_extruder_load_length_3
+ 10e75c __pyx_k_slot
+ 10e769 __pyx_n_s_axis_r
+ 10e77a richcmpfunc
+ 10e786 __pyx_kp_s_2B
+ 10e794 __pyx_kp_s_2C
+ 10e7a2 __pyx_kp_s_2D
+ 10e7b0 __pyx_v_slot_load_length_1_speed
+ 10e7d1 __pyx_k_QDE_004_011_00
+ 10e7e8 PyODictValues_Type
+ 10e7fb tmp_tb
+ 10e802 allocator
+ 10e80c __pyx_k_switch_next_slot
+ 10e825 __Pyx_IsAnySubtype2
+ 10e839 PyUnicode_Format
+ 10e84a __Pyx_CyFunction_clear
+ 10e861 __pyx_n_s_BoxExtruderStepper_do_home
+ 10e886 __pyx_kp_s_
+ 10e892 strrchr
+ 10e89a PyExc_IndentationError
+ 10e8b1 tp_cache
+ 10e8ba __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_15disable_stepper
+ 10e900 __pyx_k_Error_during_homing_s_s
+ 10e920 PyExc_TimeoutError
+ 10e933 __pyx_k_slot_loaded
+ 10e947 __pyx_k_printer
+ 10e957 __Pyx_CyFunction_set_defaults
+ 10e975 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_1__init__
+ 10e9b3 __pyx_n_s_BoxExtruderStepper__calc_endstop
+ 10e9de __pyx_kp_s_3A
+ 10e9ec __pyx_kp_s_3B
+ 10e9fa __pyx_kp_s_3C
+ 10ea08 malloc_stats
+ 10ea15 PyTraceBack_Here
+ 10ea26 __pyx_n_s_register_timer
+ 10ea3f _Py_TrueStruct
+ 10ea4e __pyx_k_stepper
+ 10ea5e __Pyx_IterFinish
+ 10ea6f _PyWeakref_ProxyType
+ 10ea84 func_dict
+ 10ea8e PyInit_box_stepper
+ 10eaa1 _py_xincref_tmp
+ 10eab1 __pyx_n_s_slot_unload_length_1_accel
+ 10ead6 PyAsyncGen_Type
+ 10eae6 __pyx_n_s_set_scram
+ 10eafa __Pyx_InitString
+ 10eb0b tp_methods
+ 10eb16 getiterfunc
+ 10eb22 __pyx_kp_s_4A
+ 10eb30 __pyx_kp_s_4B
+ 10eb3e _Py_FalseStruct
+ 10eb4e __pyx_kp_s_4D
+ 10eb5c __pyx_k_get_status
+ 10eb6f __pyx_L7_break
+ 10eb7e PyDictItems_Type
+ 10eb8f __pyx_args
+ 10eb9a __pyx_n_s_complete
+ 10ebad __Pyx__ImportDottedModule_Lookup
+ 10ebce __pyx_int_neg_1
+ 10ebde __pyx_v_retry_num
+ 10ebf0 __pyx_int_neg_2
+ 10ec00 __pyx_int_neg_3
+ 10ec10 __pyx_k_get_value_by_key
+ 10ec29 PyExc_ProcessLookupError
+ 10ec42 __pyx_kp_s_Code_QDE_004_006_Message_Extrude
+ 10ec6e id_refcount
+ 10ec7a ml_doc
+ 10ec81 PyTuple_New
+ 10ec8d __pyx_v_newpos
+ 10ec9c __pyx_n_s_asyncio_coroutines
+ 10ecb9 __pyx_k_endstops
+ 10ecca nb_bool
+ 10ecd2 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_38flush_all_filament
+ 10ed1b PyNumber_Long
+ 10ed29 main_interpreter_id
+ 10ed3d fixed_cause
+ 10ed49 __pyx_k_Code_QDE_004_001_Message_Slot_l
+ 10ed71 f_iblock
+ 10ed7a b_level
+ 10ed82 PyErr_Restore
+ 10ed90 __pyx_k_math
+ 10ed9d __pyx_k_name_2
+ 10edac check_interval
+ 10edbb __pyx_n_s_move_d
+ 10edcc _Py_ascii_whitespace
+ 10ede1 __Pyx_CyFunction_set_qualname
+ 10edff f_trace_opcodes
+ 10ee0f __pyx_n_s_force_move
+ 10ee24 __pyx_n_s_ENDSTOP_SAMPLE_TIME
+ 10ee42 __pyx_n_s_set_name
+ 10ee55 __pyx_8genexpr4__pyx_v_name
+ 10ee71 __pyx_n_s_move_t
+ 10ee82 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_13drip_move
+ 10eec4 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_45set_led
+ 10ef04 PyStdPrinter_Type
+ 10ef16 __pyx_k_cmd_SLOT_RFID_READ
+ 10ef31 __pyx_k_r_endstop
+ 10ef43 __pyx_n_s_e_endstop
+ 10ef57 Py_HashRandomizationFlag
+ 10ef70 __pyx_k_QDE_004_018_00
+ 10ef87 tz_minuteswest
+ 10ef96 neg_one
+ 10ef9e __pyx_k_Code_QDE_004_003_Message_Slot_u
+ 10efc6 PyCoro_Type
+ 10efd2 abi_module
+ 10efdd Py_tracefunc
+ 10efea __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_3runout_button_callback
+ 10f038 __Pyx__ImportDottedModule_Error
+ 10f058 co_freevars
+ 10f064 __Pyx_PyErr_ExceptionMatchesInState
+ 10f088 __pyx_v_value
+ 10f096 __pyx_n_s_BoxExtruderStepper_disable_stepp
+ 10f0c1 __pyx_n_s_metaclass
+ 10f0d5 _chain
+ 10f0dc im_func
+ 10f0e4 __pyx_k_hall
+ 10f0f1 PyCFunction
+ 10f0fd __pyx_kp_s_SET_FILAMENT_SENSOR_SENSOR_box_m
+ 10f129 tp_dictoffset
+ 10f137 PyListObject
+ 10f144 func_closure
+ 10f151 __pyx_kp_u_disable
+ 10f164 __pyx_n_s_lookup_object
+ 10f17c PyTupleIter_Type
+ 10f18d __pyx_n_s_e_endstop_timer
+ 10f1a7 __pyx_n_s_exclude_tool
+ 10f1be __pyx_k_BoxExtruderStepper_flush_all_fil
+ 10f1e7 __Pyx_CyFunction_get_is_coroutine
+ 10f209 __pyx_n_s_cruise_t
+ 10f21c __pyx_n_s_cruise_v
+ 10f22f __Pyx_PyVectorcall_FastCallDict_kw
+ 10f252 PyExc_UnicodeError
+ 10f265 __pyx_v_vendor_slot
+ 10f279 __pyx_n_s_flush_all_filament
+ 10f296 unequal
+ 10f29e __pyx_k_slot_load_length_1_speed
+ 10f2bf __pyx_n_s_b_endstop_timer
+ 10f2d9 fscodec_initialized
+ 10f2ed __pyx_t_1
+ 10f2f7 __pyx_t_2
+ 10f301 __pyx_k_max_steps
+ 10f313 __pyx_t_4
+ 10f31d __pyx_t_5
+ 10f327 __pyx_t_6
+ 10f331 __pyx_t_7
+ 10f33b __pyx_t_8
+ 10f345 __pyx_t_9
+ 10f34f PyCodeObject
+ 10f35c __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_11dwell
+ 10f39a __Pyx_PyDict_GetItem
+ 10f3af __pyx_n_s_triggered
+ 10f3c3 more_or_less
+ 10f3d0 PyObject_GetAttrString
+ 10f3e7 _PyObject_GetDictPtr
+ 10f3fc is_method
+ 10f406 __pyx_L3_error
+ 10f415 strides
+ 10f41d __pyx_k_box_stepper_slot
+ 10f436 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_13drip_move
+ 10f476 __pyx_k_color
+ 10f484 nb_add
+ 10f48b PyODictIter_Type
+ 10f49c tp_subclasses
+ 10f4aa module_name
+ 10f4b6 __pyx_k_enable
+ 10f4c5 __pyx_k_filament_slot
+ 10f4db __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_39flush_all_filament
+ 10f524 __pyx_k_M204_S10000_G1_Y300_F9000_G1_X0
+ 10f54c _freeres_list
+ 10f55a __pyx_k_drip_move
+ 10f56c __int64_t
+ 10f576 __pyx_int_0
+ 10f582 __pyx_int_1
+ 10f58e __pyx_int_2
+ 10f59a __pyx_int_3
+ 10f5a6 PyExc_GeneratorExit
+ 10f5ba __pyx_int_6
+ 10f5c6 __pyx_int_7
+ 10f5d2 __pyx_int_8
+ 10f5de __pyx_int_9
+ 10f5ea _Py_ctype_table
+ 10f5fa Py_VerboseFlag
+ 10f609 __pyx_k_box_rfid_2
+ 10f61c __pyx_builtin_zip
+ 10f62e __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_28cmd_SLOT_UNLOAD
+ 10f674 __pyx_k_set_position
+ 10f689 _IO_FILE
+ 10f692 __stack_chk_fail
+ 10f6a3 f_stacktop
+ 10f6ae __pyx_k_scram
+ 10f6bc __pyx_n_s_get_ffi
+ 10f6ce siphash
+ 10f6d6 __tzname
+ 10f6df __pyx_n_s_print_time
+ 10f6f4 PyExc_StopAsyncIteration
+ 10f70d Py_UCS1
+ 10f715 Py_UCS2
+ 10f71d Py_UCS4
+ 10f725 __pyx_L18_exit_scope
+ 10f73a __pyx_n_s_calc_position_from_coord
+ 10f75d __pyx_n_s_BoxExtruderStepper_cmd_SLOT_PROM
+ 10f788 __pyx_n_s_sp
+ 10f795 PyExc_EOFError
+ 10f7a4 arg0
+ 10f7a9 __pyx_n_s_gcode
+ 10f7b9 __pyx_n_s_RFID_READ
+ 10f7cd PyMemberDef
+ 10f7d9 temps
+ 10f7df little
+ 10f7e6 __pyx_n_s_load_hub_length_1_speed
+ 10f808 optind
+ 10f80f __pyx_v_color_slot
+ 10f822 __pyx_n_s_lookup_enable
+ 10f83a PyExc_AssertionError
+ 10f84f PyFrame_New
+ 10f85b argc
+ 10f860 __pyx_n_s_respond_info
+ 10f877 tp_str
+ 10f87e f_lineno
+ 10f887 __Pyx_CyFunction_traverse
+ 10f8a1 m_traverse
+ 10f8ac __pyx_f
+ 10f8b4 PyExc_SyntaxWarning
+ 10f8c8 argv
+ 10f8cd unaryfunc
+ 10f8d7 __Pyx_PyDict_GetItemStr
+ 10f8ef Py_InspectFlag
+ 10f8fe __pyx_n_s_math
+ 10f90d __Pyx_FetchSharedCythonABIModule
+ 10f92e __pyx_k_Code_QDE_004_006_Message_Extrude
+ 10f957 allow_none
+ 10f962 __pyx_n_s_extruder
+ 10f975 __pyx_codeobj__62
+ 10f987 __pyx_codeobj__64
+ 10f999 __pyx_codeobj__66
+ 10f9ab __pyx_codeobj__69
+ 10f9bd PyExc_BaseException
+ 10f9d1 PyGetSetDescr_Type
+ 10f9e4 PyCallIter_Type
+ 10f9f4 __pyx_L6_skip
+ 10fa02 defaults_kwdict
+ 10fa12 __pyx_v_auto_reload
+ 10fa26 __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS_METHOD
+ 10fa5b __pyx_tuple__24
+ 10fa6b __pyx_k_cmd_EXTRUDER_LOAD
+ 10fa85 __pyx_kp_s_box_stepper_py
+ 10fa9f __pyx_codeobj__71
+ 10fab1 __pyx_codeobj__74
+ 10fac3 __pyx_codeobj__76
+ 10fad5 __pyx_k_config
+ 10fae4 PyObject_Size
+ 10faf2 __pyx_k_eventtime
+ 10fb04 __pyx_kp_s_Code_QDE_004_019_Message_Please
+ 10fb2f __pyx_v_can_cut
+ 10fb3f PyStructSequence_UnnamedField
+ 10fb5d __pyx_k_klippy_ready
+ 10fb72 from_list
+ 10fb7c co_extra_user_count
+ 10fb90 __pyx_k_dwell
+ 10fb9e __pyx_kp_s_box_rfid
+ 10fbb2 _Py_HashSecret
+ 10fbc1 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_9do_move
+ 10fc00 from_name
+ 10fc0a _Py_EllipsisObject
+ 10fc1d __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_22get_mcu_endstops
+ 10fc64 __pyx_int_neg_700
+ 10fc76 __pyx_codeobj__80
+ 10fc88 __pyx_n_s_endstop_triggers
+ 10fca3 __pyx_codeobj__82
+ 10fcb5 __pyx_codeobj__84
+ 10fcc7 __pyx_k_spec
+ 10fcd4 __Pyx_PyObject_GetMethod
+ 10fced __pyx_codeobj__87
+ 10fcff PyCode_Type
+ 10fd0b __pyx_k_import
+ 10fd1a __pyx_k_b_endstop_state
+ 10fd32 __pyx_kp_s_Error_during_homing_s_s
+ 10fd55 PyExc_UnicodeEncodeError
+ 10fd6e __pyx_n_s_EXTRUDER_UNLOAD
+ 10fd88 __pyx_k_SET_FILAMENT_SENSOR_SENSOR_box_m
+ 10fdb1 __pyx_L16_for_end
+ 12f4db  $0)
+ 12f53b  $0)
+ 12f695  $0)
+ 12f7ac  $0)
+ 12f7c9  $0)
+ 12f80e  $0)
+ 12f82b  $0)
+ 12f848  $0)
+ 12f865  $0)
+ 135567 2'0-q
+ 13561a 2'0-q
+ 13c758  $0)
+ 1bc507 P#Hs
+ 1e82a7  $0)
+ 1e83a8  $0)
+ 1fc674  $0)
+ 1fc703  $0)
+ 218c70  $0)
+ 218d6d  $0)
+ 218db0  $0)
+ 218dcd  $0)
+ 2326d4  $0)
+ 232704  $0)
+ 238dce  $0)
+ 238f0a  $0)
+ 238f60  $0)
+ 238f7d  $0)
+ 270061 /usr/lib/gcc/aarch64-linux-gnu/8/../../../aarch64-linux-gnu/crti.o
+ 2700a7 call_weak_fn
+ 2700b4 /usr/lib/gcc/aarch64-linux-gnu/8/../../../aarch64-linux-gnu/crtn.o
+ 2700f7 box_stepper.c
+ 270105 __pyx_tp_clear_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 27014d __Pyx_ErrRestoreInState
+ 270165 __Pyx_CyFunction_set_doc
+ 27017e __Pyx_CyFunction_get_qualname
+ 27019c __Pyx_CyFunction_get_globals
+ 2701b9 __Pyx_CyFunction_get_closure
+ 2701d6 __Pyx_CyFunction_get_code
+ 2701f0 __Pyx_CyFunction_init_defaults
+ 27020f __Pyx_CyFunction_get_defaults
+ 27022d __Pyx_CyFunction_get_kwdefaults
+ 27024d __pyx_bisect_code_objects
+ 270267 __Pyx_PyObject_SetAttrStr
+ 270281 __Pyx_CyFunction_get_annotations
+ 2702a2 __Pyx_CyFunction_get_dict
+ 2702bc __Pyx_PyObject_GetAttrStr
+ 2702d6 __Pyx_CyFunction_CallMethod
+ 2702f2 __Pyx_PyFunction_FastCallNoKw
+ 270310 __Pyx_PyObject_Call
+ 270324 __Pyx__GetException
+ 270338 __Pyx_PyMethod_New
+ 27034b __Pyx_Import
+ 270358 __pyx_mstate_global_static
+ 270373 __Pyx_CyFunction_get_name
+ 27038d __Pyx_CyFunction_clear
+ 2703a4 __Pyx_CyFunction_repr
+ 2703ba __Pyx_CyFunction_dealloc
+ 2703d3 __Pyx_copy_spec_to_module
+ 2703ed __Pyx_InitCachedConstants
+ 270407 __pyx_tp_dealloc_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 270451 __Pyx_ImportFrom
+ 270462 __pyx_pymod_create
+ 270475 __pyx_tp_traverse_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 2704c0 __Pyx_CyFunction_traverse
+ 2704da __Pyx__ExceptionReset.isra.3
+ 2704f7 __Pyx_CyFunction_set_annotations
+ 270518 __Pyx_CyFunction_set_dict
+ 270532 __Pyx_CyFunction_set_qualname
+ 270550 __Pyx_CyFunction_set_name
+ 27056a __Pyx_PyUnicode_Equals
+ 270581 __Pyx_PyInt_BoolEqObjC.isra.13
+ 2705a0 __Pyx_CyFunction_Vectorcall_O
+ 2705be __Pyx_PyInt_AddObjC.isra.30
+ 2705da __pyx_tp_new_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 270620 __Pyx_CyFunction_set_kwdefaults
+ 270640 __Pyx_CyFunction_set_defaults
+ 27065e __Pyx_CyFunction_get_doc
+ 270677 __Pyx_CyFunction_CallAsMethod
+ 270695 __Pyx_CreateStringTabAndInitStrings
+ 2706b9 __Pyx_ParseOptionalKeywords.constprop.81
+ 2706e2 __Pyx_GetItemInt_Fast.constprop.82
+ 270705 __Pyx_CyFunction_New.constprop.83
+ 270727 __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS_METHOD
+ 27075c __Pyx_CyFunction_Vectorcall_NOARGS
+ 27077f __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS
+ 2707ad __Pyx_PyFunction_FastCallDict.constprop.88
+ 2707d8 __Pyx_PyFloat_AddObjC.isra.31.constprop.90
+ 270803 __Pyx_PyInt_SubtractCObj.isra.28.constprop.92
+ 270831 __Pyx_PyInt_RemainderObjC.isra.27.constprop.93
+ 270860 __Pyx_PyInt_MultiplyObjC.isra.25.constprop.95
+ 27088e __Pyx_PyInt_TrueDivideObjC.isra.24.constprop.96
+ 2708be __Pyx_CyFunction_reduce
+ 2708d6 __Pyx_PyErr_GivenExceptionMatches.part.17
+ 270900 __Pyx_GetKwValue_FASTCALL
+ 27091a __Pyx_CyFunction_get_is_coroutine
+ 27093c __Pyx_PyObject_FastCall_fallback.constprop.89
+ 27096a __Pyx_IterFinish
+ 27097b __Pyx_IternextUnpackEndCheck
+ 270998 __Pyx_AddTraceback
+ 2709ab __pyx_pf_6extras_11box_stepper_2__defaults__
+ 2709d8 __Pyx_PyObject_FastCallDict.constprop.86
+ 270a01 __Pyx_PyObject_CallMethod0
+ 270a1c __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_26slot_load.isra.52
+ 270a64 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_3runout_button_callback
+ 270ab0 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_13drip_move
+ 270af0 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_14multi_complete_lambda
+ 270b3c __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_47led_handle_connect
+ 270b85 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_7sync_print_time
+ 270bca __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_27slot_load
+ 270c0a __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_35cmd_SLOT_PROMPT_MOVE
+ 270c55 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_11dwell
+ 270c91 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_19multi_complete
+ 270cd6 __Pyx_PyObject_GetAttrStrNoError
+ 270cf7 __Pyx_ImportDottedModule.constprop.70
+ 270d1d __Pyx_GetBuiltinName
+ 270d32 __pyx_pymod_exec_box_stepper
+ 270d4f __Pyx__GetModuleGlobalName
+ 270d6a __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_17_calc_endstop_rate
+ 270db3 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_40switch_next_slot.isra.45
+ 270e02 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_41switch_next_slot
+ 270e49 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_21do_home
+ 270e87 __pyx_pw_6extras_11box_stepper_1load_config_prefix
+ 270eba __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_37slot_sync
+ 270efa __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_25do_home_repeatedly
+ 270f43 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_23get_mcu_endstops
+ 270f8a __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_5get_status
+ 270fca __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_15disable_stepper
+ 271010 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_14multi_complete_1lambda1
+ 27105e __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_45set_led
+ 27109c __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_32cmd_EXTRUDER_UNLOAD.isra.49
+ 2710ee __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_33cmd_EXTRUDER_UNLOAD
+ 271138 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_9do_move
+ 271175 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper___init__.isra.67
+ 2711ba __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_1__init__
+ 2711f8 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_39flush_all_filament
+ 271241 __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_28cmd_SLOT_UNLOAD.isra.51
+ 27128f __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_29cmd_SLOT_UNLOAD
+ 2712d5 __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_43cmd_SLOT_RFID_READ
+ 27131e __pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_30cmd_EXTRUDER_LOAD.isra.50
+ 27136e __pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_31cmd_EXTRUDER_LOAD
+ 2713b9 __pyx_k_
+ 2713c2 __pyx_k_1A
+ 2713cd __pyx_k_1B
+ 2713d8 __pyx_k_1C
+ 2713e3 __pyx_k_1D
+ 2713ee __pyx_k_2A
+ 2713f9 __pyx_k_2B
+ 271404 __pyx_k_2C
+ 27140f __pyx_k_2D
+ 27141a __pyx_k_3A
+ 271425 __pyx_k_3B
+ 271430 __pyx_k_3C
+ 27143b __pyx_k_3D
+ 271446 __pyx_k_4A
+ 271451 __pyx_k_4B
+ 27145c __pyx_k_4C
+ 271467 __pyx_k_4D
+ 271472 __pyx_k_BoxButton
+ 271484 __pyx_k_BoxEndstop
+ 271497 __pyx_k_BoxExtruderStepper
+ 2714b2 __pyx_k_BoxExtruderStepper___init
+ 2714d4 __pyx_k_BoxExtruderStepper__calc_endstop
+ 2714fd __pyx_k_BoxExtruderStepper_cmd_EXTRUDER
+ 271525 __pyx_k_BoxExtruderStepper_cmd_EXTRUDER_2
+ 27154f __pyx_k_BoxExtruderStepper_cmd_SLOT_PROM
+ 271578 __pyx_k_BoxExtruderStepper_cmd_SLOT_RFID
+ 2715a1 __pyx_k_BoxExtruderStepper_cmd_SLOT_UNLO
+ 2715ca __pyx_k_BoxExtruderStepper_disable_stepp
+ 2715f3 __pyx_k_BoxExtruderStepper_do_home
+ 271616 __pyx_k_BoxExtruderStepper_do_home_repea
+ 27163f __pyx_k_BoxExtruderStepper_do_move
+ 271662 __pyx_k_BoxExtruderStepper_drip_move
+ 271687 __pyx_k_BoxExtruderStepper_dwell
+ 2716a8 __pyx_k_BoxExtruderStepper_flush_all_fil
+ 2716d1 __pyx_k_BoxExtruderStepper_get_mcu_endst
+ 2716fa __pyx_k_BoxExtruderStepper_get_status
+ 271720 __pyx_k_BoxExtruderStepper_led_handle_co
+ 271749 __pyx_k_BoxExtruderStepper_multi_complet
+ 271772 __pyx_k_BoxExtruderStepper_multi_complet_2
+ 27179d __pyx_k_BoxExtruderStepper_runout_button
+ 2717c6 __pyx_k_BoxExtruderStepper_set_led
+ 2717e9 __pyx_k_BoxExtruderStepper_slot_load
+ 27180e __pyx_k_BoxExtruderStepper_slot_sync
+ 271833 __pyx_k_BoxExtruderStepper_switch_next_s
+ 27185c __pyx_k_BoxExtruderStepper_sync_print_ti
+ 271885 __pyx_k_CLEAR_OOZE
+ 271898 __pyx_k_CUT_FILAMENT_MOVE_TO_TRASH
+ 2718bb __pyx_k_Code_QDE_004_001_Message_Slot_l
+ 2718e3 __pyx_k_Code_QDE_004_002_Message_Extrud
+ 27190b __pyx_k_Code_QDE_004_003_Message_Slot_u
+ 271933 __pyx_k_Code_QDE_004_004_Message_Please
+ 27195b __pyx_k_Code_QDE_004_005_Message_Please
+ 271983 __pyx_k_Code_QDE_004_006_Message_Extrude
+ 2719ac __pyx_k_Code_QDE_004_007_Message_Extrude
+ 2719d5 __pyx_k_Code_QDE_004_009_Message_Extrude
+ 2719fe __pyx_k_Code_QDE_004_011_Message_Detecte
+ 271a27 __pyx_k_Code_QDE_004_016_Message_The_fil
+ 271a50 __pyx_k_Code_QDE_004_017_Message_Filamen
+ 271a79 __pyx_k_Code_QDE_004_018_Message_No_fila
+ 271aa2 __pyx_k_Code_QDE_004_019_Message_Please
+ 271aca __pyx_k_Code_QDE_004_020_Message_Detect
+ 271af2 __pyx_k_Code_QDE_004_022_Message_No_repl
+ 271b1b __pyx_k_DISABLE_DELAY
+ 271b31 __pyx_k_ENDSTOP_SAMPLE_COUNT
+ 271b4e __pyx_k_ENDSTOP_SAMPLE_TIME
+ 271b6a __pyx_k_EXTRUDER_LOAD
+ 271b80 __pyx_k_EXTRUDER_UNLOAD
+ 271b98 __pyx_k_Error_during_homing_move_s
+ 271bbb __pyx_k_Error_during_homing_s_s
+ 271bdb __pyx_k_ExtruderStepper
+ 271bf3 __pyx_k_G1_E100_F300_G1_E_1_F1800_M106_S
+ 271c1c __pyx_k_G1_E25_F300
+ 271c30 __pyx_k_G1_X0_Y250_F30000_G1_X0_Y50_F300
+ 271c59 __pyx_k_G1_Y300_F9000_G1_X0_F9000_G1_X0
+ 271c81 __pyx_k_HOMING_START_DELAY
+ 271c9c __pyx_k_M204_S10000_G1_X0_Y150_F15000
+ 271cc2 __pyx_k_M204_S10000_G1_Y300_F9000_G1_X0
+ 271cea __pyx_k_M204_S10000_M83_G1_X0_Y215_F2100
+ 271d13 __pyx_k_M400
+ 271d20 __pyx_k_MOVE_TO_TRASH
+ 271d36 __pyx_k_MOVE_TO_TRASH_M400
+ 271d51 __pyx_k_NEVER
+ 271d5f __pyx_k_NOW
+ 271d6b __pyx_k_PAUSE
+ 271d79 __pyx_k_PrinterPWMLED
+ 271d8f __pyx_k_QDE_004_001
+ 271da3 __pyx_k_QDE_004_002
+ 271db7 __pyx_k_QDE_004_003
+ 271dcb __pyx_k_QDE_004_004
+ 271ddf __pyx_k_QDE_004_005
+ 271df3 __pyx_k_QDE_004_006
+ 271e07 __pyx_k_QDE_004_007
+ 271e1b __pyx_k_QDE_004_009
+ 271e2f __pyx_k_QDE_004_011_00
+ 271e46 __pyx_k_QDE_004_016_00
+ 271e5d __pyx_k_QDE_004_017_00
+ 271e74 __pyx_k_QDE_004_018_00
+ 271e8b __pyx_k_QDE_004_019_00
+ 271ea2 __pyx_k_QDE_004_022_00
+ 271eb9 __pyx_k_RELOAD_ALL_RFID_1_FIRST
+ 271ed9 __pyx_k_RFID_READ
+ 271eeb __pyx_k_SET_FILAMENT_SENSOR_SENSOR_box_m
+ 271f14 __pyx_k_SLOT
+ 271f21 __pyx_k_SLOT_PROMPT_MOVE
+ 271f3a __pyx_k_SLOT_UNLOAD
+ 271f4e __pyx_k__114
+ 271f5b __pyx_k__59
+ 271f67 __pyx_k__60
+ 271f73 __pyx_k_accel
+ 271f81 __pyx_k_accel_t
+ 271f91 __pyx_k_add_stepper
+ 271fa5 __pyx_k_all_endstop_trigger
+ 271fc1 __pyx_k_asyncio_coroutines
+ 271fdc __pyx_k_auto_reload
+ 271ff0 __pyx_k_auto_reload_detect
+ 27200b __pyx_k_axes_d
+ 27201a __pyx_k_axis_r
+ 272029 __pyx_k_b_endstop
+ 27203b __pyx_k_b_endstop_state
+ 272053 __pyx_k_b_endstop_timer
+ 27206b __pyx_k_b_motion
+ 27207c __pyx_k_be
+ 272087 __pyx_k_box_button_state
+ 2720a0 __pyx_k_box_count
+ 2720b2 __pyx_k_box_endstop
+ 2720c6 __pyx_k_box_extras
+ 2720d9 __pyx_k_box_motion_timer
+ 2720f2 __pyx_k_box_rfid
+ 272103 __pyx_k_box_rfid_2
+ 272116 __pyx_k_box_stepper_py
+ 27212d __pyx_k_box_stepper_slot
+ 272146 __pyx_k_c
+ 272150 __pyx_k_calc_endstop_rate
+ 27216a __pyx_k_calc_move_time
+ 272181 __pyx_k_calc_position_from_coord
+ 2721a2 __pyx_k_can_cut
+ 2721b2 __pyx_k_can_load_slot
+ 2721c8 __pyx_k_card_reader
+ 2721dc __pyx_k_chelper
+ 2721ec __pyx_k_cline_in_traceback
+ 272207 __pyx_k_cmd_EXTRUDER_LOAD
+ 272221 __pyx_k_cmd_EXTRUDER_UNLOAD
+ 27223d __pyx_k_cmd_SLOT_PROMPT_MOVE
+ 27225a __pyx_k_cmd_SLOT_RFID_READ
+ 272275 __pyx_k_cmd_SLOT_UNLOAD
+ 27228d __pyx_k_color
+ 27229b __pyx_k_color_slot
+ 2722ae __pyx_k_command_error
+ 2722c4 __pyx_k_complete
+ 2722d5 __pyx_k_completions
+ 2722e9 __pyx_k_config
+ 2722f8 __pyx_k_cp
+ 272303 __pyx_k_cruise_t
+ 272314 __pyx_k_cruise_v
+ 272325 __pyx_k_d
+ 27232f __pyx_k_delay
+ 27233d __pyx_k_diameter
+ 27234e __pyx_k_dict
+ 27235b __pyx_k_disable
+ 27236b __pyx_k_disable_stepper
+ 272383 __pyx_k_do_home
+ 272393 __pyx_k_do_home_repeatedly
+ 2723ae __pyx_k_do_move
+ 2723be __pyx_k_doc
+ 2723ca __pyx_k_drip_completion
+ 2723e2 __pyx_k_drip_move
+ 2723f4 __pyx_k_dwell
+ 272402 __pyx_k_e
+ 27240c __pyx_k_e_endstop
+ 27241e __pyx_k_e_endstop_timer
+ 272436 __pyx_k_enable
+ 272445 __pyx_k_endstop_triggers
+ 27245e __pyx_k_endstops
+ 27246f __pyx_k_error
+ 27247d __pyx_k_es
+ 272488 __pyx_k_eventtime
+ 27249a __pyx_k_exclude_tool
+ 2724af __pyx_k_exl_1
+ 2724bd __pyx_k_exl_1_accel
+ 2724d1 __pyx_k_exl_1_speed
+ 2724e5 __pyx_k_extras_box_stepper
+ 272500 __pyx_k_extrude_state
+ 272516 __pyx_k_extruder
+ 272527 __pyx_k_extruder_load_length_1
+ 272546 __pyx_k_extruder_load_length_1_accel
+ 27256b __pyx_k_extruder_load_length_1_speed
+ 272590 __pyx_k_extruder_load_length_2
+ 2725af __pyx_k_extruder_load_length_2_accel
+ 2725d4 __pyx_k_extruder_load_length_2_speed
+ 2725f9 __pyx_k_extruder_load_length_3
+ 272618 __pyx_k_extruder_load_length_3_accel
+ 27263d __pyx_k_extruder_load_length_3_speed
+ 272662 __pyx_k_extruder_stepper
+ 27267b __pyx_k_extruder_unload_length_1
+ 27269c __pyx_k_extruder_unload_length_1_accel
+ 2726c3 __pyx_k_extruder_unload_length_1_speed
+ 2726ea __pyx_k_extruder_unload_length_2
+ 27270b __pyx_k_extruder_unload_length_2_accel
+ 272732 __pyx_k_extruder_unload_length_2_speed
+ 272759 __pyx_k_ffi_lib
+ 272769 __pyx_k_ffi_main
+ 27277a __pyx_k_filament
+ 27278b __pyx_k_filament_slot
+ 2727a1 __pyx_k_flush_all_filament
+ 2727bc __pyx_k_flush_success
+ 2727d2 __pyx_k_force_move
+ 2727e5 __pyx_k_gc
+ 2727f0 __pyx_k_gcmd
+ 2727fd __pyx_k_gcode
+ 27280b __pyx_k_get
+ 272817 __pyx_k_get_endstops
+ 27282c __pyx_k_get_ffi
+ 27283c __pyx_k_get_key_by_value
+ 272855 __pyx_k_get_last_move_time
+ 272870 __pyx_k_get_mcu_endstops
+ 272889 __pyx_k_get_name
+ 27289a __pyx_k_get_printer
+ 2728ae __pyx_k_get_reactor
+ 2728c2 __pyx_k_get_status
+ 2728d5 __pyx_k_get_step_dist
+ 2728eb __pyx_k_get_steppers
+ 272900 __pyx_k_get_value_by_key
+ 272919 __pyx_k_hall
+ 272926 __pyx_k_hall_filament_width_sensor
+ 272949 __pyx_k_home_start
+ 27295c __pyx_k_home_success
+ 272971 __pyx_k_home_wait
+ 272983 __pyx_k_i
+ 27298d __pyx_k_import
+ 27299c __pyx_k_init
+ 2729a9 __pyx_k_init_box_motion
+ 2729c1 __pyx_k_init_subclass
+ 2729d7 __pyx_k_initializing
+ 2729ec __pyx_k_is_coroutine
+ 272a01 __pyx_k_is_drying
+ 272a13 __pyx_k_isenabled
+ 272a25 __pyx_k_kinematics
+ 272a38 __pyx_k_klippy_ready
+ 272a4d __pyx_k_label_map
+ 272a5f __pyx_k_last_load_slot
+ 272a76 __pyx_k_led
+ 272a82 __pyx_k_led_handle_connect
+ 272a9d __pyx_k_led_state
+ 272aaf __pyx_k_led_timer
+ 272ac1 __pyx_k_load_config_prefix
+ 272adc __pyx_k_load_hub_length_1
+ 272af6 __pyx_k_load_hub_length_1_accel
+ 272b16 __pyx_k_load_hub_length_1_speed
+ 272b36 __pyx_k_load_object
+ 272b4a __pyx_k_load_retry_num
+ 272b61 __pyx_k_lookup_enable
+ 272b77 __pyx_k_lookup_object
+ 272b8d __pyx_k_loop_stepper
+ 272ba2 __pyx_k_main
+ 272baf __pyx_k_math
+ 272bbc __pyx_k_max
+ 272bc8 __pyx_k_max_steps
+ 272bda __pyx_k_mcu_endstop
+ 272bee __pyx_k_metaclass
+ 272c00 __pyx_k_module
+ 272c0f __pyx_k_motion
+ 272c1e __pyx_k_motor_disable
+ 272c34 __pyx_k_move_d
+ 272c43 __pyx_k_move_t
+ 272c52 __pyx_k_movepos
+ 272c62 __pyx_k_mp
+ 272c6d __pyx_k_multi_complete
+ 272c84 __pyx_k_name
+ 272c91 __pyx_k_name_2
+ 272ca0 __pyx_k_newpos
+ 272caf __pyx_k_next_cmd_time
+ 272cc5 __pyx_k_next_color_slot
+ 272cdd __pyx_k_next_filament_slot
+ 272cf8 __pyx_k_next_slot
+ 272d0a __pyx_k_next_vendor_slot
+ 272d23 __pyx_k_note_kinematic_activity
+ 272d43 __pyx_k_pos
+ 272d4f __pyx_k_prepare
+ 272d5f __pyx_k_print_sensor_state_to_log
+ 272d81 __pyx_k_print_stats
+ 272d95 __pyx_k_print_time
+ 272da8 __pyx_k_printer
+ 272db8 __pyx_k_printing
+ 272dc9 __pyx_k_qualname
+ 272dda __pyx_k_r_endstop
+ 272dec __pyx_k_r_endstop_state
+ 272e04 __pyx_k_range
+ 272e12 __pyx_k_reactor
+ 272e22 __pyx_k_red_value
+ 272e34 __pyx_k_register_callback
+ 272e4e __pyx_k_register_event_handler
+ 272e6d __pyx_k_register_mux_command
+ 272e8a __pyx_k_register_timer
+ 272ea1 __pyx_k_replace
+ 272eb1 __pyx_k_respond_info
+ 272ec6 __pyx_k_respond_raw
+ 272eda __pyx_k_rest_time
+ 272eec __pyx_k_retry_num
+ 272efe __pyx_k_retry_step
+ 272f11 __pyx_k_rfid_device
+ 272f25 __pyx_k_rfid_state
+ 272f38 __pyx_k_run_script
+ 272f4b __pyx_k_run_script_from_command
+ 272f6b __pyx_k_runout
+ 272f7a __pyx_k_runout_2
+ 272f8b __pyx_k_runout_button
+ 272fa1 __pyx_k_runout_button_callback
+ 272fc0 __pyx_k_runout_num
+ 272fd3 __pyx_k_runout_pin
+ 272fe6 __pyx_k_s
+ 272ff0 __pyx_k_s_has_been_sync_with_Extruder
+ 273016 __pyx_k_save_variable
+ 27302c __pyx_k_scram
+ 27303a __pyx_k_se
+ 273045 __pyx_k_self
+ 273052 __pyx_k_set_led
+ 273062 __pyx_k_set_name
+ 273073 __pyx_k_set_position
+ 273088 __pyx_k_set_scram
+ 27309a __pyx_k_set_trapq
+ 2730ac __pyx_k_shake_for_load_toolhead
+ 2730cc __pyx_k_shake_toolhead
+ 2730e3 __pyx_k_slot
+ 2730f0 __pyx_k_slot_1
+ 2730ff __pyx_k_slot_load
+ 273111 __pyx_k_slot_load_length_1
+ 27312c __pyx_k_slot_load_length_1_accel
+ 27314d __pyx_k_slot_load_length_1_speed
+ 27316e __pyx_k_slot_load_length_2
+ 273189 __pyx_k_slot_load_length_2_accel
+ 2731aa __pyx_k_slot_load_length_2_speed
+ 2731cb __pyx_k_slot_load_length_3
+ 2731e6 __pyx_k_slot_load_length_3_accel
+ 273207 __pyx_k_slot_load_length_3_speed
+ 273228 __pyx_k_slot_load_length_4
+ 273243 __pyx_k_slot_load_length_4_accel
+ 273264 __pyx_k_slot_load_length_4_speed
+ 273285 __pyx_k_slot_loaded
+ 273299 __pyx_k_slot_not_unload
+ 2732b1 __pyx_k_slot_state
+ 2732c4 __pyx_k_slot_sync
+ 2732d6 __pyx_k_slot_unload_length_1
+ 2732f3 __pyx_k_slot_unload_length_1_accel
+ 273316 __pyx_k_slot_unload_length_1_speed
+ 273339 __pyx_k_sp
+ 273344 __pyx_k_spec
+ 273351 __pyx_k_speed
+ 27335f __pyx_k_split
+ 27336d __pyx_k_sqrt
+ 27337a __pyx_k_start_rfid_read
+ 273392 __pyx_k_startpos
+ 2733a3 __pyx_k_state
+ 2733b1 __pyx_k_stepper
+ 2733c1 __pyx_k_stepper_enable
+ 2733d8 __pyx_k_stepper_endstops
+ 2733f1 __pyx_k_stepper_label
+ 273407 __pyx_k_stepper_name
+ 27341c __pyx_k_stepper_num
+ 273430 __pyx_k_stop_read
+ 273442 __pyx_k_success_count
+ 273458 __pyx_k_sum
+ 273464 __pyx_k_super
+ 273472 __pyx_k_switch_next_slot
+ 27348b __pyx_k_sync_print_time
+ 2734a3 __pyx_k_sync_to_extruder
+ 2734bc __pyx_k_temp_stepper
+ 2734d1 __pyx_k_test
+ 2734de __pyx_k_tool_change
+ 2734f2 __pyx_k_toolhead
+ 273503 __pyx_k_trapq
+ 273511 __pyx_k_trapq_alloc
+ 273525 __pyx_k_trapq_append
+ 27353a __pyx_k_trapq_finalize_moves
+ 273557 __pyx_k_trapq_free
+ 27356a __pyx_k_trigger_time
+ 27357f __pyx_k_triggered
+ 273591 __pyx_k_update_leds
+ 2735a5 __pyx_k_update_time
+ 2735b9 __pyx_k_update_timer
+ 2735ce __pyx_k_value
+ 2735dc __pyx_k_value_t
+ 2735ec __pyx_k_vendor
+ 2735fb __pyx_k_vendor_slot
+ 27360f __pyx_k_wait
+ 27361c __pyx_k_wait_moves
+ 27362f __pyx_k_white_value
+ 273643 __pyx_k_zip
+ 27364f main_interpreter_id.22551
+ 273669 __pyx_pyframe_localsplus_offset
+ 273689 __pyx_freecount_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 2736d2 __pyx_freelist_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 27371a __pyx_m
+ 273722 __pyx_dict_version.24023
+ 27373b __pyx_dict_cached_value.24024
+ 273759 __pyx_code_cache
+ 27376a __pyx_builtin_sum
+ 27377c __pyx_builtin_max
+ 27378e __pyx_builtin_zip
+ 2737a0 __pyx_builtin_range
+ 2737b4 __pyx_dict_version.18203
+ 2737cd __pyx_dict_cached_value.18204
+ 2737eb __pyx_dict_version.18752
+ 273804 __pyx_dict_cached_value.18753
+ 273822 __pyx_dict_version.18800
+ 27383b __pyx_dict_cached_value.18801
+ 273859 __pyx_dict_version.18802
+ 273872 __pyx_dict_cached_value.18803
+ 273890 __pyx_dict_version.18819
+ 2738a9 __pyx_dict_cached_value.18820
+ 2738c7 __pyx_dict_version.18883
+ 2738e0 __pyx_dict_cached_value.18884
+ 2738fe __pyx_dict_version.19004
+ 273917 __pyx_dict_cached_value.19005
+ 273935 __pyx_dict_version.22423
+ 27394e __pyx_dict_cached_value.22424
+ 27396c __pyx_dict_version.18049
+ 273985 __pyx_dict_cached_value.18050
+ 2739a3 __pyx_dict_version.17739
+ 2739bc __pyx_dict_cached_value.17740
+ 2739da __pyx_dict_version.17001
+ 2739f3 __pyx_dict_cached_value.17002
+ 273a11 __pyx_dict_version.17038
+ 273a2a __pyx_dict_cached_value.17039
+ 273a48 __pyx_dict_version.17049
+ 273a61 __pyx_dict_cached_value.17050
+ 273a7f __pyx_dict_version.17081
+ 273a98 __pyx_dict_cached_value.17082
+ 273ab6 __pyx_dict_version.17258
+ 273acf __pyx_dict_cached_value.17259
+ 273aed __pyx_dict_version.20216
+ 273b06 __pyx_dict_cached_value.20217
+ 273b24 __pyx_dict_version.20570
+ 273b3d __pyx_dict_cached_value.20571
+ 273b5b __pyx_methods
+ 273b69 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_14multi_complete_lambda
+ 273bb7 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_14multi_complete_1lambda1
+ 273c07 __pyx_CyFunctionType_type
+ 273c21 __pyx_CyFunction_methods
+ 273c3a __pyx_CyFunction_members
+ 273c53 __pyx_CyFunction_getsets
+ 273c6c __pyx_type_6extras_11box_stepper___pyx_scope_struct__multi_complete
+ 273cb0 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_1__init__
+ 273cf0 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_3runout_button_callback
+ 273d3e __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_5get_status
+ 273d80 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_7sync_print_time
+ 273dc7 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_9do_move
+ 273e06 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_11dwell
+ 273e44 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_13drip_move
+ 273e86 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_15disable_stepper
+ 273ece __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_17_calc_endstop_rate
+ 273f19 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_19multi_complete
+ 273f60 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_21do_home
+ 273fa0 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_23get_mcu_endstops
+ 273fe9 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_25do_home_repeatedly
+ 274034 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_27slot_load
+ 274076 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_29cmd_SLOT_UNLOAD
+ 2740be __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_31cmd_EXTRUDER_LOAD
+ 274108 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_33cmd_EXTRUDER_UNLOAD
+ 274154 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_35cmd_SLOT_PROMPT_MOVE
+ 2741a1 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_37slot_sync
+ 2741e3 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_39flush_all_filament
+ 27422e __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_41switch_next_slot
+ 274277 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_43cmd_SLOT_RFID_READ
+ 2742c2 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_45set_led
+ 274302 __pyx_mdef_6extras_11box_stepper_18BoxExtruderStepper_47led_handle_connect
+ 27434d __pyx_mdef_6extras_11box_stepper_1load_config_prefix
+ 274382 __pyx_moduledef
+ 274392 __pyx_moduledef_slots
+ 2743a8 crtstuff.c
+ 2743b3 deregister_tm_clones
+ 2743c8 __do_global_dtors_aux
+ 2743de completed.8216
+ 2743ed __do_global_dtors_aux_fini_array_entry
+ 274414 frame_dummy
+ 274420 __frame_dummy_init_array_entry
+ 27443f __FRAME_END__
+ 27444d _fini
+ 274453 __dso_handle
+ 274460 _DYNAMIC
+ 274469 __GNU_EH_FRAME_HDR
+ 27447c __TMC_END__
+ 274488 _GLOBAL_OFFSET_TABLE_
+ 27449e e843419@0004_00000030_422e4
+ 2744ba PyUnicode_FromFormat
+ 2744cf PyObject_SetItem
+ 2744e0 PyList_New
+ 2744eb _PyUnicode_Ready
+ 2744fc PyExc_SystemError
+ 27450e PyDict_SetItemString
+ 274523 PyDict_Size
+ 27452f PyException_SetTraceback
+ 274548 PyMethod_Type
+ 274556 _ITM_deregisterTMCloneTable
+ 274572 PyFloat_Type
+ 27457f PyTuple_Type
+ 27458c PyObject_Format
+ 27459c PyErr_Restore
+ 2745aa PyObject_ClearWeakRefs
+ 2745c1 _PyThreadState_UncheckedGet
+ 2745dd PyModuleDef_Init
+ 2745ee PyFrame_New
+ 2745fa PyMem_Free
+ 274605 PyNumber_InPlaceAdd
+ 274619 PyNumber_Add
+ 274626 PyObject_GetAttrString
+ 27463d __cxa_finalize@@GLIBC_2.17
+ 274658 PyImport_AddModule
+ 27466b PyBytes_FromStringAndSize
+ 274685 _PyObject_GenericGetAttrWithDict
+ 2746a6 PyObject_SetAttrString
+ 2746bd PyErr_WarnEx
+ 2746ca PyModule_NewObject
+ 2746dd PyErr_NoMemory
+ 2746ec PyErr_SetObject
+ 2746fc PyObject_GC_Del
+ 27470c PyErr_NormalizeException
+ 274725 PyNumber_Absolute
+ 274737 PyNumber_Multiply
+ 274749 PyObject_Str
+ 274756 PyObject_RichCompare
+ 27476b PyCode_New
+ 274776 PyImport_GetModuleDict
+ 27478d PyObject_GC_Track
+ 27479f PyExc_RuntimeError
+ 2747b2 PyNumber_Long
+ 2747c0 PyErr_GivenExceptionMatches
+ 2747dc PyErr_SetString
+ 2747ec _PyObject_GC_New
+ 2747fd PyObject_GetItem
+ 27480e PyExc_ValueError
+ 27481f PyObject_Malloc
+ 27482f PyExc_TypeError
+ 27483f PyInterpreterState_GetID
+ 274858 PyEval_EvalFrameEx
+ 27486b PyTuple_GetItem
+ 27487b _PyLong_Copy
+ 274888 PyMem_Realloc
+ 274896 PyErr_ExceptionMatches
+ 2748ad PyOS_snprintf
+ 2748bb PyTraceBack_Here
+ 2748cc PyObject_CallFinalizerFromDealloc
+ 2748ee PyObject_Not
+ 2748fb PyObject_Free
+ 274909 PyLong_FromSsize_t
+ 27491c PyFloat_FromDouble
+ 27492f PyType_Ready
+ 27493c PyLong_FromLong
+ 27494c PyModule_GetName
+ 27495d PyErr_Clear
+ 274969 PyList_Append
+ 274977 _Py_CheckRecursiveCall
+ 27498e _Py_CheckRecursionLimit
+ 2749a6 PyExc_KeyError
+ 2749b5 __stack_chk_fail@@GLIBC_2.17
+ 2749d2 PyImport_GetModule
+ 2749e5 strrchr@@GLIBC_2.17
+ 2749f9 _Py_FalseStruct
+ 274a09 PyInit_box_stepper
+ 274a1c __gmon_start__
+ 274a2b __stack_chk_guard@@GLIBC_2.17
+ 274a49 PyTuple_New
+ 274a55 PyObject_GenericGetAttr
+ 274a6d PyThreadState_Get
+ 274a7f PyNumber_Remainder
+ 274a92 PyType_Type
+ 274a9e _PyDict_SetItem_KnownHash
+ 274ab8 PyObject_SetAttr
+ 274ac9 PyErr_Occurred
+ 274ad8 _PyMethodDescr_FastCallKeywords
+ 274af8 _PyDict_GetItem_KnownHash
+ 274b12 memcmp@@GLIBC_2.17
+ 274b25 PyTuple_GetSlice
+ 274b36 PyDict_GetItemString
+ 274b4b PyEval_EvalCodeEx
+ 274b5d PyObject_Size
+ 274b6b _Py_NoneStruct
+ 274b7a PyObject_IsTrue
+ 274b8a _PyType_Lookup
+ 274b99 PyImport_ImportModuleLevelObject
+ 274bba PyObject_Hash
+ 274bc8 PyUnicode_Compare
+ 274bda _Py_TrueStruct
+ 274be9 PyLong_AsDouble
+ 274bf9 PyFunction_Type
+ 274c09 PyDict_New
+ 274c14 PyDict_Type
+ 274c20 PyDict_Next
+ 274c2c PyBaseObject_Type
+ 274c3e PyLong_FromUnsignedLong
+ 274c56 PyUnicode_AsUTF8
+ 274c67 PyLong_Type
+ 274c73 _PyCFunction_FastCallKeywords
+ 274c91 PyFrame_Type
+ 274c9e _PyObject_GetDictPtr
+ 274cb3 PyErr_Fetch
+ 274cbf PyUnicode_FromString
+ 274cd4 PyObject_GetIter
+ 274ce5 PyUnicode_InternFromString
+ 274d00 PyExc_ImportError
+ 274d12 PyDict_SetItem
+ 274d21 PyExc_AttributeError
+ 274d36 PyExc_StopIteration
+ 274d4a PyExc_RuntimeWarning
+ 274d5f PyUnicode_Type
+ 274d6e __pyx_module_is_main_extras__box_stepper
+ 274d97 PyUnicode_Decode
+ 274da8 PyErr_Format
+ 274db5 PyExc_NameError
+ 274dc5 PyUnicode_FromStringAndSize
+ 274de1 PyModule_GetDict
+ 274df2 _ITM_registerTMCloneTable
+ 274e0c PyLong_FromLongLong
+ 274e20 PyUnicode_Concat
+ 274e31 PyObject_GetAttr
+ 274e42 PyCFunction_Type
+ 274e53 _PyDict_NewPresized
+ 274e67 PyMethodDescr_Type
+ 274e7a PyUnicode_Format
+ 274e8b PyMem_Malloc
+ 274e98 PyNumber_Subtract
+ 274eaa PyTuple_Pack
+ 274eb7 Py_GetVersion
+ 274ec5 PyCode_NewEmpty
+ 274ed5 PyNumber_TrueDivide
+ 274ee9 PyObject_GC_UnTrack
+ 274efd PyDict_GetItemWithError
+ 274f15 PyList_Type
+ 274f21 PyImport_Import
+ 274f31 PyNumber_FloorDivide
+ 274f47 .symtab
+ 274f4f .strtab
+ 274f57 .shstrtab
+ 274f61 .note.gnu.build-id
+ 274f74 .gnu.hash
+ 274f7e .dynsym
+ 274f86 .dynstr
+ 274f8e .gnu.version
+ 274f9b .gnu.version_r
+ 274faa .rela.dyn
+ 274fb4 .rela.plt
+ 274fbe .init
+ 274fc4 .text
+ 274fca .fini
+ 274fd0 .rodata
+ 274fd8 .eh_frame_hdr
+ 274fe6 .eh_frame
+ 274ff0 .init_array
+ 274ffc .fini_array
+ 275008 .dynamic
+ 275011 .got
+ 275016 .got.plt
+ 27501f .data
+ 275025 .bss
+ 27502a .comment
+ 275033 .debug_aranges
+ 275042 .debug_info
+ 27504e .debug_abbrev
+ 27505c .debug_line
+ 275068 .debug_str
+ 275073 .debug_loc
+ 27507e .debug_ranges

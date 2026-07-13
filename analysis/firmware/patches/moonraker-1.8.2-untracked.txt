@@ -1,0 +1,11 @@
+moonraker/app.py
+moonraker/components/extensions.so
+moonraker/components/frp_manager.so
+moonraker/components/mqtt.so
+moonraker/components/setup.py
+moonraker/components/timelapse.py
+moonraker/components/update_manager/python_deploy.py
+moonraker/components/update_manager/web_deploy.py
+moonraker/klippy_connection.py
+moonraker/utils/exceptions.py
+moonraker/websockets.py

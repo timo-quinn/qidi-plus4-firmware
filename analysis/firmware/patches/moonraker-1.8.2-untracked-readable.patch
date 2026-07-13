@@ -1,0 +1,4120 @@
+diff --git a/moonraker/app.py b/moonraker/app.py
+new file mode 100644
+index 0000000..324afb8
+--- /dev/null
++++ b/moonraker/app.py
+@@ -0,0 +1,1115 @@
++# Klipper Web Server Rest API
++#
++# Copyright (C) 2020 Eric Callahan <arksine.code@gmail.com>
++#
++# This file may be distributed under the terms of the GNU GPLv3 license
++
++from __future__ import annotations
++import os
++import mimetypes
++import logging
++import traceback
++import ssl
++import pathlib
++import urllib.parse
++import tornado
++import tornado.iostream
++import tornado.httputil
++import tornado.web
++from asyncio import Lock
++from inspect import isclass
++from tornado.escape import url_unescape, url_escape
++from tornado.routing import Rule, PathMatches, AnyMatches
++from tornado.http1connection import HTTP1Connection
++from tornado.log import access_log
++from .utils import ServerError, source_info, parse_ip_address
++from .common import (
++    JsonRPC,
++    WebRequest,
++    APIDefinition,
++    APITransport,
++    TransportType,
++    RequestType,
++    KlippyState
++)
++from .utils import json_wrapper as jsonw
++from .websockets import (
++    WebsocketManager,
++    WebSocket,
++    BridgeSocket
++)
++from streaming_form_data import StreamingFormDataParser, ParseFailedException
++from streaming_form_data.targets import FileTarget, ValueTarget, SHA256Target
++
++# Annotation imports
++from typing import (
++    TYPE_CHECKING,
++    Any,
++    Optional,
++    Callable,
++    Coroutine,
++    Union,
++    Dict,
++    List,
++    AsyncGenerator,
++)
++if TYPE_CHECKING:
++    from tornado.httpserver import HTTPServer
++    from .server import Server
++    from .eventloop import EventLoop
++    from .confighelper import ConfigHelper
++    from .klippy_connection import KlippyConnection as Klippy
++    from .utils import IPAddress
++    from .components.file_manager.file_manager import FileManager
++    from .components.announcements import Announcements
++    from .components.machine import Machine
++    from io import BufferedReader
++    from .components.authorization import Authorization
++    from .components.template import TemplateFactory, JinjaTemplate
++    MessageDelgate = Optional[tornado.httputil.HTTPMessageDelegate]
++    AuthComp = Optional[Authorization]
++    APICallback = Callable[[WebRequest], Coroutine]
++
++
++# 50 MiB Max Standard Body Size
++MAX_BODY_SIZE = 50 * 1024 * 1024
++MAX_WS_CONNS_DEFAULT = 50
++EXCLUDED_ARGS = ["_", "token", "access_token", "connection_id"]
++AUTHORIZED_EXTS = [".png", ".jpg"]
++DEFAULT_KLIPPY_LOG_PATH = "/tmp/klippy.log"
++
++class MutableRouter(tornado.web.ReversibleRuleRouter):
++    def __init__(self, application: MoonrakerApp) -> None:
++        self.application = application
++        self.pattern_to_rule: Dict[str, Rule] = {}
++        super(MutableRouter, self).__init__(None)
++
++    def get_target_delegate(self,
++                            target: Any,
++                            request: tornado.httputil.HTTPServerRequest,
++                            **target_params
++                            ) -> MessageDelgate:
++        if isclass(target) and issubclass(target, tornado.web.RequestHandler):
++            return self.application.get_handler_delegate(
++                request, target, **target_params)
++
++        return super(MutableRouter, self).get_target_delegate(
++            target, request, **target_params)
++
++    def has_rule(self, pattern: str) -> bool:
++        return pattern in self.pattern_to_rule
++
++    def add_handler(self,
++                    pattern: str,
++                    target: Any,
++                    target_params: Optional[Dict[str, Any]]
++                    ) -> None:
++        if pattern in self.pattern_to_rule:
++            self.remove_handler(pattern)
++        new_rule = Rule(PathMatches(pattern), target, target_params)
++        self.pattern_to_rule[pattern] = new_rule
++        self.rules.append(new_rule)
++
++    def remove_handler(self, pattern: str) -> None:
++        rule = self.pattern_to_rule.pop(pattern, None)
++        if rule is not None:
++            try:
++                self.rules.remove(rule)
++            except Exception:
++                logging.exception(f"Unable to remove rule: {pattern}")
++
++
++class InternalTransport(APITransport):
++    def __init__(self, server: Server) -> None:
++        self.server = server
++
++    async def call_method(self,
++                          method_name: str,
++                          request_arguments: Dict[str, Any] = {},
++                          **kwargs
++                          ) -> Any:
++        rpc: JsonRPC = self.server.lookup_component("jsonrpc")
++        method_info = rpc.get_method(method_name)
++        if method_info is None:
++            raise self.server.error(f"No method {method_name} available")
++        req_type, api_definition = method_info
++        if TransportType.INTERNAL not in api_definition.transports:
++            raise self.server.error(f"No method {method_name} available")
++        args = request_arguments or kwargs
++        return await api_definition.request(args, req_type, self)
++
++class MoonrakerApp:
++    def __init__(self, config: ConfigHelper) -> None:
++        self.server = config.get_server()
++        self.json_rpc = JsonRPC(self.server)
++        self.http_server: Optional[HTTPServer] = None
++        self.secure_server: Optional[HTTPServer] = None
++        self.template_cache: Dict[str, JinjaTemplate] = {}
++        self.registered_base_handlers: List[str] = [
++            "/server/redirect",
++            "/server/jsonrpc"
++        ]
++        self.max_upload_size = config.getint('max_upload_size', 1024)
++        self.max_upload_size *= 1024 * 1024
++        max_ws_conns = config.getint(
++            'max_websocket_connections', MAX_WS_CONNS_DEFAULT
++        )
++
++        # SSL config
++        self.cert_path: pathlib.Path = self._get_path_option(
++            config, 'ssl_certificate_path')
++        self.key_path: pathlib.Path = self._get_path_option(
++            config, 'ssl_key_path')
++
++        # Route Prefix
++        home_pattern = "/"
++        self._route_prefix: str = ""
++        route_prefix = config.get("route_prefix", None)
++        if route_prefix is not None:
++            rparts = route_prefix.strip("/").split("/")
++            rp = "/".join(
++                [url_escape(part, plus=False) for part in rparts if part]
++            )
++            if not rp:
++                raise config.error(
++                    f"Invalid value for option 'route_prefix': {route_prefix}"
++                )
++            self._route_prefix = f"/{rp}"
++            home_pattern = f"{self._route_prefix}/?"
++        self.internal_transport = InternalTransport(self.server)
++
++        mimetypes.add_type('text/plain', '.log')
++        mimetypes.add_type('text/plain', '.gcode')
++        mimetypes.add_type('text/plain', '.cfg')
++
++        app_args: Dict[str, Any] = {
++            'serve_traceback': self.server.is_verbose_enabled(),
++            'websocket_ping_interval': 10,
++            'websocket_ping_timeout': 30,
++            'server': self.server,
++            'max_websocket_connections': max_ws_conns,
++            'default_handler_class': AuthorizedErrorHandler,
++            'default_handler_args': {},
++            'log_function': self.log_request,
++            'compiled_template_cache': False,
++        }
++
++        # Set up HTTP only requests
++        self.mutable_router = MutableRouter(self)
++        app_handlers: List[Any] = [
++            (AnyMatches(), self.mutable_router),
++            (home_pattern, WelcomeHandler),
++            (f"{self._route_prefix}/websocket", WebSocket),
++            (f"{self._route_prefix}/klippysocket", BridgeSocket),
++            (f"{self._route_prefix}/server/redirect", RedirectHandler),
++            (f"{self._route_prefix}/server/jsonrpc", RPCHandler)
++        ]
++        self.app = tornado.web.Application(app_handlers, **app_args)
++        self.get_handler_delegate = self.app.get_handler_delegate
++
++        # Register handlers
++        logfile = self.server.get_app_args().get('log_file')
++        if logfile:
++            self.register_static_file_handler(
++                "moonraker.log", logfile, force=True)
++        self.register_static_file_handler(
++            "klippy.log", DEFAULT_KLIPPY_LOG_PATH, force=True)
++        self.register_upload_handler("/server/files/upload")
++
++        # Register Server Components
++        self.server.register_component("application", self)
++        self.server.register_component("jsonrpc", self.json_rpc)
++        self.server.register_component("internal_transport", self.internal_transport)
++
++    def _get_path_option(
++        self, config: ConfigHelper, option: str
++    ) -> pathlib.Path:
++        path: Optional[str] = config.get(option, None, deprecate=True)
++        app_args = self.server.get_app_args()
++        data_path = app_args["data_path"]
++        certs_path = pathlib.Path(data_path).joinpath("certs")
++        if not certs_path.exists():
++            try:
++                certs_path.mkdir()
++            except Exception:
++                pass
++        ext = "key" if "key" in option else "cert"
++        item = certs_path.joinpath(f"moonraker.{ext}")
++        if item.exists() or path is None:
++            return item
++        item = pathlib.Path(path).expanduser().resolve()
++        if not item.exists():
++            raise self.server.error(
++                f"Invalid path for option '{option}', "
++                f"{path} does not exist"
++            )
++        return item
++
++    @property
++    def route_prefix(self):
++        return self._route_prefix
++
++    def parse_endpoint(self, http_path: str) -> str:
++        if not self._route_prefix or not http_path.startswith(self._route_prefix):
++            return http_path
++        return http_path[len(self._route_prefix):]
++
++    def listen(self, host: str, port: int, ssl_port: int) -> None:
++        if host.lower() == "all":
++            host = ""
++        self.http_server = self.app.listen(
++            port, address=host, max_body_size=MAX_BODY_SIZE,
++            xheaders=True)
++        if self.https_enabled():
++            logging.info(f"Starting secure server on port {ssl_port}")
++            ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
++            ssl_ctx.load_cert_chain(self.cert_path, self.key_path)
++            self.secure_server = self.app.listen(
++                ssl_port, address=host, max_body_size=MAX_BODY_SIZE,
++                xheaders=True, ssl_options=ssl_ctx)
++        else:
++            logging.info("SSL Certificate/Key not configured, "
++                         "aborting HTTPS Server startup")
++
++    def log_request(self, handler: tornado.web.RequestHandler) -> None:
++        status_code = handler.get_status()
++        if (
++            not self.server.is_verbose_enabled()
++            and status_code in [200, 204, 206, 304]
++        ):
++            # don't log successful requests in release mode
++            return
++        if status_code < 400:
++            log_method = access_log.info
++        elif status_code < 500:
++            log_method = access_log.warning
++        else:
++            log_method = access_log.error
++        request_time = 1000.0 * handler.request.request_time()
++        user = handler.current_user
++        username = "No User"
++        if user is not None and 'username' in user:
++            username = user['username']
++        log_method(
++            f"{status_code} {handler._request_summary()} "
++            f"[{username}] {request_time:.2f}ms")
++
++    def get_server(self) -> Server:
++        return self.server
++
++    def https_enabled(self) -> bool:
++        return self.cert_path.exists() and self.key_path.exists()
++
++    async def close(self) -> None:
++        if self.http_server is not None:
++            self.http_server.stop()
++            await self.http_server.close_all_connections()
++        if self.secure_server is not None:
++            self.secure_server.stop()
++            await self.secure_server.close_all_connections()
++        APIDefinition.reset_cache()
++
++    def register_endpoint(
++        self,
++        endpoint: str,
++        request_types: Union[List[str], RequestType],
++        callback: APICallback,
++        transports: Union[List[str], TransportType] = TransportType.all(),
++        wrap_result: bool = True,
++        content_type: Optional[str] = None,
++        auth_required: bool = True,
++        is_remote: bool = False
++    ) -> None:
++        if isinstance(request_types, list):
++            request_types = RequestType.from_string_list(request_types)
++        if isinstance(transports, list):
++            transports = TransportType.from_string_list(transports)
++        api_def = APIDefinition.create(
++            endpoint, request_types, callback, transports, auth_required, is_remote
++        )
++        http_path = api_def.http_path
++        if http_path in self.registered_base_handlers:
++            if not is_remote:
++                raise self.server.error(
++                    f"Local endpoint '{endpoint}' already registered"
++                )
++            return
++        logging.debug(f"Registering API: {api_def}")
++        if TransportType.HTTP in transports:
++            params: dict[str, Any] = {}
++            params["api_definition"] = api_def
++            params["wrap_result"] = wrap_result
++            params["content_type"] = content_type
++            self.mutable_router.add_handler(
++                f"{self._route_prefix}{http_path}", DynamicRequestHandler, params
++            )
++        self.registered_base_handlers.append(http_path)
++        for request_type, method_name in api_def.rpc_items():
++            self.json_rpc.register_method(method_name, request_type, api_def)
++
++    def register_static_file_handler(
++        self, pattern: str, file_path: str, force: bool = False
++    ) -> None:
++        if pattern[0] != "/":
++            pattern = "/server/files/" + pattern
++        if os.path.isfile(file_path) or force:
++            pattern += '()'
++        elif os.path.isdir(file_path):
++            if pattern[-1] != "/":
++                pattern += "/"
++            pattern += "(.*)"
++        else:
++            logging.info(f"Invalid file path: {file_path}")
++            return
++        logging.debug(f"Registering static file: ({pattern}) {file_path}")
++        params = {'path': file_path}
++        self.mutable_router.add_handler(
++            f"{self._route_prefix}{pattern}", FileRequestHandler, params
++        )
++
++    def register_upload_handler(
++        self, pattern: str, location_prefix: str = "server/files"
++    ) -> None:
++        params: Dict[str, Any] = {'max_upload_size': self.max_upload_size}
++        location_prefix = location_prefix.strip("/")
++        if self._route_prefix:
++            location_prefix = f"{self._route_prefix.strip('/')}/{location_prefix}"
++        params['location_prefix'] = location_prefix
++        self.mutable_router.add_handler(
++            f"{self._route_prefix}{pattern}", FileUploadHandler, params
++        )
++
++    def register_debug_endpoint(
++        self,
++        endpoint: str,
++        request_types: Union[List[str], RequestType],
++        callback: APICallback,
++        transports: Union[List[str], TransportType] = TransportType.all(),
++        wrap_result: bool = True
++    ) -> None:
++        if not self.server.is_debug_enabled():
++            return
++        if not endpoint.startswith("/debug"):
++            raise self.server.error(
++                "Debug Endpoints must be registered in the '/debug' path"
++            )
++        self.register_endpoint(
++            endpoint, request_types, callback, transports, wrap_result
++        )
++
++    def remove_endpoint(self, endpoint: str) -> None:
++        api_def = APIDefinition.pop_cached_def(endpoint)
++        if api_def is not None:
++            logging.debug(f"Removing Endpoint: {endpoint}")
++            if api_def.http_path in self.registered_base_handlers:
++                self.registered_base_handlers.remove(api_def.http_path)
++            self.mutable_router.remove_handler(api_def.http_path)
++            for method_name in api_def.rpc_methods:
++                self.json_rpc.remove_method(method_name)
++
++    async def load_template(self, asset_name: str) -> JinjaTemplate:
++        if asset_name in self.template_cache:
++            return self.template_cache[asset_name]
++        eventloop = self.server.get_event_loop()
++        asset = await eventloop.run_in_thread(
++            source_info.read_asset, asset_name
++        )
++        if asset is None:
++            raise tornado.web.HTTPError(404, "Asset Not Found")
++        template: TemplateFactory = self.server.lookup_component("template")
++        asset_tmpl = template.create_ui_template(asset)
++        self.template_cache[asset_name] = asset_tmpl
++        return asset_tmpl
++
++class AuthorizedRequestHandler(tornado.web.RequestHandler):
++    def initialize(self) -> None:
++        self.server: Server = self.settings['server']
++        self.auth_required: bool = True
++
++    def set_default_headers(self) -> None:
++        origin: Optional[str] = self.request.headers.get("Origin")
++        # it is necessary to look up the parent app here,
++        # as initialize() may not yet be called
++        server: Server = self.settings['server']
++        auth: AuthComp = server.lookup_component('authorization', None)
++        self.cors_enabled = False
++        if auth is not None:
++            self.cors_enabled = auth.check_cors(origin, self)
++
++    def prepare(self) -> None:
++        auth: AuthComp = self.server.lookup_component('authorization', None)
++        if auth is not None:
++            self.current_user = auth.authenticate_request(
++                self.request, self.auth_required
++            )
++
++    def options(self, *args, **kwargs) -> None:
++        # Enable CORS if configured
++        if self.cors_enabled:
++            self.set_status(204)
++            self.finish()
++        else:
++            super(AuthorizedRequestHandler, self).options()
++
++    def get_associated_websocket(self) -> Optional[WebSocket]:
++        # Return associated websocket connection if an id
++        # was provided by the request
++        conn = None
++        conn_id: Any = self.get_argument('connection_id', None)
++        if conn_id is not None:
++            try:
++                conn_id = int(conn_id)
++            except Exception:
++                pass
++            else:
++                wsm: WebsocketManager = self.server.lookup_component("websockets")
++                conn = wsm.get_client(conn_id)
++        if not isinstance(conn, WebSocket):
++            return None
++        return conn
++
++    def write_error(self, status_code: int, **kwargs) -> None:
++        err = {'code': status_code, 'message': self._reason}
++        if 'exc_info' in kwargs:
++            err['traceback'] = "\n".join(
++                traceback.format_exception(*kwargs['exc_info']))
++        self.set_header("Content-Type", "application/json; charset=UTF-8")
++        self.finish(jsonw.dumps({'error': err}))
++
++# Due to the way Python treats multiple inheritance its best
++# to create a separate authorized handler for serving files
++class AuthorizedFileHandler(tornado.web.StaticFileHandler):
++    def initialize(self,
++                   path: str,
++                   default_filename: Optional[str] = None
++                   ) -> None:
++        super(AuthorizedFileHandler, self).initialize(path, default_filename)
++        self.server: Server = self.settings['server']
++
++    def set_default_headers(self) -> None:
++        origin: Optional[str] = self.request.headers.get("Origin")
++        # it is necessary to look up the parent app here,
++        # as initialize() may not yet be called
++        server: Server = self.settings['server']
++        auth: AuthComp = server.lookup_component('authorization', None)
++        self.cors_enabled = False
++        if auth is not None:
++            self.cors_enabled = auth.check_cors(origin, self)
++
++    def prepare(self) -> None:
++        auth: AuthComp = self.server.lookup_component('authorization', None)
++        if auth is not None:
++            self.current_user = auth.authenticate_request(
++                self.request, self._check_need_auth()
++            )
++
++    def options(self, *args, **kwargs) -> None:
++        # Enable CORS if configured
++        if self.cors_enabled:
++            self.set_status(204)
++            self.finish()
++        else:
++            super(AuthorizedFileHandler, self).options()
++
++    def write_error(self, status_code: int, **kwargs) -> None:
++        err = {'code': status_code, 'message': self._reason}
++        if 'exc_info' in kwargs:
++            err['traceback'] = "\n".join(
++                traceback.format_exception(*kwargs['exc_info']))
++        self.set_header("Content-Type", "application/json; charset=UTF-8")
++        self.finish(jsonw.dumps({'error': err}))
++
++    def _check_need_auth(self) -> bool:
++        if self.request.method != "GET":
++            return True
++        ext = os.path.splitext(self.request.path)[-1].lower()
++        if ext in AUTHORIZED_EXTS:
++            return False
++        return True
++
++class DynamicRequestHandler(AuthorizedRequestHandler):
++    def initialize(
++        self,
++        api_definition: Optional[APIDefinition] = None,
++        wrap_result: bool = True,
++        content_type: Optional[str] = None
++    ) -> None:
++        super(DynamicRequestHandler, self).initialize()
++        assert api_definition is not None
++        self.api_defintion = api_definition
++        self.wrap_result = wrap_result
++        self.content_type = content_type
++        self.auth_required = api_definition.auth_required
++
++    # Converts query string values with type hints
++    def _convert_type(self, value: str, hint: str) -> Any:
++        type_funcs: Dict[str, Callable] = {
++            "int": int, "float": float,
++            "bool": lambda x: x.lower() == "true",
++            "json": jsonw.loads}
++        if hint not in type_funcs:
++            logging.info(f"No conversion method for type hint {hint}")
++            return value
++        func = type_funcs[hint]
++        try:
++            converted = func(value)
++        except Exception:
++            logging.exception("Argument conversion error: Hint: "
++                              f"{hint}, Arg: {value}")
++            return value
++        return converted
++
++    def _default_parser(self) -> Dict[str, Any]:
++        args = {}
++        for key in self.request.arguments.keys():
++            if key in EXCLUDED_ARGS:
++                continue
++            key_parts = key.rsplit(":", 1)
++            val = self.get_argument(key)
++            if len(key_parts) == 1:
++                args[key] = val
++            else:
++                args[key_parts[0]] = self._convert_type(val, key_parts[1])
++        return args
++
++    def _object_parser(self) -> Dict[str, Dict[str, Any]]:
++        args: Dict[str, Any] = {}
++        for key in self.request.arguments.keys():
++            if key in EXCLUDED_ARGS:
++                continue
++            val = self.get_argument(key)
++            if not val:
++                args[key] = None
++            else:
++                args[key] = val.split(',')
++        logging.debug(f"Parsed Arguments: {args}")
++        return {'objects': args}
++
++    def parse_args(self) -> Dict[str, Any]:
++        try:
++            if self.api_defintion.need_object_parser:
++                args: Dict[str, Any] = self._object_parser()
++            else:
++                args = self._default_parser()
++        except Exception:
++            raise ServerError(
++                "Error Parsing Request Arguments. "
++                "Is the Content-Type correct?")
++        content_type = self.request.headers.get('Content-Type', "").strip()
++        if content_type.startswith("application/json"):
++            try:
++                args.update(jsonw.loads(self.request.body))
++            except jsonw.JSONDecodeError:
++                pass
++        for key, value in self.path_kwargs.items():
++            if value is not None:
++                args[key] = value
++        return args
++
++    def _log_debug(self, header: str, args: Any) -> None:
++        if self.server.is_verbose_enabled():
++            resp = args
++            endpoint = self.api_defintion.endpoint
++            if isinstance(args, dict):
++                if (
++                    endpoint.startswith("/access") or
++                    endpoint.startswith("/machine/sudo/password")
++                ):
++                    resp = {key: "<sanitized>" for key in args}
++            elif isinstance(args, str):
++                if args.startswith("<html>"):
++                    resp = "<html>"
++            logging.debug(f"{header}::{resp}")
++
++    async def get(self, *args, **kwargs) -> None:
++        await self._process_http_request(RequestType.GET)
++
++    async def post(self, *args, **kwargs) -> None:
++        await self._process_http_request(RequestType.POST)
++
++    async def delete(self, *args, **kwargs) -> None:
++        await self._process_http_request(RequestType.DELETE)
++
++    async def _process_http_request(self, req_type: RequestType) -> None:
++        if req_type not in self.api_defintion.request_types:
++            raise tornado.web.HTTPError(405)
++        args = self.parse_args()
++        transport = self.get_associated_websocket()
++        req = f"{self.request.method} {self.request.path}"
++        self._log_debug(f"HTTP Request::{req}", args)
++        try:
++            ip = parse_ip_address(self.request.remote_ip or "")
++            result = await self.api_defintion.request(
++                args, req_type, transport, ip, self.current_user
++            )
++        except ServerError as e:
++            raise tornado.web.HTTPError(
++                e.status_code, reason=str(e)) from e
++        if self.wrap_result:
++            result = {'result': result}
++        self._log_debug(f"HTTP Response::{req}", result)
++        if result is None:
++            self.set_status(204)
++        elif isinstance(result, dict):
++            self.set_header("Content-Type", "application/json; charset=UTF-8")
++            result = jsonw.dumps(result)
++        elif self.content_type is not None:
++            self.set_header("Content-Type", self.content_type)
++        self.finish(result)
++
++class RPCHandler(AuthorizedRequestHandler, APITransport):
++    def initialize(self) -> None:
++        super(RPCHandler, self).initialize()
++        self.auth_required = False
++
++    @property
++    def transport_type(self) -> TransportType:
++        return TransportType.HTTP
++
++    @property
++    def user_info(self) -> Optional[Dict[str, Any]]:
++        return self.current_user
++
++    @property
++    def ip_addr(self) -> Optional[IPAddress]:
++        return parse_ip_address(self.request.remote_ip or "")
++
++    def screen_rpc_request(
++        self, api_def: APIDefinition, req_type: RequestType, args: Dict[str, Any]
++    ) -> None:
++        if self.current_user is None and api_def.auth_required:
++            raise self.server.error("Unauthorized", 401)
++        if api_def.endpoint == "objects/subscribe":
++            raise self.server.error(
++                "Subscriptions not available for HTTP transport", 404
++            )
++
++    def send_status(self, status: Dict[str, Any], eventtime: float) -> None:
++        # Can't handle status updates.  This should not be called, but
++        # we don't want to raise an exception if it is
++        pass
++
++    async def post(self, *args, **kwargs) -> None:
++        content_type = self.request.headers.get('Content-Type', "").strip()
++        if not content_type.startswith("application/json"):
++            raise tornado.web.HTTPError(
++                400, "Invalid content type, application/json required"
++            )
++        rpc: JsonRPC = self.server.lookup_component("jsonrpc")
++        result = await rpc.dispatch(self.request.body, self)
++        if result is not None:
++            self.set_header("Content-Type", "application/json; charset=UTF-8")
++        self.finish(result)
++
++class FileRequestHandler(AuthorizedFileHandler):
++    def set_extra_headers(self, path: str) -> None:
++        # The call below shold never return an empty string,
++        # as the path should have already been validated to be
++        # a file
++        assert isinstance(self.absolute_path, str)
++        basename = os.path.basename(self.absolute_path)
++        ascii_basename = self._escape_filename_to_ascii(basename)
++        utf8_basename = self._escape_filename_to_utf8(basename)
++        self.set_header(
++            "Content-Disposition",
++            f"attachment; filename=\"{ascii_basename}\"; "
++            f"filename*=UTF-8\'\'{utf8_basename}")
++
++    async def delete(self, path: str) -> None:
++        app: MoonrakerApp = self.server.lookup_component("application")
++        endpoint = app.parse_endpoint(self.request.path or "")
++        path = endpoint.lstrip("/").split("/", 2)[-1]
++        path = url_unescape(path, plus=False)
++        file_manager: FileManager
++        file_manager = self.server.lookup_component('file_manager')
++        try:
++            filename = await file_manager.delete_file(path)
++        except self.server.error as e:
++            raise tornado.web.HTTPError(e.status_code, str(e))
++        self.set_header("Content-Type", "application/json; charset=UTF-8")
++        self.finish(jsonw.dumps({'result': filename}))
++
++    async def get(self, path: str, include_body: bool = True) -> None:
++        # Set up our path instance variables.
++        self.path = self.parse_url_path(path)
++        del path  # make sure we don't refer to path instead of self.path again
++        absolute_path = self.get_absolute_path(self.root, self.path)
++        self.absolute_path = self.validate_absolute_path(
++            self.root, absolute_path)
++        if self.absolute_path is None:
++            return
++        file_manager: FileManager
++        file_manager = self.server.lookup_component('file_manager')
++        try:
++            file_manager.check_reserved_path(self.absolute_path, False)
++        except self.server.error as e:
++            raise tornado.web.HTTPError(e.status_code, str(e))
++
++        self.modified = self.get_modified_time()
++        self.set_headers()
++
++        self.request.headers.pop("If-None-Match", None)
++        if self.should_return_304():
++            self.set_status(304)
++            return
++
++        request_range = None
++        range_header = self.request.headers.get("Range")
++        if range_header:
++            # As per RFC 2616 14.16, if an invalid Range header is specified,
++            # the request will be treated as if the header didn't exist.
++            request_range = tornado.httputil._parse_request_range(range_header)
++
++        size = self.get_content_size()
++        if request_range:
++            start, end = request_range
++            if start is not None and start < 0:
++                start += size
++                if start < 0:
++                    start = 0
++            if (
++                start is not None
++                and (start >= size or (end is not None and start >= end))
++            ) or end == 0:
++                # As per RFC 2616 14.35.1, a range is not satisfiable only: if
++                # the first requested byte is equal to or greater than the
++                # content, or when a suffix with length 0 is specified.
++                # https://tools.ietf.org/html/rfc7233#section-2.1
++                # A byte-range-spec is invalid if the last-byte-pos value is
++                # present and less than the first-byte-pos.
++                self.set_status(416)  # Range Not Satisfiable
++                self.set_header("Content-Type", "text/plain")
++                self.set_header("Content-Range", "bytes */%s" % (size,))
++                return
++            if end is not None and end > size:
++                # Clients sometimes blindly use a large range to limit their
++                # download size; cap the endpoint at the actual file size.
++                end = size
++            # Note: only return HTTP 206 if less than the entire range has been
++            # requested. Not only is this semantically correct, but Chrome
++            # refuses to play audio if it gets an HTTP 206 in response to
++            # ``Range: bytes=0-``.
++            if size != (end or size) - (start or 0):
++                self.set_status(206)  # Partial Content
++                self.set_header(
++                    "Content-Range", tornado.httputil._get_content_range(
++                        start, end, size)
++                )
++        else:
++            start = end = None
++
++        if start is not None and end is not None:
++            content_length = end - start
++        elif end is not None:
++            content_length = end
++        elif start is not None:
++            end = size
++            content_length = size - start
++        else:
++            end = size
++            content_length = size
++        self.set_header("Content-Length", content_length)
++
++        if include_body:
++            evt_loop = self.server.get_event_loop()
++            content = self.get_content_nonblock(
++                evt_loop, self.absolute_path, start, end)
++            async for chunk in content:
++                try:
++                    self.write(chunk)
++                    await self.flush()
++                except tornado.iostream.StreamClosedError:
++                    return
++        else:
++            assert self.request.method == "HEAD"
++
++    def _escape_filename_to_ascii(self, basename: str) -> str:
++        ret = basename.encode("ascii", "replace").decode()
++        return ret.replace('"', '\\"')
++
++    def _escape_filename_to_utf8(self, basename: str) -> str:
++        return urllib.parse.quote(basename, encoding="utf-8")
++
++    @classmethod
++    async def get_content_nonblock(
++        cls,
++        evt_loop: EventLoop,
++        abspath: str,
++        start: Optional[int] = None,
++        end: Optional[int] = None
++    ) -> AsyncGenerator[bytes, None]:
++        file: BufferedReader = await evt_loop.run_in_thread(open, abspath, "rb")
++        try:
++            if start is not None:
++                file.seek(start)
++            if end is not None:
++                remaining = end - (start or 0)  # type: Optional[int]
++            else:
++                remaining = None
++            while True:
++                chunk_size = 64 * 1024
++                if remaining is not None and remaining < chunk_size:
++                    chunk_size = remaining
++                chunk = await evt_loop.run_in_thread(file.read, chunk_size)
++                if chunk:
++                    if remaining is not None:
++                        remaining -= len(chunk)
++                    yield chunk
++                else:
++                    if remaining is not None:
++                        assert remaining == 0
++                    return
++        finally:
++            await evt_loop.run_in_thread(file.close)
++
++    @classmethod
++    def _get_cached_version(cls, abs_path: str) -> Optional[str]:
++        return None
++
++@tornado.web.stream_request_body
++class FileUploadHandler(AuthorizedRequestHandler):
++    def initialize(self,
++                   location_prefix: str = "server/files",
++                   max_upload_size: int = MAX_BODY_SIZE
++                   ) -> None:
++        self.location_prefix = location_prefix
++        super(FileUploadHandler, self).initialize()
++        self.file_manager: FileManager = self.server.lookup_component(
++            'file_manager')
++        self.max_upload_size = max_upload_size
++        self.parse_lock = Lock()
++        self.parse_failed: bool = False
++
++    def prepare(self) -> None:
++        super(FileUploadHandler, self).prepare()
++        content_type: str = self.request.headers.get("Content-Type", "")
++        logging.info(
++            f"Upload Request Received from {self.request.remote_ip}\n"
++            f"Content-Type: {content_type}"
++        )
++        fm: FileManager = self.server.lookup_component("file_manager")
++        fm.check_write_enabled()
++        if self.request.method == "POST":
++            assert isinstance(self.request.connection, HTTP1Connection)
++            self.request.connection.set_max_body_size(self.max_upload_size)
++            tmpname = self.file_manager.gen_temp_upload_path()
++            self._targets = {
++                'root': ValueTarget(),
++                'print': ValueTarget(),
++                'path': ValueTarget(),
++                'checksum': ValueTarget(),
++                # 'plateindex': ValueTarget(),
++                'need_extract': ValueTarget(),
++            }
++            self._file = FileTarget(tmpname)
++            self._sha256_target = SHA256Target()
++            self._parser = StreamingFormDataParser(self.request.headers)
++            self._parser.register('file', self._file)
++            self._parser.register('file', self._sha256_target)
++            for name, target in self._targets.items():
++                self._parser.register(name, target)
++
++    async def data_received(self, chunk: bytes) -> None:
++        if self.request.method == "POST" and not self.parse_failed:
++            async with self.parse_lock:
++                evt_loop = self.server.get_event_loop()
++                try:
++                    await evt_loop.run_in_thread(self._parser.data_received, chunk)
++                except ParseFailedException:
++                    logging.exception("Chunk Parsing Error")
++                    self.parse_failed = True
++
++    async def post(self) -> None:
++        if self.parse_failed:
++            self._file.on_finish()
++            try:
++                os.remove(self._file.filename)
++            except Exception:
++                pass
++            raise tornado.web.HTTPError(500, "File Upload Parsing Failed")
++        form_args = {}
++        chk_target = self._targets.pop('checksum')
++        calc_chksum = self._sha256_target.value.lower()
++        if chk_target.value:
++            # Validate checksum
++            recd_cksum = chk_target.value.decode().lower()
++            if calc_chksum != recd_cksum:
++                # remove temporary file
++                try:
++                    os.remove(self._file.filename)
++                except Exception:
++                    pass
++                raise tornado.web.HTTPError(
++                    422,
++                    f"File checksum mismatch: expected {recd_cksum}, "
++                    f"calculated {calc_chksum}"
++                )
++        for name, target in self._targets.items():
++            if target.value:
++                form_args[name] = target.value.decode()
++        form_args['filename'] = self._file.multipart_filename
++        form_args['tmp_file_path'] = self._file.filename
++        debug_msg = "\nFile Upload Arguments:"
++        for name, value in form_args.items():
++            debug_msg += f"\n{name}: {value}"
++        debug_msg += f"\nChecksum: {calc_chksum}"
++        logging.debug(debug_msg)
++        logging.info(f"Processing Uploaded File: {self._file.multipart_filename}")
++        try:
++            result = await self.file_manager.finalize_upload(form_args)
++        except ServerError as e:
++            raise tornado.web.HTTPError(
++                e.status_code, str(e))
++        # Return 201 and add the Location Header
++        item: Dict[str, Any] = result.get('item', {})
++        root: Optional[str] = item.get('root', None)
++        fpath: Optional[str] = item.get('path', None)
++        if root is not None and fpath is not None:
++            path_parts = fpath.split("/")
++            fpath = "/".join([url_escape(p, plus=False) for p in path_parts])
++            proto = self.request.protocol
++            if not isinstance(proto, str):
++                proto = "http"
++            host = self.request.host
++            if not isinstance(host, str):
++                si = self.server.get_host_info()
++                port = si['port'] if proto == "http" else si['ssl_port']
++                host = f"{si['address']}:{port}"
++            location = f"{proto}://{host}/{self.location_prefix}/{root}/{fpath}"
++            self.set_header("Location", location)
++            logging.debug(f"Upload Location header set: {location}")
++        self.set_status(201)
++        self.set_header("Content-Type", "application/json; charset=UTF-8")
++        self.finish(jsonw.dumps(result))
++
++# Default Handler for unregistered endpoints
++class AuthorizedErrorHandler(AuthorizedRequestHandler):
++    def prepare(self) -> None:
++        super(AuthorizedRequestHandler, self).prepare()
++        self.set_status(404)
++        raise tornado.web.HTTPError(404)
++
++    def check_xsrf_cookie(self) -> None:
++        pass
++
++    def write_error(self, status_code: int, **kwargs) -> None:
++        err = {'code': status_code, 'message': self._reason}
++        if 'exc_info' in kwargs:
++            err['traceback'] = "\n".join(
++                traceback.format_exception(*kwargs['exc_info']))
++        self.set_header("Content-Type", "application/json; charset=UTF-8")
++        self.finish(jsonw.dumps({'error': err}))
++
++class RedirectHandler(AuthorizedRequestHandler):
++    def initialize(self) -> None:
++        super().initialize()
++        self.auth_required = False
++
++    def get(self, *args, **kwargs) -> None:
++        url: Optional[str] = self.get_argument('url', None)
++        if url is None:
++            try:
++                body_args: Dict[str, Any] = jsonw.loads(self.request.body)
++            except jsonw.JSONDecodeError:
++                body_args = {}
++            if 'url' not in body_args:
++                raise tornado.web.HTTPError(
++                    400, "No url argument provided")
++            url = body_args['url']
++            assert url is not None
++        # validate the url origin
++        auth: AuthComp = self.server.lookup_component('authorization', None)
++        if auth is None or not auth.check_cors(url.rstrip("/")):
++            raise tornado.web.HTTPError(
++                400, f"Unauthorized URL redirect: {url}")
++        self.redirect(url)
++
++class WelcomeHandler(tornado.web.RequestHandler):
++    def initialize(self) -> None:
++        self.server: Server = self.settings['server']
++
++    async def get(self) -> None:
++        summary: List[str] = []
++        auth: AuthComp = self.server.lookup_component("authorization", None)
++        if auth is not None:
++            try:
++                auth.authenticate_request(self.request)
++            except tornado.web.HTTPError:
++                authorized = False
++            else:
++                authorized = True
++            if authorized:
++                summary.append(
++                    "Your device is authorized to access Moonraker's API."
++                )
++            else:
++                summary.append(
++                    "Your device is not authorized to access Moonraker's API. "
++                    "This is normal if you intend to use API Key "
++                    "authentication or log in as an authenticated user.  "
++                    "Otherwise you need to add your IP address to the "
++                    "'trusted_clients' option in the [authorization] section "
++                    "of moonraker.conf."
++                )
++            cors_enabled = auth.cors_enabled()
++            if cors_enabled:
++                summary.append(
++                    "CORS is enabled.  Cross origin requests will be allowed "
++                    "for origins that match one of the patterns specified in "
++                    "the 'cors_domain' option of the [authorization] section."
++                )
++            else:
++                summary.append(
++                    "All cross origin requests will be blocked by the browser. "
++                    "The 'cors_domains' option in [authorization] must be  "
++                    "configured to enable CORS."
++                )
++        else:
++            authorized = True
++            cors_enabled = False
++            summary.append(
++                "The [authorization] component is not enabled in "
++                "moonraker.conf.  All connections will be considered trusted."
++            )
++            summary.append(
++                "All cross origin requests will be blocked by the browser.  "
++                "The [authorization] section in moonraker.conf must be "
++                "configured to enable CORS."
++            )
++        kconn: Klippy = self.server.lookup_component("klippy_connection")
++        kstate = kconn.state
++        if kstate != KlippyState.DISCONNECTED:
++            summary.append(f"Klipper reports {kstate.message.lower()}")
++        else:
++            summary.append(
++                "Moonraker is not currently connected to Klipper.  Make sure "
++                "that the klipper service has successfully started and that "
++                "its unix is enabled."
++            )
++        ancomp: Announcements
++        ancomp = self.server.lookup_component("announcements")
++        wsm: WebsocketManager = self.server.lookup_component("websockets")
++        machine: Machine = self.server.lookup_component("machine")
++        svc_info = machine.get_moonraker_service_info()
++        sudo_req_msg = "<br/>".join(machine.sudo_request_messages)
++        context: Dict[str, Any] = {
++            "remote_ip": self.request.remote_ip,
++            "authorized": authorized,
++            "cors_enabled": cors_enabled,
++            "version": self.server.get_app_args()["software_version"],
++            "ws_count": wsm.get_count(),
++            "klippy_state": kstate,
++            "warnings": self.server.get_warnings(),
++            "summary": summary,
++            "announcements": await ancomp.get_announcements(),
++            "sudo_requested": machine.sudo_requested,
++            "sudo_request_message": sudo_req_msg,
++            "linux_user": machine.linux_user,
++            "local_ip": machine.public_ip or "unknown",
++            "service_name": svc_info.get("unit_name", "unknown"),
++            "hostname": self.server.get_host_info()["hostname"],
++        }
++        app: MoonrakerApp = self.server.lookup_component("application")
++        welcome_template = await app.load_template("welcome.html")
++        ret = await welcome_template.render_async(context)
++        self.finish(ret)
+diff --git a/moonraker/components/setup.py b/moonraker/components/setup.py
+new file mode 100644
+index 0000000..44fd75e
+--- /dev/null
++++ b/moonraker/components/setup.py
+@@ -0,0 +1,10 @@
++from distutils.core import setup
++from Cython.Build import cythonize
++
++setup(
++    ext_modules=cythonize(
++        "moonraker/components/mqtt.py",
++        language_level="3"
++    ),
++    script_args=["build_ext", "--inplace"]
++)
+\ No newline at end of file
+diff --git a/moonraker/components/timelapse.py b/moonraker/components/timelapse.py
+new file mode 100644
+index 0000000..f25138a
+--- /dev/null
++++ b/moonraker/components/timelapse.py
+@@ -0,0 +1,841 @@
++# Moonraker Timelapse component
++#
++# Copyright (C) 2021 Christoph Frei <fryakatkop@gmail.com>
++#
++# This file may be distributed under the terms of the GNU GPLv3 license.
++from __future__ import annotations
++import logging
++import os
++import glob
++import re
++import shutil
++import asyncio
++from datetime import datetime
++from tornado.ioloop import IOLoop
++from zipfile import ZipFile
++
++# Annotation imports
++from typing import (
++    TYPE_CHECKING,
++    Dict,
++    Any
++)
++if TYPE_CHECKING:
++    from confighelper import ConfigHelper
++    from .webcam import WebcamManager, WebCam
++    from websockets import WebRequest
++    from . import shell_command
++    from . import klippy_apis
++    from . import database
++
++    APIComp = klippy_apis.KlippyAPI
++    SCMDComp = shell_command.ShellCommandFactory
++    DBComp = database.MoonrakerDatabase
++
++
++class Timelapse:
++
++    def __init__(self, confighelper: ConfigHelper) -> None:
++
++        # setup vars
++        self.renderisrunning = False
++        self.saveisrunning = False
++        self.takingframe = False
++        self.framecount = 0
++        self.lastframefile = ""
++        self.lastrenderprogress = 0
++        self.lastcmdreponse = ""
++        self.byrendermacro = False
++        self.hyperlapserunning = False
++        self.printing = False
++        self.noWebcamDb = False
++
++        self.confighelper = confighelper
++        self.server = confighelper.get_server()
++        self.klippy_apis: APIComp = self.server.lookup_component('klippy_apis')
++        self.database: DBComp = self.server.lookup_component("database")
++
++        # setup static (nonDB) settings
++        out_dir_cfg = confighelper.get(
++            "output_path", "~/timelapse/")
++        temp_dir_cfg = confighelper.get(
++            "frame_path", "/tmp/timelapse/")
++        self.ffmpeg_binary_path = confighelper.get(
++            "ffmpeg_binary_path", "/usr/bin/ffmpeg")
++        self.wget_skip_cert = confighelper.getboolean(
++            "wget_skip_cert_check", False)
++
++        # Setup default config
++        self.config: Dict[str, Any] = {
++            'enabled': True,
++            'mode': "layermacro",
++            'camera': "",
++            'snapshoturl': "http://localhost:8080/?action=snapshot",
++            'stream_delay_compensation': 0.05,
++            'gcode_verbose': False,
++            'parkhead': False,
++            'parkpos': "back_left",
++            'park_custom_pos_x': 10.0,
++            'park_custom_pos_y': 10.0,
++            'park_custom_pos_dz': 0.0,
++            'park_travel_speed': 100,
++            'park_retract_speed': 15,
++            'park_extrude_speed': 15,
++            'park_retract_distance': 1.0,
++            'park_extrude_distance': 1.0,
++            'park_time': 0.1,
++            'fw_retract': False,
++            'hyperlapse_cycle': 30,
++            'autorender': True,
++            'constant_rate_factor': 23,
++            'output_framerate': 30,
++            'pixelformat': "yuv420p",
++            'time_format_code': "%Y%m%d_%H%M",
++            'extraoutputparams': "",
++            'variable_fps': False,
++            'targetlength': 10,
++            'variable_fps_min': 5,
++            'variable_fps_max': 60,
++            'rotation': 0,
++            'flip_x': False,
++            'flip_y': False,
++            'duplicatelastframe': 5,
++            'previewimage': True,
++            'saveframes': False
++        }
++
++        # Get Config from Database and overwrite defaults
++        dbconfig: Dict[str, Any] = self.database.get_item("timelapse",
++                                                          "config",
++                                                          self.config)
++        if isinstance(dbconfig, asyncio.Future):
++            self.config.update(dbconfig.result())
++        else:
++            self.config.update(dbconfig)
++
++        # Overwrite Config with fixed config made in moonraker.conf
++        # this is a fallback to older setups and when the Frontend doesn't
++        # support the settings endpoint
++        self.overwriteDbconfigWithConfighelper()
++
++        # check if ffmpeg is installed
++        self.ffmpeg_installed = os.path.isfile(self.ffmpeg_binary_path)
++        if not self.ffmpeg_installed:
++            self.config['autorender'] = False
++            logging.info(f"timelapse: {self.ffmpeg_binary_path} \
++                        not found please install to use render functionality")
++
++        # setup directories
++        # remove trailing "/"
++        out_dir_cfg = os.path.join(out_dir_cfg, '')
++        temp_dir_cfg = os.path.join(temp_dir_cfg, '')
++        # evaluate and expand "~"
++        self.out_dir = os.path.expanduser(out_dir_cfg)
++        self.temp_dir = os.path.expanduser(temp_dir_cfg)
++        # create directories if they doesn't exist
++        os.makedirs(self.temp_dir, exist_ok=True)
++        os.makedirs(self.out_dir, exist_ok=True)
++
++        # setup eventhandlers and endpoints
++        file_manager = self.server.lookup_component("file_manager")
++        file_manager.register_directory("timelapse",
++                                        self.out_dir,
++                                        full_access=True
++                                        )
++        file_manager.register_directory("timelapse_frames", self.temp_dir)
++        self.server.register_notification("timelapse:timelapse_event")
++        self.server.register_event_handler(
++            "server:gcode_response", self.handle_gcode_response)
++        self.server.register_event_handler(
++            "server:status_update", self.handle_status_update)
++        self.server.register_event_handler(
++            "server:klippy_ready", self.handle_klippy_ready)
++        self.server.register_remote_method(
++            "timelapse_newframe", self.call_newframe)
++        self.server.register_remote_method(
++            "timelapse_saveFrames", self.call_saveFramesZip)
++        self.server.register_remote_method(
++            "timelapse_render", self.call_render)
++        self.server.register_endpoint(
++            "/machine/timelapse/render", ['POST'], self.render)
++        self.server.register_endpoint(
++            "/machine/timelapse/saveframes", ['POST'], self.saveFramesZip)
++        self.server.register_endpoint(
++            "/machine/timelapse/settings", ['GET', 'POST'],
++            self.webrequest_settings)
++        self.server.register_endpoint(
++            "/machine/timelapse/lastframeinfo", ['GET'],
++            self.webrequest_lastframeinfo)
++
++    async def component_init(self) -> None:
++        await self.getWebcamConfig()
++
++    def overwriteDbconfigWithConfighelper(self) -> None:
++        blockedsettings = []
++
++        for config in self.confighelper.get_options():
++            if config in self.config:
++                configtype = type(self.config[config])
++                if configtype == str:
++                    self.config[config] = self.confighelper.get(config)
++                elif configtype == bool:
++                    self.config[config] = self.confighelper.getboolean(config)
++                elif configtype == int:
++                    self.config[config] = self.confighelper.getint(config)
++                elif configtype == float:
++                    self.config[config] = self.confighelper.getfloat(config)
++
++                # add the config to list of blockedsettings
++                blockedsettings.append(config)
++
++        # append the list of blockedsettings to the config dict
++        self.config.update({'blockedsettings': blockedsettings})
++        logging.debug(f"blockedsettings {self.config['blockedsettings']}")
++
++    async def getWebcamConfig(self) -> None:
++        # Read Webcam config from Database
++        webcam_name = self.config['camera']
++        try:
++            wcmgr: WebcamManager = self.server.lookup_component("webcam")
++            cams = wcmgr.get_webcams()
++
++            if not cams:
++                logging.info("WARNING: no camera configured, " +
++                             "using the fallback config")
++                fallback = {'snapshot_url': self.config['snapshoturl'],
++                            'rotation': self.config['rotation'],
++                            'flip_horizontal': self.config['flip_x'],
++                            'flip_vertical': self.config['flip_y']
++                            }
++                self.parseWebcamConfig(fallback)
++                return
++
++            if webcam_name and webcam_name in cams:
++                camera = cams[webcam_name]
++            else:
++                camera = list(cams.values())[0]
++
++            self.parseWebcamConfig(camera.as_dict())
++
++        except Exception as e:
++            logging.info(f"something went wrong getting"
++                         f"Cam Camera:{webcam_name} from Database. "
++                         f"Exception: {e}"
++                         )
++
++    def parseWebcamConfig(self, webcamconfig) -> None:
++        snapshoturl = webcamconfig['snapshot_url']
++        flip_x = webcamconfig['flip_horizontal']
++        flip_y = webcamconfig['flip_vertical']
++        rotation = webcamconfig['rotation']
++
++        oldWebcamConfig = {"url": self.config['snapshoturl'],
++                           "flip_x": self.config['flip_x'],
++                           "flip_y": self.config['flip_y'],
++                           "rotation": self.config['rotation']
++                           }
++
++        self.config['snapshoturl'] = self.confighelper.get('snapshoturl',
++                                                           snapshoturl
++                                                           )
++        self.config['flip_x'] = self.confighelper.getboolean('flip_x',
++                                                             flip_x
++                                                             )
++        self.config['flip_y'] = self.confighelper.getboolean('flip_y',
++                                                             flip_y
++                                                             )
++        self.config['rotation'] = self.confighelper.getint('rotation',
++                                                           rotation
++                                                           )
++
++        if not self.config['snapshoturl'].startswith('http'):
++            if not self.config['snapshoturl'].startswith('/'):
++                self.config['snapshoturl'] = "http://localhost/" + \
++                                             self.config['snapshoturl']
++            else:
++                self.config['snapshoturl'] = "http://localhost" + \
++                                             self.config['snapshoturl']
++
++        # check if settings have changed and if so creat log entry
++        newWebcamConfig = {"url": self.config['snapshoturl'],
++                           "flip_x": self.config['flip_x'],
++                           "flip_y": self.config['flip_y'],
++                           "rotation": self.config['rotation']
++                           }
++
++        if not oldWebcamConfig == newWebcamConfig:
++            logging.info("snapshoturl: "
++                         f"{self.config['snapshoturl']}, "
++                         f"Flip V/H: {self.config['flip_y']}/"
++                         f"{self.config['flip_y']}, "
++                         f"rotation: {self.config['rotation']}"
++                         )
++
++    async def webrequest_lastframeinfo(self,
++                                       webrequest: WebRequest
++                                       ) -> Dict[str, Any]:
++        return {
++            'framecount': self.framecount,
++            'lastframefile': self.lastframefile
++        }
++
++    async def webrequest_settings(self,
++                                  webrequest: WebRequest
++                                  ) -> Dict[str, Any]:
++        action = webrequest.get_action()
++        if action == 'POST':
++
++            args = webrequest.get_args()
++            logging.debug("webreq_args: " + str(args))
++
++            gcodechange = False
++            settingsWithGcodechange = [
++                'enabled', 'parkhead',
++                'parkpos', 'park_custom_pos_x',
++                'park_custom_pos_y', 'park_custom_pos_dz',
++                'park_travel_speed', 'park_retract_speed',
++                'park_extrude_speed', 'park_retract_distance',
++                'park_extrude_distance', 'park_time', 'fw_retract'
++            ]
++            modechanged = False
++
++            for setting in args:
++                if setting in self.config:
++                    settingtype = type(self.config[setting])
++                    if setting == "snapshoturl":
++                        logging.debug(
++                            "snapshoturl cannot be changed via webrequest")
++                    elif settingtype == str:
++                        settingvalue = webrequest.get(setting)
++                    elif settingtype == bool:
++                        settingvalue = webrequest.get_boolean(setting)
++                    elif settingtype == int:
++                        settingvalue = webrequest.get_int(setting)
++                    elif settingtype == float:
++                        settingvalue = webrequest.get_float(setting)
++
++                    self.config[setting] = settingvalue
++
++                    self.database.insert_item(
++                        "timelapse",
++                        f"config.{setting}",
++                        settingvalue
++                    )
++
++                    if setting == "camera":
++                        if not self.noWebcamDb:
++                            await self.getWebcamConfig()
++                        else:
++                            logging.info("Webcam Namespace not intialized, "
++                                         "please restart moonraker service!")
++
++                    if setting in settingsWithGcodechange:
++                        gcodechange = True
++
++                    if setting == "mode":
++                        modechanged = True
++
++                    logging.debug(f"changed setting: {setting} "
++                                  f"value: {settingvalue} "
++                                  f"type: {settingtype}"
++                                  )
++
++            if modechanged:
++                if self.config['mode'] == "hyperlapse":
++                    if not self.hyperlapserunning:
++                        if self.printing:
++                            ioloop = IOLoop.current()
++                            ioloop.spawn_callback(self.start_hyperlapse)
++                else:
++                    if self.hyperlapserunning:
++                        ioloop = IOLoop.current()
++                        ioloop.spawn_callback(self.stop_hyperlapse)
++            if gcodechange:
++                ioloop = IOLoop.current()
++                ioloop.spawn_callback(self.setgcodevariables)
++
++        return self.config
++
++    async def handle_klippy_ready(self) -> None:
++        ioloop = IOLoop.current()
++        ioloop.spawn_callback(self.setgcodevariables)
++
++        ioloop = IOLoop.current()
++        ioloop.spawn_callback(self.stop_hyperlapse)
++
++    async def setgcodevariables(self) -> None:
++        gcommand = "_SET_TIMELAPSE_SETUP " \
++            + f" ENABLE={self.config['enabled']}" \
++            + f" VERBOSE={self.config['gcode_verbose']}" \
++            + f" PARK_ENABLE={self.config['parkhead']}" \
++            + f" PARK_POS={self.config['parkpos']}" \
++            + f" CUSTOM_POS_X={self.config['park_custom_pos_x']}" \
++            + f" CUSTOM_POS_Y={self.config['park_custom_pos_y']}" \
++            + f" CUSTOM_POS_DZ={self.config['park_custom_pos_dz']}" \
++            + f" TRAVEL_SPEED={self.config['park_travel_speed']}" \
++            + f" RETRACT_SPEED={self.config['park_retract_speed']}" \
++            + f" EXTRUDE_SPEED={self.config['park_extrude_speed']}" \
++            + f" RETRACT_DISTANCE={self.config['park_retract_distance']}" \
++            + f" EXTRUDE_DISTANCE={self.config['park_extrude_distance']}" \
++            + f" PARK_TIME={self.config['park_time']}" \
++            + f" FW_RETRACT={self.config['fw_retract']}" \
++
++        logging.debug(f"run gcommand: {gcommand}")
++        try:
++            await self.klippy_apis.run_gcode(gcommand)
++        except self.server.error:
++            msg = f"Error executing GCode {gcommand}"
++            logging.exception(msg)
++
++    def call_newframe(self, macropark=False, hyperlapse=False) -> None:
++        if self.config['enabled']:
++            if self.config['mode'] == "hyperlapse":
++                if hyperlapse:
++                    if not self.takingframe:
++                        self.takingframe = True
++                        self.spawn_newframe_callbacks()
++                    else:
++                        logging.info("last take frame hasn't completed"
++                                     + " ignoring take frame command"
++                                     )
++                else:
++                    logging.info("ignoring non hyperlapse triggered macros"
++                                 + "in hyperlapse mode"
++                                 )
++            else:
++                self.spawn_newframe_callbacks()
++        else:
++            logging.info("NEW_FRAME macro ignored timelapse is disabled")
++
++    def spawn_newframe_callbacks(self) -> None:
++        ioloop = IOLoop.current()
++        # release parked head after park time is passed
++        park_time = self.config['park_time']
++        ioloop.call_later(delay=park_time, callback=self.release_parkedhead)
++        # capture the frame after stream delay is passed
++        stream_delay = self.config['stream_delay_compensation']
++        ioloop.call_later(delay=stream_delay, callback=self.newframe)
++
++    async def release_parkedhead(self) -> None:
++        gcommand = "SET_GCODE_VARIABLE " \
++            + "MACRO=TIMELAPSE_TAKE_FRAME " \
++            + "VARIABLE=takingframe VALUE=False"
++
++        logging.debug(f"run gcommand: {gcommand}")
++        try:
++            await self.klippy_apis.run_gcode(gcommand)
++        except self.server.error:
++            msg = f"Error executing GCode {gcommand}"
++            logging.exception(msg)
++
++    async def start_hyperlapse(self) -> None:
++        hyperlapse_cycle = self.config['hyperlapse_cycle']
++        park_time = self.config['park_time']
++        timediff = hyperlapse_cycle - park_time
++        if timediff >= 1:
++            gcommand = "HYPERLAPSE ACTION=START" \
++                       + f" CYCLE={hyperlapse_cycle}"
++
++            logging.debug(f"run gcommand: {gcommand}")
++            try:
++                await self.klippy_apis.run_gcode(gcommand)
++            except self.server.error:
++                msg = f"Error executing GCode {gcommand}"
++                logging.exception(msg)
++            self.hyperlapserunning = True
++        else:
++            logging.info("WARNING: Blocked start of Hyperlapse, because "
++                         f"hyperlapse_cycle ({hyperlapse_cycle}s) is smaller "
++                         f"then or to close to park_time ({park_time}s)"
++                         )
++
++    async def stop_hyperlapse(self) -> None:
++        gcommand = "HYPERLAPSE ACTION=STOP"
++
++        logging.debug(f"run gcommand: {gcommand}")
++        try:
++            await self.klippy_apis.run_gcode(gcommand)
++        except self.server.error:
++            msg = f"Error executing GCode {gcommand}"
++            logging.exception(msg)
++        self.hyperlapserunning = False
++
++    async def newframe(self) -> None:
++        # make sure webcamconfig is uptodate before grabbing a new frame
++        await self.getWebcamConfig()
++
++        options = ""
++        if self.wget_skip_cert:
++            options += "--no-check-certificate "
++
++        self.framecount += 1
++        framefile = "frame" + str(self.framecount).zfill(6) + ".jpg"
++        cmd = "wget " + options + self.config['snapshoturl'] \
++              + " -O " + self.temp_dir + framefile
++        self.lastframefile = framefile
++        logging.debug(f"cmd: {cmd}")
++
++        shell_cmd: SCMDComp = self.server.lookup_component('shell_command')
++        scmd = shell_cmd.build_shell_command(cmd, None)
++        try:
++            cmdstatus = await scmd.run(timeout=2., verbose=False)
++        except Exception:
++            logging.exception(f"Error running cmd '{cmd}'")
++
++        result = {'action': 'newframe'}
++        if cmdstatus:
++            result.update({
++                'frame': str(self.framecount),
++                'framefile': framefile,
++                'status': 'success'
++            })
++        else:
++            logging.info(f"getting newframe failed: {cmd}")
++            self.framecount -= 1
++            result.update({'status': 'error'})
++
++        self.notify_event(result)
++        self.takingframe = False
++
++    async def handle_status_update(self, status: Dict[str, Any]) -> None:
++        if 'print_stats' in status:
++            printstats = status['print_stats']
++            if 'state' in printstats:
++                state = printstats['state']
++                if state == 'cancelled':
++                    self.printing = False
++                    ioloop = IOLoop.current()
++                    ioloop.spawn_callback(self.stop_hyperlapse)
++
++    async def handle_gcode_response(self, gresponse: str) -> None:
++        if gresponse == "File selected":
++            # print_started
++            self.cleanup()
++            self.printing = True
++
++            # start hyperlapse if mode is set
++            if self.config['mode'] == "hyperlapse":
++                ioloop = IOLoop.current()
++                ioloop.spawn_callback(self.start_hyperlapse)
++
++        elif gresponse == "Done printing file":
++            # print_done
++            self.printing = False
++
++            # stop hyperlapse if mode is set
++            if self.config['mode'] == "hyperlapse":
++                ioloop = IOLoop.current()
++                ioloop.spawn_callback(self.stop_hyperlapse)
++
++            if self.config['enabled']:
++                if self.config['saveframes']:
++                    ioloop = IOLoop.current()
++                    ioloop.spawn_callback(self.saveFramesZip)
++                if self.config['autorender']:
++                    ioloop = IOLoop.current()
++                    ioloop.spawn_callback(self.render)
++
++    def cleanup(self) -> None:
++        logging.debug("cleanup frame directory")
++        filelist = glob.glob(self.temp_dir + "frame*.jpg")
++        if filelist:
++            for filepath in filelist:
++                os.remove(filepath)
++        self.framecount = 0
++        self.lastframefile = ""
++
++    def call_saveFramesZip(self) -> None:
++        ioloop = IOLoop.current()
++        ioloop.spawn_callback(self.saveFramesZip)
++
++    async def saveFramesZip(self, webrequest=None):
++        filelist = sorted(glob.glob(self.temp_dir + "frame*.jpg"))
++        self.framecount = len(filelist)
++        result = {'action': 'saveframes'}
++
++        if not filelist:
++            msg = "no frames to save, skip"
++            status = "skipped"
++        elif self.saveisrunning:
++            msg = "saving frames already"
++            status = "running"
++        else:
++            self.saveisrunning = True
++
++            # get printed filename
++            kresult = await self.klippy_apis.query_objects(
++                {'print_stats': None})
++            pstats = kresult.get("print_stats", {})
++            gcodefilename = pstats.get("filename", "").split("/")[-1]
++
++            # prepare output filename
++            now = datetime.now()
++            date_time = now.strftime(self.config['time_format_code'])
++            outfile = f"timelapse_{gcodefilename}_{date_time}"
++            outfileFull = outfile + "_frames.zip"
++
++            zipObj = ZipFile(self.out_dir + outfileFull, "w")
++
++            for frame in filelist:
++                zipObj.write(frame, frame.split("/")[-1])
++
++            logging.info(f"saved frames: {outfile}_frames.zip")
++
++            result.update({
++                'status': 'finished',
++                'zipfile': outfileFull
++            })
++
++            self.saveisrunning = False
++
++        return result
++
++    def call_render(self, byrendermacro=False) -> None:
++        self.byrendermacro = byrendermacro
++        ioloop = IOLoop.current()
++        ioloop.spawn_callback(self.render)
++
++    async def render(self, webrequest=None):
++        filelist = sorted(glob.glob(self.temp_dir + "frame*.jpg"))
++        self.framecount = len(filelist)
++        result = {'action': 'render'}
++
++        # make sure webcamconfig is uptodate for the rotation/flip feature
++        await self.getWebcamConfig()
++
++        if not filelist:
++            msg = "no frames to render, skip"
++            status = "skipped"
++        elif self.renderisrunning:
++            msg = "render is already running"
++            status = "running"
++        elif not self.ffmpeg_installed:
++            msg = f"{self.ffmpeg_binary_path} not found, please install ffmpeg"
++            status = "error"
++            # cmd = outfile = None
++            logging.info(f"timelapse: {msg}")
++        else:
++            self.renderisrunning = True
++
++            # get printed filename
++            kresult = await self.klippy_apis.query_objects(
++                {'print_stats': None})
++            pstats = kresult.get("print_stats", {})
++            gcodefilename = pstats.get("filename", "").split("/")[-1]
++
++            # prepare output filename
++            now = datetime.now()
++            date_time = now.strftime(self.config['time_format_code'])
++            inputfiles = self.temp_dir + "frame%6d.jpg"
++            outfile = f"timelapse_{gcodefilename}_{date_time}"
++
++            # dublicate last frame
++            duplicates = []
++            if self.config['duplicatelastframe'] > 0:
++                lastframe = filelist[-1:][0]
++
++                for i in range(self.config['duplicatelastframe']):
++                    nextframe = str(self.framecount + i + 1).zfill(6)
++                    duplicate = "frame" + nextframe + ".jpg"
++                    duplicatePath = self.temp_dir + duplicate
++                    duplicates.append(duplicatePath)
++                    try:
++                        shutil.copy(lastframe, duplicatePath)
++                    except OSError as err:
++                        logging.info(f"duplicating last frame failed: {err}")
++
++                # update Filelist
++                filelist = sorted(glob.glob(self.temp_dir + "frame*.jpg"))
++                self.framecount = len(filelist)
++
++            # variable framerate
++            if self.config['variable_fps']:
++                fps = int(self.framecount / self.config['targetlength'])
++                fps = max(min(fps,
++                              self.config['variable_fps_max']),
++                          self.config['variable_fps_min'])
++            else:
++                fps = self.config['output_framerate']
++
++            # apply rotation
++            filterParam = ""
++            if self.config['rotation'] == 90 and self.config['flip_y']:
++                filterParam = " -vf 'transpose=3'"
++            elif self.config['rotation'] == 90:
++                filterParam = " -vf 'transpose=1'"
++            elif self.config['rotation'] == 180:
++                filterParam = " -vf 'hflip,vflip'"
++            elif self.config['rotation'] == 270:
++                filterParam = " -vf 'transpose=2'"
++            elif self.config['rotation'] == 270 and self.config['flip_y']:
++                filterParam = " -vf 'transpose=0'"
++            elif self.config['rotation'] > 0:
++                pi = 3.141592653589793
++                rot = str(self.config['rotation']*(pi/180))
++                filterParam = " -vf 'rotate=" + rot + "'"
++            elif self.config['flip_x'] and self.config['flip_y']:
++                filterParam = " -vf 'hflip,vflip'"
++            elif self.config['flip_x']:
++                filterParam = " -vf 'hflip'"
++            elif self.config['flip_y']:
++                filterParam = " -vf 'vflip'"
++
++            # build shell command
++            cmd = self.ffmpeg_binary_path \
++                + " -r " + str(fps) \
++                + " -i '" + inputfiles + "'" \
++                + filterParam \
++                + " -threads 2 -g 5" \
++                + " -crf " + str(self.config['constant_rate_factor']) \
++                + " -vcodec libx264" \
++                + " -pix_fmt " + self.config['pixelformat'] \
++                + " -an" \
++                + " " + self.config['extraoutputparams'] \
++                + " '" + self.temp_dir + outfile + ".mp4' -y"
++
++            # log and notify ws
++            logging.info(f"start FFMPEG: {cmd}")
++            result.update({
++                'status': 'started',
++                'framecount': str(self.framecount),
++                'settings': {
++                    'framerate': fps,
++                    'crf': self.config['constant_rate_factor'],
++                    'pixelformat': self.config['pixelformat']
++                }
++            })
++
++            # run the command
++            shell_cmd: SCMDComp = self.server.lookup_component('shell_command')
++            self.notify_event(result)
++            scmd = shell_cmd.build_shell_command(cmd, self.ffmpeg_cb)
++            try:
++                cmdstatus = await scmd.run(verbose=True,
++                                           log_complete=False,
++                                           timeout=9999999999,
++                                           )
++            except Exception:
++                logging.exception(f"Error running cmd '{cmd}'")
++
++            # check success
++            if cmdstatus:
++                status = "success"
++                msg = f"Rendering Video successful: {outfile}.mp4"
++                result.update({
++                    'filename': f"{outfile}.mp4",
++                    'printfile': gcodefilename
++                })
++                # result.pop("framecount")
++                result.pop("settings")
++
++                # move finished output file to output directory
++                try:
++                    shutil.move(self.temp_dir + outfile + ".mp4",
++                                self.out_dir + outfile + ".mp4")
++                except OSError as err:
++                    logging.info(f"moving output file failed: {err}")
++
++                # copy image preview
++                if self.config['previewimage']:
++                    previewFile = f"{outfile}.jpg"
++                    previewFilePath = self.out_dir + previewFile
++                    previewSrc = filelist[-1:][0]
++                    try:
++                        shutil.copy(previewSrc, previewFilePath)
++                    except OSError as err:
++                        logging.info(f"copying preview image failed: {err}")
++                    else:
++                        result.update({
++                            'previewimage': previewFile
++                        })
++
++                    # apply rotation previewimage if needed
++                    if filterParam or self.config['extraoutputparams']:
++                        cmd = self.ffmpeg_binary_path \
++                            + " -i '" + previewFilePath + "'" \
++                            + filterParam \
++                            + " -an" \
++                            + " " + self.config['extraoutputparams'] \
++                            + " '" + previewFilePath + "' -y"
++
++                        logging.info(f"Rotate preview image cmd: {cmd}")
++
++                        scmd = shell_cmd.build_shell_command(cmd)
++                        try:
++                            cmdstatus = await scmd.run(verbose=True,
++                                                       log_complete=False,
++                                                       timeout=9999999999,
++                                                       )
++                        except Exception:
++                            logging.exception(f"Error running cmd '{cmd}'")
++
++            else:
++                status = "error"
++                msg = f"Rendering Video failed: {cmd} : {self.lastcmdreponse}"
++                result.update({
++                    'cmd': cmd,
++                    'cmdresponse': self.lastcmdreponse
++                })
++
++            self.renderisrunning = False
++
++            # cleanup duplicates
++            if duplicates:
++                for dupe in duplicates:
++                    try:
++                        os.remove(dupe)
++                    except OSError as err:
++                        logging.info(f"remove duplicate failed: {err}")
++
++        # log and notify ws
++        logging.info(msg)
++        result.update({
++            'status': status,
++            'msg': msg
++        })
++        self.notify_event(result)
++
++        # confirm render finish to stop the render macro loop
++        if self.byrendermacro:
++            gcommand = "SET_GCODE_VARIABLE " \
++                       + "MACRO=TIMELAPSE_RENDER VARIABLE=render VALUE=False"
++            logging.debug(f"run gcommand: {gcommand}")
++            try:
++                await self.klippy_apis.run_gcode(gcommand)
++            except self.server.error:
++                msg = f"Error executing GCode {gcommand}"
++                logging.exception(msg)
++            self.byrendermacro = False
++
++        return result
++
++    def ffmpeg_cb(self, response):
++        # logging.debug(f"ffmpeg_cb: {response}")
++        self.lastcmdreponse = response.decode("utf-8")
++        try:
++            frame = re.search(
++                r'(?<=frame=)*(\d+)(?=.+fps)', self.lastcmdreponse
++            ).group()
++        except AttributeError:
++            return
++        percent = int(frame) / self.framecount * 100
++        if percent > 100:
++            percent = 100
++
++        if self.lastrenderprogress != int(percent):
++            self.lastrenderprogress = int(percent)
++            # logging.debug(f"ffmpeg Progress: {self.lastrenderprogress}% ")
++            result = {
++                'action': 'render',
++                'status': 'running',
++                'progress': self.lastrenderprogress
++            }
++            self.notify_event(result)
++
++    def notify_event(self, result: Dict[str, Any]) -> None:
++        logging.debug(f"notify_event: {result}")
++        self.server.send_event("timelapse:timelapse_event", result)
++
++
++def load_component(config: ConfigHelper) -> Timelapse:
++    return Timelapse(config)
+diff --git a/moonraker/components/update_manager/python_deploy.py b/moonraker/components/update_manager/python_deploy.py
+new file mode 100644
+index 0000000..fa9a6ed
+--- /dev/null
++++ b/moonraker/components/update_manager/python_deploy.py
+@@ -0,0 +1,423 @@
++# Python Package Update Deployment
++#
++# Copyright (C) 2024  Eric Callahan <arksine.code@gmail.com>
++#
++# This file may be distributed under the terms of the GNU GPLv3 license.
++
++from __future__ import annotations
++import asyncio
++import re
++import logging
++from enum import Enum
++from ...utils.source_info import normalize_project_name, load_distribution_info
++from ...utils.versions import PyVersion, GitVersion
++from ...utils import pip_utils, json_wrapper
++from .app_deploy import AppDeploy, Channel, DISTRO_ALIASES
++
++# Annotation imports
++from typing import (
++    TYPE_CHECKING,
++    Any,
++    Optional,
++    Dict,
++    List,
++    cast
++)
++
++if TYPE_CHECKING:
++    from ...confighelper import ConfigHelper
++    from ...utils.source_info import PackageInfo
++    from ...components.file_manager.file_manager import FileManager
++    from .update_manager import CommandHelper
++
++class PackageSource(Enum):
++    PIP = 0
++    GITHUB = 1
++    UNKNOWN = 2
++
++
++class PythonDeploy(AppDeploy):
++    def __init__(self, config: ConfigHelper, cmd_helper: CommandHelper) -> None:
++        super().__init__(config, cmd_helper, "Python Package")
++        self._configure_virtualenv(config)
++        if self.virtualenv is None:
++            raise config.error(
++                f"[{config.get_name()}]: Option 'virtualenv' must specify a valid "
++                "the path to a Python virtualenv"
++            )
++        fm: FileManager = self.server.lookup_component("file_manager")
++        fm.add_reserved_path(f"update_manager {self.name}", self.virtualenv)
++        self._configure_managed_services(config)
++        self.primary_branch = config.get("primary_branch", None)
++        self.project_name = config.get("project_name", self.name)
++        self.source: PackageSource = PackageSource.UNKNOWN
++        self.repo_url: str = ""
++        self.repo_owner: str = "?"
++        self.repo_name: str = "?"
++        self.current_version: PyVersion = PyVersion("?")
++        self.git_version: GitVersion = GitVersion("?")
++        self.current_sha: str = "?"
++        self.upstream_version: PyVersion = self.current_version
++        self.upstream_sha: str = "?"
++        self.rollback_ref: str = "?"
++        self.warnings: List[str] = []
++        package_info = load_distribution_info(self.virtualenv, self.project_name)
++        self._detect_update_source(package_info)
++        self._update_current_version(package_info)
++        self.changelog: str = self._get_url(["changelog"], package_info)
++        self.system_deps = self._parse_system_dependencies(package_info)
++        self._is_valid = len(self.warnings) == 0
++
++    async def initialize(self) -> Dict[str, Any]:
++        storage = await super().initialize()
++        self.upstream_sha = storage.get("upstream_commit", "?")
++        self.upstream_version = PyVersion(storage.get("upstream_version", "?"))
++        self.rollback_ref = storage.get("rollback_ref", "?")
++        if not self.needs_refresh():
++            self._log_package_info()
++        return storage
++
++    def get_persistent_data(self) -> Dict[str, Any]:
++        storage = super().get_persistent_data()
++        storage["upstream_commit"] = self.upstream_sha
++        storage["upstream_version"] = self.upstream_version.full_version
++        storage["rollback_ref"] = self.rollback_ref
++        return storage
++
++    def get_update_status(self) -> Dict[str, Any]:
++        status = super().get_update_status()
++        status.update({
++            "detected_type": "python_package",
++            "branch": self.primary_branch,
++            "owner": self.repo_owner,
++            "repo_name": self.repo_name,
++            "version": self.current_version.short_version,
++            "remote_version": self.upstream_version.short_version,
++            "current_hash": self.current_sha,
++            "remote_hash": self.upstream_sha,
++            "is_dirty": self.git_version.dirty,
++            "changelog_url": self.changelog,
++            "full_version_string": self.current_version.full_version,
++            "pristine": not self.git_version.dirty,
++            "warnings": self.warnings
++        })
++        return status
++
++    def _add_warning(self, msg: str) -> None:
++        self.warnings.append(msg)
++        self.log_info(msg)
++
++    def _detect_update_source(self, package_info: PackageInfo) -> None:
++        self.source = PackageSource.UNKNOWN
++        direct_url_data = package_info.direct_url_data
++        if direct_url_data is None:
++            self.source = PackageSource.PIP
++            self.repo_url = self._get_url(["repository", "repo"], package_info)
++            self._match_repo_url()
++            return
++        self.log_debug(f"Direct URL info: {direct_url_data}")
++        vcs_info: Dict[str, str] = direct_url_data.get("vcs_info", {})
++        if vcs_info.get("vcs", "") != "git":
++            self._add_warning(
++                "Package installed from source other than pypi or git: "
++                f"{direct_url_data}"
++            )
++            return
++        try:
++            self.current_sha = vcs_info["commit_id"]
++            self.repo_url = direct_url_data["url"]
++        except KeyError:
++            self._add_warning("Failed to retrive direct_url vcs info")
++            return
++        if not self._match_repo_url():
++            self._add_warning(f"Invalid repo url: {self.repo_url}")
++            return
++        self.source = PackageSource.GITHUB
++
++    def _match_repo_url(self) -> bool:
++        url_match = re.match(
++            r"https://(?:www\.)?github\.com/(?P<owner>.+?)/(?P<proj>.+?)(?:\.git|$)",
++            self.repo_url, re.IGNORECASE
++        )
++        if url_match is None:
++            return False
++        self.repo_owner = url_match["owner"] or "?"
++        self.repo_name = url_match["proj"] or "?"
++        return True
++
++    def _get_url(self, keys: List[str], package_info: PackageInfo) -> str:
++        release_info = package_info.release_info
++        primary = keys[0]
++        if release_info is not None:
++            urls: Dict[str, Any] = release_info.get("urls", {})
++            for name, url in urls.items():
++                if name.lower() in keys:
++                    return url
++            self.log_debug(f"Unable to find {primary} url in release info")
++        # Fallback to Metadata
++        metadata = package_info.metadata
++        md_urls: Optional[List[str]] = metadata.get_all("Project-URL", None)
++        if md_urls is not None:
++            for url in md_urls:
++                key, url = url.split(",", maxsplit=1)
++                key = key.lower().strip()
++                if key in keys:
++                    return url.strip()
++        self.log_info(f"Unable to find {primary} url in metadata")
++        return ""
++
++    def _update_current_version(self, package_info: PackageInfo) -> bool:
++        pkg_verson = ""
++        release_info = package_info.release_info
++        metadata = package_info.metadata
++        if release_info is not None:
++            self.current_sha = release_info.get("commit_sha", self.current_sha)
++            self.git_version = GitVersion(release_info.get("git_version", "?"))
++            pkg_verson = release_info.get("package_version", "")
++        if "Version" in metadata:
++            pkg_verson = metadata["Version"]
++        if not pkg_verson:
++            self._add_warning("Failed to detect package version")
++            return False
++        self.current_version = PyVersion(pkg_verson)
++        if not self.current_version.is_valid_version():
++            self._add_warning("Failed to parse package version")
++            return False
++        local = self.current_version.local
++        if self.current_sha == "?":
++            if self.source != PackageSource.GITHUB:
++                self.current_sha = "not-specified"
++            elif local:
++                self.current_sha = local[1:].split(".", 1)[0]
++        if not self.git_version.is_valid_version():
++            self.git_version = self.current_version.convert_to_git()
++        return True
++
++    def _parse_system_dependencies(self, package_info: PackageInfo) -> List[str]:
++        rinfo = package_info.release_info
++        if rinfo is None:
++            return []
++        dep_info = rinfo.get("system_dependencies", {})
++        for distro_id in DISTRO_ALIASES:
++            if distro_id in dep_info:
++                if not dep_info[distro_id]:
++                    self.log_info(
++                        f"Package release_info contains an empty system "
++                        f"package definition for linux distro '{distro_id}'"
++                    )
++                return dep_info[distro_id]
++        else:
++            self.log_info(
++                "Package release_info has no package definition "
++                f" for linux distro '{DISTRO_ALIASES[0]}'"
++            )
++            return []
++
++    async def _update_local_state(self) -> None:
++        self.warnings.clear()
++        eventloop = self.server.get_event_loop()
++        try:
++            assert self.virtualenv is not None
++            package_info = await eventloop.run_in_thread(
++                load_distribution_info, self.virtualenv, self.project_name
++            )
++        except self.server.error:
++            self._add_warning("Failed to parse package info")
++        else:
++            self.git_version = GitVersion("?")
++            self.current_sha = "?"
++            self.current_version = PyVersion("?")
++            self._detect_update_source(package_info)
++            self._update_current_version(package_info)
++            self.changelog = self._get_url(["changelog"], package_info)
++            self.system_deps = self._parse_system_dependencies(package_info)
++        self._is_valid = len(self.warnings) == 0
++
++    async def refresh(self) -> None:
++        try:
++            if self.source == PackageSource.PIP:
++                await self._refresh_pip()
++            elif self.source == PackageSource.GITHUB:
++                await self._refresh_github()
++            else:
++                self.log_info("Cannot refresh, package source is unknown")
++        except asyncio.CancelledError:
++            raise
++        except Exception:
++            self.log_exc(f"Error Refreshing Python Package: {self.name}")
++        self._log_package_info()
++        self._save_state()
++
++    async def _refresh_pip(self) -> None:
++        # Perform a dry-run install to see if an update is available.
++        # Curently this is the most reliable way to fetch the latest
++        # version from an index, as we can't assume configurations
++        # will use PyPI.
++        self.log_info("Requesting package info via PIP...")
++        norm_name = normalize_project_name(self.project_name)
++        assert self.pip_cmd is not None
++        pip_args = f"install -U --quiet --dry-run --no-deps --report - {norm_name}"
++        pip_exec = pip_utils.AsyncPipExecutor(self.pip_cmd, self.server)
++        resp = await pip_exec.call_pip_with_response(pip_args)
++        data: Dict[str, Any] = json_wrapper.loads(resp)
++        install_data: List[Dict[str, Any]] = data.get("install", [])
++        if not install_data:
++            # No update available
++            self.upstream_version = self.current_version
++            return
++        metadata: Dict[str, Any] = install_data[0].get("metadata", {})
++        name: str = normalize_project_name(metadata.get("name", ""))
++        if len(install_data) > 1 and name != norm_name:
++            for inst in install_data[1:]:
++                md: Dict[str, Any] = inst.get("metadata", {})
++                name = normalize_project_name(md.get("name", ""))
++                if name == norm_name:
++                    metadata = md
++                    break
++            else:
++                raise self.server.error("Failed to find metadata for package")
++        version: str = metadata.get("version", "?")
++        self.upstream_version = PyVersion(version)
++        if self.current_version < self.upstream_version:
++            self.upstream_sha = "update-available"
++        else:
++            self.upstream_sha = self.current_sha
++
++    async def _refresh_github(self) -> None:
++        repo = f"{self.repo_owner}/{self.repo_name}"
++        client = self.cmd_helper.get_http_client()
++        if self.channel == Channel.DEV:
++            resource = f"/repos/{repo}/commits?per_page=1"
++            if self.primary_branch is not None:
++                resource += f"&sha={self.primary_branch}"
++            resp = await client.github_api_request(
++                resource, attempts=3, retry_pause_time=.5
++            )
++            if resp.status_code != 304 and resp.has_error():
++                self.log_info(f"Github Request Error - {resp.error}")
++                return
++            commit_list: List[Dict[str, Any]] = cast(list, resp.json())
++            if not commit_list:
++                self.log_info("No commits found")
++                return
++            self.upstream_sha = commit_list[0]["sha"]
++            self.upstream_version = self.current_version
++            if self.upstream_sha != self.current_sha:
++                local_part = f"g{self.upstream_sha[:8]}"
++                bumped = self.current_version.bump_local_version(local_part)
++                self.upstream_version = bumped
++            return
++        if self.channel == Channel.STABLE:
++            resource = f"repos/{repo}/releases/latest"
++        else:
++            resource = f"repos/{repo}/releases?per_page=1"
++        resp = await client.github_api_request(
++            resource, attempts=3, retry_pause_time=.5
++        )
++        if resp.status_code != 304 and resp.has_error():
++            self.log_info(f"Github Request Error - {resp.error}")
++            return
++        release = resp.json()
++        result: Dict[str, Any] = {}
++        if isinstance(release, list):
++            if release:
++                result = release[0]
++        else:
++            result = release
++        if not result:
++            self.log_info("No releases found")
++            self.upstream_sha = self.current_sha
++            self.upstream_version = self.current_version
++            return
++        self.upstream_version = PyVersion(result["tag_name"])
++        if self.upstream_version > self.current_version:
++            self.upstream_sha = "update-available"
++
++    async def update(self, rollback: bool = False) -> bool:
++        project_name = normalize_project_name(self.project_name)
++        assert self.pip_cmd is not None
++        pip_args: str
++        if not self.upstream_version.is_valid_version():
++            # Can't update without a valid upstream
++            return False
++        pip_exec = pip_utils.AsyncPipExecutor(
++            self.pip_cmd, self.server, self.cmd_helper.notify_update_response
++        )
++        current_ref = self.current_version.tag
++        if self.source == PackageSource.PIP:
++            # We can't depend on the SHA being available for PyPI packages,
++            # so we must compare versions
++            if (
++                self.current_version.is_valid_version() and
++                self.upstream_version <= self.current_version
++            ):
++                return False
++            pip_args = f"install -U {project_name}"
++            if rollback:
++                pip_args += f"=={self.rollback_ref}"
++        elif self.source == PackageSource.GITHUB:
++            if self.current_sha == self.upstream_sha:
++                return False
++            repo = f"{self.repo_owner}/{self.repo_name}"
++            pip_args = f"install -U git+https://github.com/{repo}"
++            if rollback:
++                pip_args += f"@{self.rollback_ref}"
++            elif self.channel == "dev":
++                current_ref = self.current_sha
++                if self.primary_branch is not None:
++                    pip_args += f"@{self.primary_branch}"
++            else:
++                pip_args += f"@{self.upstream_version.tag}"
++        else:
++            raise self.server.error("Cannot update, package source is unknown")
++        await self._update_pip(pip_exec)
++        sys_deps = self.system_deps
++        source = self.source.name
++        self.notify_status(f"Updating Python Package {self.name} from {source}...")
++        await pip_exec.call_pip(pip_args, 3600, sys_env_vars=self.pip_env_vars)
++        await self._update_local_state()
++        if not rollback:
++            self.rollback_ref = current_ref
++        self.upstream_sha = self.current_sha
++        self.upstream_version = self.current_version
++        await self._update_sys_deps(sys_deps)
++        self._log_package_info()
++        self._save_state()
++        await self.restart_service()
++        self.notify_status("Update Finished...", is_complete=True)
++        return True
++
++    async def recover(
++        self, hard: bool = False, force_dep_update: bool = False
++    ) -> None:
++        pass
++
++    async def rollback(self) -> bool:
++        if self.rollback_ref == "?":
++            return False
++        await self.update(rollback=True)
++        return True
++
++    async def _update_sys_deps(self, prev_deps: List[str]) -> None:
++        new_deps = self.system_deps
++        deps_diff = list(set(new_deps) - set(prev_deps))
++        if deps_diff:
++            await self._install_packages(deps_diff)
++
++    def _log_package_info(self) -> None:
++        logging.info(
++            f"Python Package {self.name} detected:\n"
++            f"Channel: {self.channel}\n"
++            f"Package Source: {self.source.name}\n"
++            f"Repo Owner: {self.repo_owner}\n"
++            f"Repo Name: {self.repo_name}\n"
++            f"Repo URL: {self.repo_url}\n"
++            f"Changelog URL: {self.changelog}\n"
++            f"Full Version String: {self.current_version.full_version}\n"
++            f"Current Version: {self.current_version.short_version}\n"
++            f"Current Commit SHA: {self.current_sha}\n"
++            f"Upstream Version: {self.upstream_version.short_version}\n"
++            f"Upstream Commit SHA: {self.upstream_sha}\n"
++            f"Converted Git Version: {self.git_version}\n"
++            f"Rollback Ref: {self.rollback_ref}\n"
++        )
+diff --git a/moonraker/components/update_manager/web_deploy.py b/moonraker/components/update_manager/web_deploy.py
+new file mode 100644
+index 0000000..8b56a13
+--- /dev/null
++++ b/moonraker/components/update_manager/web_deploy.py
+@@ -0,0 +1,396 @@
++# Provides updates for Klipper and Moonraker
++#
++# Copyright (C) 2020  Eric Callahan <arksine.code@gmail.com>
++#
++# This file may be distributed under the terms of the GNU GPLv3 license.
++
++from __future__ import annotations
++import os
++import pathlib
++import logging
++import shutil
++import zipfile
++from ...utils import source_info
++from ...utils import json_wrapper as jsonw
++from .common import AppType, Channel
++from .base_deploy import BaseDeploy
++
++# Annotation imports
++from typing import (
++    TYPE_CHECKING,
++    Any,
++    Optional,
++    Tuple,
++    Union,
++    Dict,
++    List,
++    cast
++)
++if TYPE_CHECKING:
++    from ...confighelper import ConfigHelper
++    from ..file_manager.file_manager import FileManager
++    from .update_manager import CommandHelper
++    JsonType = Union[List[Any], Dict[str, Any]]
++
++
++class WebClientDeploy(BaseDeploy):
++    def __init__(self,
++                 config: ConfigHelper,
++                 cmd_helper: CommandHelper
++                 ) -> None:
++        super().__init__(config, cmd_helper, prefix="Web Client")
++        self.repo = config.get('repo').strip().strip("/")
++        self.owner, self.project_name = self.repo.split("/", 1)
++        self.path = pathlib.Path(config.get("path")).expanduser().resolve()
++        self.type = AppType.from_string(config.get('type'))
++        self.channel = Channel.from_string(config.get("channel", "stable"))
++        if self.channel == Channel.DEV:
++            self.server.add_warning(
++                f"Invalid Channel '{self.channel}' for config "
++                f"section [{config.get_name()}], type: {self.type}. "
++                f"Must be one of the following: stable, beta. "
++                f"Falling back to beta channel"
++            )
++            self.channel = Channel.BETA
++        self.info_tags: List[str] = config.getlist("info_tags", [])
++        self.persistent_files: List[str] = []
++        self.warnings: List[str] = []
++        self.anomalies: List[str] = []
++        self.version: str = "?"
++        pfiles = config.getlist('persistent_files', None)
++        if pfiles is not None:
++            self.persistent_files = [pf.strip("/") for pf in pfiles]
++            if ".version" in self.persistent_files:
++                raise config.error(
++                    "Invalid value for option 'persistent_files': "
++                    "'.version' can not be persistent")
++        self._valid: bool = True
++        self._is_prerelease: bool = False
++        self._is_fallback: bool = False
++        self._path_writable: bool = False
++
++    async def _validate_client_info(self) -> None:
++        self._valid = False
++        self._is_fallback = False
++        eventloop = self.server.get_event_loop()
++        self.warnings.clear()
++        repo_parent = source_info.find_git_repo(self.path)
++        homedir = pathlib.Path("~").expanduser()
++        if not self._path_writable:
++            self.warnings.append(
++                f"Location at option 'path: {self.path}' is not writable."
++            )
++        elif not self.path.is_dir():
++            self.warnings.append(
++                f"Location at option 'path: {self.path}' is not a directory."
++            )
++        elif repo_parent is not None and repo_parent != homedir:
++            self.warnings.append(
++                f"Location at option 'path: {self.path}' is within a git repo. Found "
++                f".git folder at '{repo_parent.joinpath('.git')}'"
++            )
++        else:
++            rinfo = self.path.joinpath("release_info.json")
++            if rinfo.is_file():
++                try:
++                    data = await eventloop.run_in_thread(rinfo.read_text)
++                    uinfo: Dict[str, str] = jsonw.loads(data)
++                    project_name = uinfo["project_name"]
++                    owner = uinfo["project_owner"]
++                    self.version = uinfo["version"]
++                except Exception:
++                    logging.exception("Failed to load release_info.json.")
++                else:
++                    self._valid = True
++                    detected_repo = f"{owner}/{project_name}"
++                    if self.repo.lower() != detected_repo.lower():
++                        self.anomalies.append(
++                            f"Value at option 'repo: {self.repo}' does not match "
++                            f"detected repo '{detected_repo}', falling back to "
++                            "detected version."
++                        )
++                        self.repo = detected_repo
++                        self.owner = owner
++                        self.project_name = project_name
++            else:
++                version_path = self.path.joinpath(".version")
++                if version_path.is_file():
++                    version = await eventloop.run_in_thread(version_path.read_text)
++                    self.version = version.strip()
++                self._valid = await self._detect_fallback()
++        if not self._valid:
++            self.warnings.append("Failed to validate client installation")
++            if self.server.is_debug_enabled():
++                self.log_info("Debug Enabled, overriding validity checks")
++
++    async def _detect_fallback(self) -> bool:
++        fallback_defs = {
++            "mainsail": "mainsail-crew",
++            "fluidd": "fluidd-core"
++        }
++        for fname in ("manifest.json", "manifest.webmanifest"):
++            manifest = self.path.joinpath(fname)
++            eventloop = self.server.get_event_loop()
++            if manifest.is_file():
++                try:
++                    mtext = await eventloop.run_in_thread(manifest.read_text)
++                    mdata: Dict[str, Any] = jsonw.loads(mtext)
++                    proj_name: str = mdata["name"].lower()
++                except Exception:
++                    self.log_exc(f"Failed to load json from {manifest}")
++                    continue
++                if proj_name in fallback_defs:
++                    owner = fallback_defs[proj_name]
++                    detected_repo = f"{owner}/{proj_name}"
++                    if detected_repo != self.repo.lower():
++                        self.anomalies.append(
++                            f"Value at option 'repo: {self.repo}' does not match "
++                            f"detected repo '{detected_repo}', falling back to "
++                            "detected version."
++                        )
++                        self.repo = detected_repo
++                        self.owner = owner
++                        self.project_name = proj_name
++                    self._is_fallback = True
++                    return True
++        return False
++
++    async def initialize(self) -> Dict[str, Any]:
++        fm: FileManager = self.server.lookup_component("file_manager")
++        self._path_writable = not fm.check_reserved_path(
++            self.path, need_write=True, raise_error=False
++        )
++        if self._path_writable:
++            fm.add_reserved_path(f"update_manager {self.name}", self.path)
++        await self._validate_client_info()
++        storage = await super().initialize()
++        if self.version == "?":
++            self.version = storage.get("version", "?")
++        self.remote_version: str = storage.get('remote_version', "?")
++        self.rollback_version: str = storage.get('rollback_version', self.version)
++        self.rollback_repo: str = storage.get(
++            'rollback_repo', self.repo if self._valid else "?"
++        )
++        self.last_error: str = storage.get('last_error', "")
++        dl_info: List[Any] = storage.get('dl_info', ["?", "?", 0])
++        self.dl_info: Tuple[str, str, int] = cast(
++            Tuple[str, str, int], tuple(dl_info))
++        if not self.needs_refresh():
++            self._log_client_info()
++        return storage
++
++    def _log_client_info(self) -> None:
++        warn_str = ""
++        if self.warnings or self.anomalies:
++            warn_str = "\nWarnings:\n"
++            warn_str += "\n".join(
++                [f" {item}" for item in self.warnings + self.anomalies]
++            )
++        dl_url, content_type, size = self.dl_info
++        logging.info(
++            f"Web Client {self.name} Detected:\n"
++            f"Repo: {self.repo}\n"
++            f"Channel: {self.channel}\n"
++            f"Path: {self.path}\n"
++            f"Local Version: {self.version}\n"
++            f"Remote Version: {self.remote_version}\n"
++            f"Valid: {self._valid}\n"
++            f"Fallback Client Detected: {self._is_fallback}\n"
++            f"Pre-release: {self._is_prerelease}\n"
++            f"Download Url: {dl_url}\n"
++            f"Download Size: {size}\n"
++            f"Content Type: {content_type}\n"
++            f"Rollback Version: {self.rollback_version}\n"
++            f"Rollback Repo: {self.rollback_repo}"
++            f"{warn_str}"
++        )
++
++    async def refresh(self) -> None:
++        try:
++            if not self._valid:
++                await self._validate_client_info()
++            await self._get_remote_version()
++        except Exception:
++            logging.exception("Error Refreshing Client")
++        self._log_client_info()
++        self._save_state()
++
++    async def _fetch_github_version(
++        self, repo: Optional[str] = None, tag: Optional[str] = None
++    ) -> Dict[str, Any]:
++        if repo is None:
++            if not self._valid:
++                self.log_info("Invalid Web Installation, aborting remote refresh")
++                return {}
++            repo = self.repo
++        if tag is not None:
++            resource = f"repos/{repo}/releases/tags/{tag}"
++        elif self.channel == Channel.STABLE:
++            resource = f"repos/{repo}/releases/latest"
++        else:
++            resource = f"repos/{repo}/releases?per_page=1"
++        client = self.cmd_helper.get_http_client()
++        resp = await client.github_api_request(
++            resource, attempts=3, retry_pause_time=.5
++        )
++        release: Union[List[Any], Dict[str, Any]] = {}
++        if resp.status_code == 304:
++            if resp.content:
++                # Not modified, however we need to restore state from
++                # cached content
++                release = resp.json()
++            else:
++                # Either not necessary or not possible to restore from cache
++                return {}
++        elif resp.has_error():
++            self.log_info(f"Github Request Error - {resp.error}")
++            self.last_error = str(resp.error)
++            return {}
++        else:
++            release = resp.json()
++        result: Dict[str, Any] = {}
++        if isinstance(release, list):
++            if release:
++                result = release[0]
++        else:
++            result = release
++        self.last_error = ""
++        return result
++
++    async def _get_remote_version(self) -> None:
++        result = await self._fetch_github_version()
++        if not result:
++            return
++        self.remote_version = result.get('name', "?")
++        release_asset: Dict[str, Any] = result.get('assets', [{}])[0]
++        dl_url: str = release_asset.get('browser_download_url', "?")
++        content_type: str = release_asset.get('content_type', "?")
++        size: int = release_asset.get('size', 0)
++        self.dl_info = (dl_url, content_type, size)
++        self._is_prerelease = result.get('prerelease', False)
++
++    def get_persistent_data(self) -> Dict[str, Any]:
++        storage = super().get_persistent_data()
++        storage['version'] = self.version
++        storage['remote_version'] = self.remote_version
++        storage['rollback_version'] = self.rollback_version
++        storage['rollback_repo'] = self.rollback_repo
++        storage['dl_info'] = list(self.dl_info)
++        storage['last_error'] = self.last_error
++        return storage
++
++    async def update(
++        self, rollback_info: Optional[Tuple[str, str, int]] = None
++    ) -> bool:
++        if not self._valid:
++            raise self.server.error(
++                f"Web Client {self.name}: Invalid install detected, aborting update"
++            )
++        if rollback_info is not None:
++            dl_url, content_type, size = rollback_info
++            start_msg = f"Rolling Back Web Client {self.name}..."
++        else:
++            if self.remote_version == "?":
++                await self._get_remote_version()
++                if self.remote_version == "?":
++                    raise self.server.error(
++                        f"Client {self.repo}: Unable to locate update"
++                    )
++            dl_url, content_type, size = self.dl_info
++            if self.version == self.remote_version:
++                # Already up to date
++                return False
++            start_msg = f"Updating Web Client {self.name}..."
++        if dl_url == "?":
++            raise self.server.error(f"Client {self.repo}: Invalid download url")
++        current_version = self.version
++        event_loop = self.server.get_event_loop()
++        self.cmd_helper.notify_update_response(start_msg)
++        self.cmd_helper.notify_update_response(f"Downloading Client: {self.name}")
++        td = await self.cmd_helper.create_tempdir(self.name, "client")
++        try:
++            tempdir = pathlib.Path(td.name)
++            temp_download_file = tempdir.joinpath(f"{self.name}.zip")
++            temp_persist_dir = tempdir.joinpath(self.name)
++            client = self.cmd_helper.get_http_client()
++            await client.download_file(
++                dl_url, content_type, temp_download_file, size,
++                self.cmd_helper.on_download_progress)
++            self.cmd_helper.notify_update_response(
++                f"Download Complete, extracting release to '{self.path}'")
++            await event_loop.run_in_thread(
++                self._extract_release, temp_persist_dir,
++                temp_download_file)
++        finally:
++            await event_loop.run_in_thread(td.cleanup)
++        self.version = self.remote_version
++        await self._validate_client_info()
++        if self._valid and rollback_info is None:
++            self.rollback_version = current_version
++            self.rollback_repo = self.repo
++        msg = f"Client Update Finished: {self.name}"
++        if rollback_info is not None:
++            msg = f"Rollback Complete: {self.name}"
++        self.cmd_helper.notify_update_response(msg, is_complete=True)
++        self._log_client_info()
++        self._save_state()
++        return True
++
++    async def rollback(self) -> bool:
++        if self.rollback_version == "?" or self.rollback_repo == "?":
++            raise self.server.error("Incomplete Rollback Data")
++        if self.rollback_version == self.version:
++            return False
++        result = await self._fetch_github_version(
++            self.rollback_repo, self.rollback_version
++        )
++        if not result:
++            raise self.server.error("Failed to retrieve release asset data")
++        release_asset: Dict[str, Any] = result.get('assets', [{}])[0]
++        dl_url: str = release_asset.get('browser_download_url', "?")
++        content_type: str = release_asset.get('content_type', "?")
++        size: int = release_asset.get('size', 0)
++        dl_info = (dl_url, content_type, size)
++        return await self.update(dl_info)
++
++    def _extract_release(self,
++                         persist_dir: pathlib.Path,
++                         release_file: pathlib.Path
++                         ) -> None:
++        if not persist_dir.exists():
++            os.mkdir(persist_dir)
++        if self.path.is_dir():
++            # find and move persistent files
++            for fname in os.listdir(self.path):
++                src_path = self.path.joinpath(fname)
++                if fname in self.persistent_files:
++                    dest_dir = persist_dir.joinpath(fname).parent
++                    os.makedirs(dest_dir, exist_ok=True)
++                    shutil.move(str(src_path), str(dest_dir))
++            shutil.rmtree(self.path)
++        os.mkdir(self.path)
++        with zipfile.ZipFile(release_file) as zf:
++            zf.extractall(self.path)
++        # Move temporary files back into
++        for fname in os.listdir(persist_dir):
++            src_path = persist_dir.joinpath(fname)
++            dest_dir = self.path.joinpath(fname).parent
++            os.makedirs(dest_dir, exist_ok=True)
++            shutil.move(str(src_path), str(dest_dir))
++
++    def get_update_status(self) -> Dict[str, Any]:
++        return {
++            'name': self.name,
++            'repo_name': self.project_name,
++            'owner': self.owner,
++            'version': self.version,
++            'remote_version': self.remote_version,
++            'rollback_version': self.rollback_version,
++            'configured_type': str(self.type),
++            'channel': str(self.channel),
++            'info_tags': self.info_tags,
++            'last_error': self.last_error,
++            'is_valid': self._valid,
++            'warnings': self.warnings,
++            'anomalies': self.anomalies
++        }
+diff --git a/moonraker/klippy_connection.py b/moonraker/klippy_connection.py
+new file mode 100644
+index 0000000..93737c1
+--- /dev/null
++++ b/moonraker/klippy_connection.py
+@@ -0,0 +1,791 @@
++
++# KlippyConnection - manage unix socket connection to Klipper
++#
++# Copyright (C) 2022 Eric Callahan <arksine.code@gmail.com>
++#
++# This file may be distributed under the terms of the GNU GPLv3 license
++
++from __future__ import annotations
++import os
++import time
++import logging
++import getpass
++import asyncio
++import pathlib
++from .utils import ServerError, get_unix_peer_credentials
++from .utils import json_wrapper as jsonw
++from .common import KlippyState, RequestType
++
++# Annotation imports
++from typing import (
++    TYPE_CHECKING,
++    Any,
++    Awaitable,
++    Optional,
++    Callable,
++    Coroutine,
++    Dict,
++    List,
++    Set,
++    Tuple,
++    Union
++)
++if TYPE_CHECKING:
++    from .server import Server
++    from .common import WebRequest, APITransport, BaseRemoteConnection
++    from .confighelper import ConfigHelper
++    from .components.klippy_apis import KlippyAPI
++    from .components.file_manager.file_manager import FileManager
++    from .components.machine import Machine
++    from .components.job_state import JobState
++    from .components.database import MoonrakerDatabase as Database
++    FlexCallback = Callable[..., Optional[Coroutine]]
++    Subscription = Dict[str, Optional[List[str]]]
++
++# These endpoints are reserved for klippy/moonraker communication only and are
++# not exposed via http or the websocket
++RESERVED_ENDPOINTS = [
++    "list_endpoints",
++    "gcode/subscribe_output",
++    "register_remote_method",
++]
++
++INIT_TIME = .25
++LOG_ATTEMPT_INTERVAL = int(2. / INIT_TIME + .5)
++MAX_LOG_ATTEMPTS = 10 * LOG_ATTEMPT_INTERVAL
++UNIX_BUFFER_LIMIT = 20 * 1024 * 1024
++SVC_INFO_KEY = "klippy_connection.service_info"
++
++class KlippyConnection:
++    def __init__(self, server: Server) -> None:
++        self.server = server
++        self.uds_address = pathlib.Path("/tmp/klippy_uds")
++        self.writer: Optional[asyncio.StreamWriter] = None
++        self.connection_mutex: asyncio.Lock = asyncio.Lock()
++        self.event_loop = self.server.get_event_loop()
++        self.log_no_access = True
++        # Connection State
++        self.connection_task: Optional[asyncio.Task] = None
++        self.closing: bool = False
++        self.subscription_lock = asyncio.Lock()
++        self._klippy_info: Dict[str, Any] = {}
++        self._klippy_identified: bool = False
++        self._klippy_initializing: bool = False
++        self._klippy_started: bool = False
++        self._methods_registered: bool = False
++        self._klipper_version: str = ""
++        self._missing_reqs: Set[str] = set()
++        self._peer_cred: Dict[str, int] = {}
++        self._service_info: Dict[str, Any] = {}
++        self.init_attempts: int = 0
++        self._state: KlippyState = KlippyState.DISCONNECTED
++        self._state.set_message("Klippy Disconnected")
++        self.subscriptions: Dict[APITransport, Subscription] = {}
++        self.subscription_cache: Dict[str, Dict[str, Any]] = {}
++        # Setup remote methods accessable to Klippy.  Note that all
++        # registered remote methods should be of the notification type,
++        # they do not return a response to Klippy after execution
++        self.pending_requests: Dict[int, KlippyRequest] = {}
++        self.remote_methods: Dict[str, FlexCallback] = {}
++        self.klippy_reg_methods: List[str] = []
++        self.register_remote_method(
++            'process_gcode_response', self._process_gcode_response,
++            need_klippy_reg=False)
++        self.register_remote_method(
++            'process_status_update', self._process_status_update,
++            need_klippy_reg=False)
++        self.server.register_component("klippy_connection", self)
++
++    def configure(self, config: ConfigHelper):
++        self.uds_address = config.getpath(
++            "klippy_uds_address", self.uds_address
++        )
++
++    @property
++    def klippy_apis(self) -> KlippyAPI:
++        return self.server.lookup_component("klippy_apis")
++
++    @property
++    def state(self) -> KlippyState:
++        if self.is_connected() and not self._klippy_started:
++            return KlippyState.STARTUP
++        return self._state
++
++    @property
++    def state_message(self) -> str:
++        return self._state.message
++
++    @property
++    def klippy_info(self) -> Dict[str, Any]:
++        return self._klippy_info
++
++    @property
++    def missing_requirements(self) -> List[str]:
++        return list(self._missing_reqs)
++
++    @property
++    def peer_credentials(self) -> Dict[str, int]:
++        return dict(self._peer_cred)
++
++    @property
++    def service_info(self) -> Dict[str, Any]:
++        return self._service_info
++
++    @property
++    def unit_name(self) -> str:
++        svc_info = self._service_info
++        unit_name = svc_info.get("unit_name", "klipper.service")
++        return unit_name.split(".", 1)[0]
++
++    async def component_init(self) -> None:
++        db: Database = self.server.lookup_component('database')
++        machine: Machine = self.server.lookup_component("machine")
++        self._service_info = await db.get_item("moonraker", SVC_INFO_KEY, {})
++        if self._service_info:
++            machine.log_service_info(self._service_info)
++
++    async def wait_connected(self) -> bool:
++        if (
++            self.connection_task is None or
++            self.connection_task.done()
++        ):
++            return self.is_connected()
++        try:
++            await self.connection_task
++        except Exception:
++            pass
++        return self.is_connected()
++
++    async def wait_started(self, timeout: float = 20.) -> bool:
++        if self.connection_task is None or not self.is_connected():
++            return False
++        if not self.connection_task.done():
++            await asyncio.wait_for(
++                asyncio.shield(self.connection_task), timeout=timeout)
++        return self.is_connected()
++
++    async def _read_stream(self, reader: asyncio.StreamReader) -> None:
++        errors_remaining: int = 10
++        while not reader.at_eof():
++            try:
++                data = await reader.readuntil(b'\x03')
++            except (ConnectionError, asyncio.IncompleteReadError):
++                break
++            except asyncio.CancelledError:
++                logging.exception("Klippy Stream Read Cancelled")
++                raise
++            except Exception:
++                logging.exception("Klippy Stream Read Error")
++                errors_remaining -= 1
++                if not errors_remaining or not self.is_connected():
++                    break
++                continue
++            errors_remaining = 10
++            try:
++                decoded_cmd = jsonw.loads(data[:-1])
++                self._process_command(decoded_cmd)
++            except Exception:
++                logging.exception(
++                    f"Error processing Klippy Host Response: {data.decode()}")
++        if not self.closing:
++            logging.debug("Klippy Disconnection From _read_stream()")
++            await self.close()
++
++    async def _write_request(self, request: KlippyRequest) -> None:
++        if self.writer is None or self.closing:
++            request.set_exception(ServerError("Klippy Host not connected", 503))
++            return
++        data = jsonw.dumps(request.to_dict()) + b"\x03"
++        try:
++            self.writer.write(data)
++            await self.writer.drain()
++        except asyncio.CancelledError:
++            request.set_exception(ServerError("Klippy Write Request Cancelled", 503))
++            raise
++        except Exception:
++            request.set_exception(ServerError("Klippy Write Request Error", 503))
++            if not self.closing:
++                logging.debug("Klippy Disconnection From _write_request()")
++                await self.close()
++
++    def register_remote_method(self,
++                               method_name: str,
++                               cb: FlexCallback,
++                               need_klippy_reg: bool = True
++                               ) -> None:
++        if method_name in self.remote_methods:
++            raise self.server.error(
++                f"Remote method ({method_name}) already registered")
++        if self.server.is_running():
++            raise self.server.error(
++                f"Failed to register remote method {method_name}, "
++                "methods must be registered during initialization")
++        self.remote_methods[method_name] = cb
++        if need_klippy_reg:
++            # These methods need to be registered with Klippy
++            self.klippy_reg_methods.append(method_name)
++
++    def register_method_from_agent(
++        self, connection: BaseRemoteConnection, method_name: str
++    ) -> Optional[Awaitable]:
++        if connection.client_data["type"] != "agent":
++            raise self.server.error(
++                "Only connections of the 'agent' type can register methods"
++            )
++        if method_name in self.remote_methods:
++            raise self.server.error(
++                f"Remote method ({method_name}) already registered"
++            )
++
++        def _on_agent_method_received(**kwargs) -> None:
++            connection.call_method(method_name, kwargs)
++        self.remote_methods[method_name] = _on_agent_method_received
++        self.klippy_reg_methods.append(method_name)
++        if self._methods_registered and self._state != KlippyState.DISCONNECTED:
++            coro = self.klippy_apis.register_method(method_name)
++            return self.event_loop.create_task(coro)
++        return None
++
++    def unregister_method(self, method_name: str):
++        self.remote_methods.pop(method_name, None)
++        try:
++            self.klippy_reg_methods.remove(method_name)
++        except ValueError:
++            pass
++
++    def connect(self) -> Awaitable[bool]:
++        if (
++            self.is_connected() or
++            not self.server.is_running() or
++            (self.connection_task is not None and
++             not self.connection_task.done())
++        ):
++            # already connecting
++            fut = self.event_loop.create_future()
++            fut.set_result(self.is_connected())
++            return fut
++        self.connection_task = self.event_loop.create_task(self._do_connect())
++        return self.connection_task
++
++    async def _do_connect(self) -> bool:
++        async with self.connection_mutex:
++            while self.writer is None:
++                await asyncio.sleep(INIT_TIME)
++                if self.closing or not self.server.is_running():
++                    return False
++                if not self.uds_address.exists():
++                    continue
++                if not os.access(str(self.uds_address), os.R_OK | os.W_OK):
++                    if self.log_no_access:
++                        user = getpass.getuser()
++                        logging.info(
++                            f"Cannot connect to Klippy, Linux user '{user}' "
++                            "lacks permission to open Unix Domain Socket: "
++                            f"{self.uds_address}")
++                        self.log_no_access = False
++                    continue
++                self.log_no_access = True
++                try:
++                    reader, writer = await self.open_klippy_connection(True)
++                except asyncio.CancelledError:
++                    raise
++                except Exception:
++                    continue
++                logging.info("Klippy Connection Established")
++                self.writer = writer
++                if self._get_peer_credentials(writer):
++                    machine: Machine = self.server.lookup_component("machine")
++                    provider = machine.get_system_provider()
++                    svc_info = await provider.extract_service_info(
++                        "klipper", self._peer_cred["process_id"]
++                    )
++                    if svc_info != self._service_info:
++                        db: Database = self.server.lookup_component('database')
++                        db.insert_item("moonraker", SVC_INFO_KEY, svc_info)
++                        self._service_info = svc_info
++                        machine.log_service_info(svc_info)
++            self.event_loop.create_task(self._read_stream(reader))
++            return await self._init_klippy_connection()
++
++    async def open_klippy_connection(
++        self, primary: bool = False
++    ) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
++        if not primary and not self.is_connected():
++            raise ServerError("Klippy Unix Connection Not Available", 503)
++        return await asyncio.open_unix_connection(
++            str(self.uds_address), limit=UNIX_BUFFER_LIMIT)
++
++    def _get_peer_credentials(self, writer: asyncio.StreamWriter) -> bool:
++        self._peer_cred = get_unix_peer_credentials(writer, "Klippy")
++        if not self._peer_cred:
++            return False
++        logging.debug(
++            f"Klippy Connection: Received Peer Credentials: {self._peer_cred}"
++        )
++        return True
++
++    async def _init_klippy_connection(self) -> bool:
++        self._klippy_identified = False
++        self._klippy_started = False
++        self._klippy_initializing = True
++        self._methods_registered = False
++        self._missing_reqs.clear()
++        self.init_attempts = 0
++        self._state = KlippyState.STARTUP
++        while self.server.is_running():
++            await asyncio.sleep(INIT_TIME)
++            await self._check_ready()
++            if not self._klippy_initializing:
++                logging.debug("Klippy Connection Initialized")
++                return True
++            if not self.is_connected():
++                self._klippy_initializing = False
++                break
++            else:
++                self.init_attempts += 1
++        logging.debug("Klippy Connection Failed to Init")
++        return False
++
++    async def _request_endpoints(self) -> None:
++        result = await self.klippy_apis.list_endpoints(default=None)
++        if result is None:
++            return
++        endpoints = result.get('endpoints', [])
++        for ep in endpoints:
++            if ep not in RESERVED_ENDPOINTS:
++                self.server.register_endpoint(
++                    ep, RequestType.GET | RequestType.POST, self.request,
++                    is_remote=True
++                )
++
++    async def _request_initial_subscriptions(self) -> None:
++        try:
++            await self.klippy_apis.subscribe_objects({'webhooks': None})
++        except ServerError:
++            logging.exception("Unable to subscribe to webhooks object")
++        else:
++            logging.info("Webhooks Subscribed")
++        try:
++            await self.klippy_apis.subscribe_gcode_output()
++        except ServerError:
++            logging.exception(
++                "Unable to register gcode output subscription"
++            )
++        else:
++            logging.info("GCode Output Subscribed")
++
++    async def _check_ready(self) -> None:
++        send_id = not self._klippy_identified
++        result: Dict[str, Any]
++        try:
++            result = await self.klippy_apis.get_klippy_info(send_id)
++        except ServerError as e:
++            if self.init_attempts % LOG_ATTEMPT_INTERVAL == 0 and \
++                    self.init_attempts <= MAX_LOG_ATTEMPTS:
++                logging.info(
++                    f"{e}\nKlippy info request error.  This indicates that\n"
++                    f"Klippy may have experienced an error during startup.\n"
++                    f"Please check klippy.log for more information")
++            return
++        version = result.get("software_version", "")
++        if version != self._klipper_version:
++            self._klipper_version = version
++            msg = f"Klipper Version: {version}"
++            self.server.add_log_rollover_item("klipper_version", msg)
++        self._klippy_info = dict(result)
++        state_message: str = self._state.message
++        if "state_message" in self._klippy_info:
++            state_message = self._klippy_info["state_message"]
++            self._state.set_message(state_message)
++        if "state" not in result:
++            return
++        if send_id:
++            self._klippy_identified = True
++            await self.server.send_event("server:klippy_identified")
++            # Request initial endpoints to register info, emergency stop APIs
++            await self._request_endpoints()
++        self._state = KlippyState.from_string(result["state"], state_message)
++        if self._state != KlippyState.STARTUP:
++            await self._request_initial_subscriptions()
++            # Register remaining endpoints available
++            await self._request_endpoints()
++            startup_state = self._state
++            await self.server.send_event("server:klippy_started", startup_state)
++            self._klippy_started = True
++            if self._state != KlippyState.READY:
++                logging.info("\n" + self._state.message)
++                if (
++                    self._state == KlippyState.SHUTDOWN and
++                    startup_state != KlippyState.SHUTDOWN
++                ):
++                    # Klippy shutdown during startup event
++                    self.server.send_event("server:klippy_shutdown")
++            else:
++                await self._verify_klippy_requirements()
++                # register methods with klippy
++                for method in self.klippy_reg_methods:
++                    try:
++                        await self.klippy_apis.register_method(method)
++                    except ServerError:
++                        logging.exception(
++                            f"Unable to register method '{method}'")
++                self._methods_registered = True
++                if self._state == KlippyState.READY:
++                    logging.info("Klippy ready")
++                    await self.server.send_event("server:klippy_ready")
++                    if self._state == KlippyState.SHUTDOWN:
++                        # Klippy shutdown during ready event
++                        self.server.send_event("server:klippy_shutdown")
++                else:
++                    logging.info(
++                        "Klippy state transition from ready during init, "
++                        f"new state: {self._state}"
++                    )
++            self._klippy_initializing = False
++
++    async def _verify_klippy_requirements(self) -> None:
++        result = await self.klippy_apis.get_object_list(default=None)
++        if result is None:
++            logging.info("Unable to retrieve Klipper Object List")
++            return
++        req_objs = set(["virtual_sdcard", "display_status", "pause_resume"])
++        self._missing_reqs = req_objs - set(result)
++        if self._missing_reqs:
++            err_str = ", ".join([f"[{o}]" for o in self._missing_reqs])
++            logging.info(
++                f"\nWarning, unable to detect the following printer "
++                f"objects:\n{err_str}\nPlease add the the above sections "
++                f"to printer.cfg for full Moonraker functionality.")
++        if "virtual_sdcard" not in self._missing_reqs:
++            # Update the gcode path
++            query_res = await self.klippy_apis.query_objects(
++                {'configfile': None}, default=None)
++            if query_res is None:
++                logging.info("Unable to set SD Card path")
++            else:
++                config = query_res.get('configfile', {}).get('config', {})
++                vsd_config = config.get('virtual_sdcard', {})
++                vsd_path = vsd_config.get('path', None)
++                if vsd_path is not None:
++                    file_manager: FileManager = self.server.lookup_component(
++                        'file_manager')
++                    file_manager.validate_gcode_path(vsd_path)
++                else:
++                    logging.info(
++                        "Configuration for [virtual_sdcard] not found,"
++                        " unable to set SD Card path")
++
++    def _process_command(self, cmd: Dict[str, Any]) -> None:
++        method = cmd.get('method', None)
++        if method is not None:
++            # This is a remote method called from klippy
++            if method in self.remote_methods:
++                params = cmd.get('params', {})
++                self.event_loop.register_callback(
++                    self._execute_method, method, **params)
++            else:
++                logging.info(f"Unknown method received: {method}")
++            return
++        # This is a response to a request, process
++        req_id = cmd.get('id', None)
++        request: Optional[KlippyRequest]
++        request = self.pending_requests.pop(req_id, None)
++        if request is None:
++            logging.info(
++                f"No request matching request ID: {req_id}, "
++                f"response: {cmd}")
++            return
++        if 'result' in cmd:
++            result = cmd['result']
++            if not result:
++                result = "ok"
++            request.set_result(result)
++        else:
++            err: Union[str, Dict[str, str]]
++            err = cmd.get('error', "Malformed Klippy Response")
++            if isinstance(err, dict):
++                err = err.get("message", "Malformed Klippy Response")
++            request.set_exception(ServerError(err, 400))
++
++    async def _execute_method(self, method_name: str, **kwargs) -> None:
++        try:
++            ret = self.remote_methods[method_name](**kwargs)
++            if ret is not None:
++                await ret
++        except Exception:
++            logging.exception(f"Error running remote method: {method_name}")
++
++    def _process_gcode_response(self, response: str) -> None:
++        self.server.send_event("server:gcode_response", response)
++
++    def _process_status_update(
++        self, eventtime: float, status: Dict[str, Dict[str, Any]]
++    ) -> None:
++        for field, item in status.items():
++            self.subscription_cache.setdefault(field, {}).update(item)
++        if 'webhooks' in status:
++            wh: Dict[str, str] = status['webhooks']
++            state_message: str = self._state.message
++            if "state_message" in wh:
++                state_message = wh["state_message"]
++                self._state.set_message(state_message)
++            # XXX - process other states (startup, ready, error, etc)?
++            if "state" in wh:
++                new_state = KlippyState.from_string(wh["state"], state_message)
++                if (
++                    new_state == KlippyState.SHUTDOWN and
++                    not self._klippy_initializing and
++                    self._state != KlippyState.SHUTDOWN
++                ):
++                    # If the shutdown state is received during initialization
++                    # defer the event, the init routine will handle it.
++                    logging.info("Klippy has shutdown")
++                    self.server.send_event("server:klippy_shutdown")
++                self._state = new_state
++        for conn, sub in self.subscriptions.items():
++            conn_status: Dict[str, Any] = {}
++            for name, fields in sub.items():
++                if name in status:
++                    val: Dict[str, Any] = dict(status[name])
++                    if fields is not None:
++                        val = {k: v for k, v in val.items() if k in fields}
++                    if val:
++                        conn_status[name] = val
++            conn.send_status(conn_status, eventtime)
++
++    async def request(self, web_request: WebRequest) -> Any:
++        if not self.is_connected():
++            raise ServerError("Klippy Host not connected", 503)
++        rpc_method = web_request.get_endpoint()
++        if rpc_method == "objects/subscribe":
++            return await self._request_subscripton(web_request)
++        else:
++            if rpc_method == "gcode/script":
++                script = web_request.get_str('script', "")
++                if script:
++                    self.server.send_event(
++                        "klippy_connection:gcode_received", script)
++            return await self._request_standard(web_request)
++
++    async def _request_subscripton(self, web_request: WebRequest) -> Dict[str, Any]:
++        async with self.subscription_lock:
++            args = web_request.get_args()
++            conn = web_request.get_subscribable()
++            if conn is None:
++                raise self.server.error(
++                    "No connection associated with subscription request"
++                )
++            requested_sub: Subscription = args.get('objects', {})
++            if self.server.is_verbose_enabled() and "configfile" in requested_sub:
++                cfg_sub = requested_sub["configfile"]
++                if (
++                    cfg_sub is None or "config" in cfg_sub or "settings" in cfg_sub
++                ):
++                    logging.debug(
++                        f"Detected 'configfile: {cfg_sub}' subscription.  The "
++                        "'config' and 'status' fields in this object do not change "
++                        "and substantially increase cache size."
++                    )
++            all_subs: Subscription = dict(requested_sub)
++            # Build the subscription request from a superset of all client subscriptions
++            for sub in self.subscriptions.values():
++                for obj, items in sub.items():
++                    if obj in all_subs:
++                        prev_items = all_subs[obj]
++                        if items is None or prev_items is None:
++                            all_subs[obj] = None
++                        else:
++                            uitems = list(set(prev_items) | set(items))
++                            all_subs[obj] = uitems
++                    else:
++                        all_subs[obj] = items
++            args['objects'] = all_subs
++            args['response_template'] = {'method': "process_status_update"}
++
++            result = await self._request_standard(web_request, 20.0)
++
++            # prune the status response
++            pruned_status: Dict[str, Dict[str, Any]] = {}
++            status_diff: Dict[str, Dict[str, Any]] = {}
++            all_status: Dict[str, Dict[str, Any]] = result['status']
++            for obj, fields in all_status.items():
++                # Diff the current cache, then update the cache
++                if obj in self.subscription_cache:
++                    cached_status = self.subscription_cache[obj]
++                    for field_name, value in fields.items():
++                        if field_name not in cached_status:
++                            continue
++                        if value != cached_status[field_name]:
++                            status_diff.setdefault(obj, {})[field_name] = value
++                self.subscription_cache[obj] = fields
++                # Prune Response
++                if obj in requested_sub:
++                    valid_fields = requested_sub[obj]
++                    if valid_fields is None:
++                        pruned_status[obj] = fields
++                    else:
++                        pruned_status[obj] = {
++                            k: v for k, v in fields.items() if k in valid_fields
++                        }
++            if status_diff:
++                # The response to the status request contains changed data, so it
++                # is necessary to manually push the status update to existing
++                # subscribers
++                logging.debug(
++                    f"Detected status difference during subscription: {status_diff}"
++                )
++                self._process_status_update(result["eventtime"], status_diff)
++            for obj_name in list(self.subscription_cache.keys()):
++                # Prune the cache to match the current status response
++                if obj_name not in all_status:
++                    del self.subscription_cache[obj_name]
++            result['status'] = pruned_status
++            self.subscriptions[conn] = requested_sub
++            return result
++
++    async def _request_standard(
++        self, web_request: WebRequest, timeout: Optional[float] = None
++    ) -> Any:
++        rpc_method = web_request.get_endpoint()
++        args = web_request.get_args()
++        # Create a base klippy request
++        base_request = KlippyRequest(rpc_method, args)
++        self.pending_requests[base_request.id] = base_request
++        self.event_loop.register_callback(self._write_request, base_request)
++        try:
++            return await base_request.wait(timeout)
++        finally:
++            self.pending_requests.pop(base_request.id, None)
++
++    def remove_subscription(self, conn: APITransport) -> None:
++        self.subscriptions.pop(conn, None)
++
++    def is_connected(self) -> bool:
++        return self.writer is not None and not self.closing
++
++    def is_ready(self) -> bool:
++        return self._state == KlippyState.READY
++
++    def is_printing(self) -> bool:
++        if not self.is_ready():
++            return False
++        job_state: JobState = self.server.lookup_component("job_state")
++        stats = job_state.get_last_stats()
++        return stats.get("state", "") == "printing"
++
++    def get_subscription_cache(self) -> Dict[str, Dict[str, Any]]:
++        return self.subscription_cache
++
++    async def rollover_log(self) -> None:
++        if "unit_name" not in self._service_info:
++            raise self.server.error(
++                "Unable to detect Klipper Service, cannot perform "
++                "manual rollover"
++            )
++        logfile: Optional[str] = self._klippy_info.get("log_file", None)
++        if logfile is None:
++            raise self.server.error(
++                "Unable to detect path to Klipper log file"
++            )
++        if self.is_printing():
++            raise self.server.error("Cannot rollover log while printing")
++        logpath = pathlib.Path(logfile).expanduser().resolve()
++        if not logpath.is_file():
++            raise self.server.error(
++                f"No file at {logpath} exists, cannot perform rollover"
++            )
++        machine: Machine = self.server.lookup_component("machine")
++        await machine.do_service_action("stop", self.unit_name)
++        suffix = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
++        new_path = pathlib.Path(f"{logpath}.{suffix}")
++
++        def _do_file_op() -> None:
++            if new_path.exists():
++                new_path.unlink()
++            logpath.rename(new_path)
++
++        await self.event_loop.run_in_thread(_do_file_op)
++        await machine.do_service_action("start", self.unit_name)
++
++    async def _on_connection_closed(self) -> None:
++        self._klippy_identified = False
++        self._klippy_initializing = False
++        self._klippy_started = False
++        self._methods_registered = False
++        self._state = KlippyState.DISCONNECTED
++        self._state.set_message("Klippy Disconnected")
++        for request in self.pending_requests.values():
++            request.set_exception(ServerError("Klippy Disconnected", 503))
++        self.pending_requests = {}
++        self.subscriptions = {}
++        self.subscription_cache.clear()
++        self._peer_cred = {}
++        self._missing_reqs.clear()
++        logging.info("Klippy Connection Removed")
++        await self.server.send_event("server:klippy_disconnect")
++        if self.server.is_running():
++            # Reconnect if server is running
++            loop = self.event_loop
++            self.connection_task = loop.create_task(self._do_connect())
++
++    async def close(self, wait_closed: bool = False) -> None:
++        if self.closing:
++            if wait_closed:
++                await self.connection_mutex.acquire()
++                self.connection_mutex.release()
++            return
++        self.closing = True
++        if (
++            self.connection_task is not None and
++            not self.connection_task.done()
++        ):
++            self.connection_task.cancel()
++        async with self.connection_mutex:
++            if self.writer is not None:
++                try:
++                    self.writer.close()
++                    await self.writer.wait_closed()
++                except Exception:
++                    logging.exception("Error closing Klippy Unix Socket")
++                self.writer = None
++                await self._on_connection_closed()
++        self.closing = False
++
++# Basic KlippyRequest class, easily converted to dict for json encoding
++class KlippyRequest:
++    def __init__(self, rpc_method: str, params: Dict[str, Any]) -> None:
++        self.id = id(self)
++        self.rpc_method = rpc_method
++        self.params = params
++        self._fut = asyncio.get_running_loop().create_future()
++
++    async def wait(self, timeout: Optional[float] = None) -> Any:
++        start_time = time.time()
++        to = timeout or 60.
++        while True:
++            try:
++                return await asyncio.wait_for(asyncio.shield(self._fut), to)
++            except asyncio.TimeoutError:
++                if timeout is not None:
++                    self._fut.cancel()
++                    raise ServerError("Klippy request timed out", 500) from None
++                pending_time = time.time() - start_time
++                logging.info(
++                    f"Request '{self.rpc_method}' pending: "
++                    f"{pending_time:.2f} seconds"
++                )
++
++    def set_exception(self, exc: Exception) -> None:
++        if not self._fut.done():
++            self._fut.set_exception(exc)
++
++    def set_result(self, result: Any) -> None:
++        if not self._fut.done():
++            self._fut.set_result(result)
++
++    def to_dict(self) -> Dict[str, Any]:
++        return {
++            'id': self.id,
++            'method': self.rpc_method,
++            'params': self.params
++        }
+diff --git a/moonraker/utils/exceptions.py b/moonraker/utils/exceptions.py
+new file mode 100644
+index 0000000..8223c0d
+--- /dev/null
++++ b/moonraker/utils/exceptions.py
+@@ -0,0 +1,10 @@
++# Moonraker Exceptions
++#
++# Copyright (C) 2023 Eric Callahan <arksine.code@gmail.com>
++#
++# This file may be distributed under the terms of the GNU GPLv3 license
++
++class ServerError(Exception):
++    def __init__(self, message: str, status_code: int = 400) -> None:
++        Exception.__init__(self, message)
++        self.status_code = status_code
+diff --git a/moonraker/websockets.py b/moonraker/websockets.py
+new file mode 100644
+index 0000000..5f512af
+--- /dev/null
++++ b/moonraker/websockets.py
+@@ -0,0 +1,485 @@
++# Websocket Request/Response Handler
++#
++# Copyright (C) 2020 Eric Callahan <arksine.code@gmail.com>
++#
++# This file may be distributed under the terms of the GNU GPLv3 license
++
++from __future__ import annotations
++import logging
++import asyncio
++from tornado.websocket import WebSocketHandler, WebSocketClosedError
++from tornado.web import HTTPError
++from .common import (
++    RequestType,
++    WebRequest,
++    BaseRemoteConnection,
++    TransportType,
++)
++from .utils import ServerError, parse_ip_address
++
++# Annotation imports
++from typing import (
++    TYPE_CHECKING,
++    Any,
++    Optional,
++    Callable,
++    Coroutine,
++    Tuple,
++    Union,
++    Dict,
++    List,
++)
++
++if TYPE_CHECKING:
++    from .server import Server
++    from .klippy_connection import KlippyConnection as Klippy
++    from .confighelper import ConfigHelper
++    from .components.extensions import ExtensionManager
++    from .components.authorization import Authorization
++    from .utils import IPAddress
++    ConvType = Union[str, bool, float, int]
++    ArgVal = Union[None, int, float, bool, str]
++    RPCCallback = Callable[..., Coroutine]
++    AuthComp = Optional[Authorization]
++
++CLIENT_TYPES = ["web", "mobile", "desktop", "display", "bot", "agent", "other"]
++
++class WebsocketManager:
++    def __init__(self, config: ConfigHelper) -> None:
++        self.server = config.get_server()
++        self.clients: Dict[int, BaseRemoteConnection] = {}
++        self.bridge_connections: Dict[int, BridgeSocket] = {}
++        self.closed_event: Optional[asyncio.Event] = None
++        self.server.register_endpoint(
++            "/server/websocket/id", RequestType.GET, self._handle_id_request,
++            TransportType.WEBSOCKET
++        )
++        self.server.register_endpoint(
++            "/server/connection/identify", RequestType.POST, self._handle_identify,
++            TransportType.WEBSOCKET, auth_required=False
++        )
++        self.server.register_component("websockets", self)
++
++    def register_notification(
++        self,
++        event_name: str,
++        notify_name: Optional[str] = None,
++        event_type: Optional[str] = None
++    ) -> None:
++        if notify_name is None:
++            notify_name = event_name.split(':')[-1]
++        if event_type == "logout":
++            def notify_handler(*args):
++                self.notify_clients(notify_name, args)
++                self._process_logout(*args)
++        else:
++            def notify_handler(*args):
++                self.notify_clients(notify_name, args)
++        self.server.register_event_handler(event_name, notify_handler)
++
++    async def _handle_id_request(self, web_request: WebRequest) -> Dict[str, int]:
++        sc = web_request.get_client_connection()
++        assert sc is not None
++        return {'websocket_id': sc.uid}
++
++    async def _handle_identify(self, web_request: WebRequest) -> Dict[str, int]:
++        logging.info("zzzzzzz1111")
++        sc = web_request.get_client_connection()
++        assert sc is not None
++        if sc.identified:
++            raise self.server.error(
++                f"Connection already identified: {sc.client_data}"
++            )
++        name = web_request.get_str("client_name")
++        version = web_request.get_str("version")
++        client_type: str = web_request.get_str("type").lower()
++        url = web_request.get_str("url")
++        sc.authenticate(
++            token=web_request.get_str("access_token", None),
++            api_key=web_request.get_str("api_key", None)
++        )
++
++        if client_type not in CLIENT_TYPES:
++            raise self.server.error(f"Invalid Client Type: {client_type}")
++        sc.client_data = {
++            "name": name,
++            "version": version,
++            "type": client_type,
++            "url": url
++        }
++        if client_type == "agent":
++            extensions: ExtensionManager
++            extensions = self.server.lookup_component("extensions")
++            try:
++                extensions.register_agent(sc)
++            except ServerError:
++                sc.client_data["type"] = ""
++                raise
++        logging.info(
++            f"Websocket {sc.uid} Client Identified - "
++            f"Name: {name}, Version: {version}, Type: {client_type}"
++        )
++        logging.info("aaaaa啊啊啊啊啊啊啊啊")
++        self.server.send_event("websockets:client_identified", sc)
++        return {'connection_id': sc.uid}
++
++    def _process_logout(self, user: Dict[str, Any]) -> None:
++        if "username" not in user:
++            return
++        name = user["username"]
++        for sc in self.clients.values():
++            sc.on_user_logout(name)
++
++    def has_socket(self, ws_id: int) -> bool:
++        return ws_id in self.clients
++
++    def get_client(self, ws_id: int) -> Optional[BaseRemoteConnection]:
++        sc = self.clients.get(ws_id, None)
++        if sc is None or not isinstance(sc, WebSocket):
++            return None
++        return sc
++
++    def get_clients_by_type(
++        self, client_type: str
++    ) -> List[BaseRemoteConnection]:
++        if not client_type:
++            return []
++        ret: List[BaseRemoteConnection] = []
++        for sc in self.clients.values():
++            if sc.client_data.get("type", "") == client_type.lower():
++                ret.append(sc)
++        return ret
++
++    def get_clients_by_name(self, name: str) -> List[BaseRemoteConnection]:
++        if not name:
++            return []
++        ret: List[BaseRemoteConnection] = []
++        for sc in self.clients.values():
++            if sc.client_data.get("name", "").lower() == name.lower():
++                ret.append(sc)
++        return ret
++
++    def get_unidentified_clients(self) -> List[BaseRemoteConnection]:
++        ret: List[BaseRemoteConnection] = []
++        for sc in self.clients.values():
++            if not sc.client_data:
++                ret.append(sc)
++        return ret
++
++    def add_client(self, sc: BaseRemoteConnection) -> None:
++        self.clients[sc.uid] = sc
++        self.server.send_event("websockets:client_added", sc)
++        logging.debug(f"New Websocket Added: {sc.uid}")
++
++    def remove_client(self, sc: BaseRemoteConnection) -> None:
++        old_sc = self.clients.pop(sc.uid, None)
++        if old_sc is not None:
++            self.server.send_event("websockets:client_removed", sc)
++            logging.debug(f"Websocket Removed: {sc.uid}")
++        self._check_closed_event()
++
++    def add_bridge_connection(self, bc: BridgeSocket) -> None:
++        self.bridge_connections[bc.uid] = bc
++        logging.debug(f"New Bridge Connection Added: {bc.uid}")
++
++    def remove_bridge_connection(self, bc: BridgeSocket) -> None:
++        old_bc = self.bridge_connections.pop(bc.uid, None)
++        if old_bc is not None:
++            logging.debug(f"Bridge Connection Removed: {bc.uid}")
++        self._check_closed_event()
++
++    def _check_closed_event(self) -> None:
++        if (
++            self.closed_event is not None and
++            not self.clients and
++            not self.bridge_connections
++        ):
++            self.closed_event.set()
++
++    def notify_clients(
++        self,
++        name: str,
++        data: Union[List, Tuple] = [],
++        mask: List[int] = []
++    ) -> None:
++        msg: Dict[str, Any] = {'jsonrpc': "2.0", 'method': "notify_" + name}
++        if data:
++            msg['params'] = data
++        for sc in list(self.clients.values()):
++            if sc.uid in mask or sc.need_auth:
++                continue
++            sc.queue_message(msg)
++
++    def get_count(self) -> int:
++        return len(self.clients)
++
++    async def close(self) -> None:
++        if not self.clients:
++            return
++        self.closed_event = asyncio.Event()
++        for bc in list(self.bridge_connections.values()):
++            bc.close_socket(1001, "Server Shutdown")
++        for sc in list(self.clients.values()):
++            sc.close_socket(1001, "Server Shutdown")
++        try:
++            await asyncio.wait_for(self.closed_event.wait(), 2.)
++        except asyncio.TimeoutError:
++            pass
++        self.closed_event = None
++
++class WebSocket(WebSocketHandler, BaseRemoteConnection):
++    connection_count: int = 0
++
++    def initialize(self) -> None:
++        self.on_create(self.settings['server'])
++        self._ip_addr = parse_ip_address(self.request.remote_ip or "")
++        self.last_pong_time: float = self.eventloop.get_loop_time()
++
++    @property
++    def ip_addr(self) -> Optional[IPAddress]:
++        return self._ip_addr
++
++    @property
++    def hostname(self) -> str:
++        return self.request.host_name
++
++    def get_current_user(self) -> Any:
++        return self._user_info
++
++    def open(self, *args, **kwargs) -> None:
++        self.__class__.connection_count += 1
++        self.set_nodelay(True)
++        self._connected_time = self.eventloop.get_loop_time()
++        agent = self.request.headers.get("User-Agent", "")
++        is_proxy = False
++        if (
++            "X-Forwarded-For" in self.request.headers or
++            "X-Real-Ip" in self.request.headers
++        ):
++            is_proxy = True
++        logging.info(f"Websocket Opened: ID: {self.uid}, "
++                     f"Proxied: {is_proxy}, "
++                     f"User Agent: {agent}, "
++                     f"Host Name: {self.hostname}")
++        self.wsm.add_client(self)
++
++    def on_message(self, message: Union[bytes, str]) -> None:
++        self.eventloop.register_callback(self._process_message, message)
++
++    def on_pong(self, data: bytes) -> None:
++        self.last_pong_time = self.eventloop.get_loop_time()
++
++    def on_close(self) -> None:
++        self.is_closed = True
++        self.__class__.connection_count -= 1
++        kconn: Klippy = self.server.lookup_component("klippy_connection")
++        kconn.remove_subscription(self)
++        self.message_buf = []
++        now = self.eventloop.get_loop_time()
++        pong_elapsed = now - self.last_pong_time
++        for resp in self.pending_responses.values():
++            resp.set_exception(ServerError("Client Socket Disconnected", 500))
++        self.pending_responses = {}
++        logging.info(f"Websocket Closed: ID: {self.uid} "
++                     f"Close Code: {self.close_code}, "
++                     f"Close Reason: {self.close_reason}, "
++                     f"Pong Time Elapsed: {pong_elapsed:.2f}")
++        if self._client_data["type"] == "agent":
++            extensions: ExtensionManager
++            extensions = self.server.lookup_component("extensions")
++            extensions.remove_agent(self)
++        self.wsm.remove_client(self)
++
++    async def write_to_socket(self, message: Union[bytes, str]) -> None:
++        try:
++            await self.write_message(message)
++        except WebSocketClosedError:
++            self.is_closed = True
++            self.message_buf.clear()
++            logging.info(
++                f"Websocket closed while writing: {self.uid}")
++        except Exception:
++            logging.exception(
++                f"Error sending data over websocket: {self.uid}")
++
++    def check_origin(self, origin: str) -> bool:
++        if not super(WebSocket, self).check_origin(origin):
++            auth: AuthComp = self.server.lookup_component('authorization', None)
++            if auth is not None:
++                return auth.check_cors(origin)
++            return False
++        return True
++
++    def on_user_logout(self, user: str) -> bool:
++        if super().on_user_logout(user):
++            self._need_auth = True
++            return True
++        return False
++
++    # Check Authorized User
++    def prepare(self) -> None:
++        max_conns = self.settings["max_websocket_connections"]
++        if self.__class__.connection_count >= max_conns:
++            raise self.server.error(
++                "Maximum Number of Websocket Connections Reached"
++            )
++        auth: AuthComp = self.server.lookup_component('authorization', None)
++        if auth is not None:
++            try:
++                self._user_info = auth.authenticate_request(self.request)
++            except Exception as e:
++                logging.info(f"Websocket Failed Authentication: {e}")
++                self._user_info = None
++                self._need_auth = True
++
++    def close_socket(self, code: int, reason: str) -> None:
++        self.close(code, reason)
++
++class BridgeSocket(WebSocketHandler):
++    def initialize(self) -> None:
++        self.server: Server = self.settings['server']
++        self.wsm: WebsocketManager = self.server.lookup_component("websockets")
++        self.eventloop = self.server.get_event_loop()
++        self.uid = id(self)
++        self._ip_addr = parse_ip_address(self.request.remote_ip or "")
++        self.last_pong_time: float = self.eventloop.get_loop_time()
++        self.is_closed = False
++        self.klippy_writer: Optional[asyncio.StreamWriter] = None
++        self.klippy_write_buf: List[bytes] = []
++        self.klippy_queue_busy: bool = False
++
++    @property
++    def ip_addr(self) -> Optional[IPAddress]:
++        return self._ip_addr
++
++    @property
++    def hostname(self) -> str:
++        return self.request.host_name
++
++    def open(self, *args, **kwargs) -> None:
++        WebSocket.connection_count += 1
++        self.set_nodelay(True)
++        self._connected_time = self.eventloop.get_loop_time()
++        agent = self.request.headers.get("User-Agent", "")
++        is_proxy = False
++        if (
++            "X-Forwarded-For" in self.request.headers or
++            "X-Real-Ip" in self.request.headers
++        ):
++            is_proxy = True
++        logging.info(f"Bridge Socket Opened: ID: {self.uid}, "
++                     f"Proxied: {is_proxy}, "
++                     f"User Agent: {agent}, "
++                     f"Host Name: {self.hostname}")
++        self.wsm.add_bridge_connection(self)
++
++    def on_message(self, message: Union[bytes, str]) -> None:
++        if isinstance(message, str):
++            message = message.encode(encoding="utf-8")
++        self.klippy_write_buf.append(message)
++        if self.klippy_queue_busy:
++            return
++        self.klippy_queue_busy = True
++        self.eventloop.register_callback(self._write_klippy_messages)
++
++    async def _write_klippy_messages(self) -> None:
++        while self.klippy_write_buf:
++            if self.klippy_writer is None or self.is_closed:
++                break
++            msg = self.klippy_write_buf.pop(0)
++            try:
++                self.klippy_writer.write(msg + b"\x03")
++                await self.klippy_writer.drain()
++            except asyncio.CancelledError:
++                raise
++            except Exception:
++                if not self.is_closed:
++                    logging.debug("Klippy Disconnection From _write_request()")
++                    self.close(1001, "Klippy Disconnected")
++                break
++        self.klippy_queue_busy = False
++
++    def on_pong(self, data: bytes) -> None:
++        self.last_pong_time = self.eventloop.get_loop_time()
++
++    def on_close(self) -> None:
++        WebSocket.connection_count -= 1
++        self.is_closed = True
++        self.klippy_write_buf.clear()
++        if self.klippy_writer is not None:
++            self.klippy_writer.close()
++            self.klippy_writer = None
++        now = self.eventloop.get_loop_time()
++        pong_elapsed = now - self.last_pong_time
++        logging.info(f"Bridge Socket Closed: ID: {self.uid} "
++                     f"Close Code: {self.close_code}, "
++                     f"Close Reason: {self.close_reason}, "
++                     f"Pong Time Elapsed: {pong_elapsed:.2f}")
++        self.wsm.remove_bridge_connection(self)
++
++    async def _read_unix_stream(self, reader: asyncio.StreamReader) -> None:
++        errors_remaining: int = 10
++        while not reader.at_eof():
++            try:
++                data = memoryview(await reader.readuntil(b'\x03'))
++            except (ConnectionError, asyncio.IncompleteReadError):
++                break
++            except asyncio.CancelledError:
++                logging.exception("Klippy Stream Read Cancelled")
++                raise
++            except Exception:
++                logging.exception("Klippy Stream Read Error")
++                errors_remaining -= 1
++                if not errors_remaining or self.is_closed:
++                    break
++                continue
++            try:
++                await self.write_message(data[:-1].tobytes())
++            except WebSocketClosedError:
++                logging.info(
++                    f"Bridge closed while writing: {self.uid}")
++                break
++            except asyncio.CancelledError:
++                raise
++            except Exception:
++                logging.exception(
++                    f"Error sending data over Bridge: {self.uid}")
++                errors_remaining -= 1
++                if not errors_remaining or self.is_closed:
++                    break
++                continue
++            errors_remaining = 10
++        if not self.is_closed:
++            logging.debug("Bridge Disconnection From _read_unix_stream()")
++            self.close_socket(1001, "Klippy Disconnected")
++
++    def check_origin(self, origin: str) -> bool:
++        if not super().check_origin(origin):
++            auth: AuthComp = self.server.lookup_component('authorization', None)
++            if auth is not None:
++                return auth.check_cors(origin)
++            return False
++        return True
++
++    # Check Authorized User
++    async def prepare(self) -> None:
++        max_conns = self.settings["max_websocket_connections"]
++        if WebSocket.connection_count >= max_conns:
++            raise self.server.error(
++                "Maximum Number of Bridge Connections Reached"
++            )
++        auth: AuthComp = self.server.lookup_component("authorization", None)
++        if auth is not None:
++            self.current_user = auth.authenticate_request(self.request)
++        kconn: Klippy = self.server.lookup_component("klippy_connection")
++        try:
++            reader, writer = await kconn.open_klippy_connection()
++        except ServerError as err:
++            raise HTTPError(err.status_code, str(err)) from None
++        except Exception as e:
++            raise HTTPError(503, "Failed to open connection to Klippy") from e
++        self.klippy_writer = writer
++        self.eventloop.register_callback(self._read_unix_stream, reader)
++
++    def close_socket(self, code: int, reason: str) -> None:
++        self.close(code, reason)

@@ -1,0 +1,146 @@
+﻿[
+    {
+        "Firmware":  "1.7.3",
+        "Component":  "aht20_f",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/aht20_f.so",
+        "Bytes":  896960,
+        "SHA256":  "430FA9F500190DFB58AE66C2AFF5A0BE8BC90DCD0BC34832EC96782D3B4DF08E",
+        "ChangedBetweenReleases":  false
+    },
+    {
+        "Firmware":  "1.7.3",
+        "Component":  "box_detect",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/box_detect.so",
+        "Bytes":  1676864,
+        "SHA256":  "36479013701A4D896B15CBB38BC95C2F2616302AFCBF23C29DFB74F6DE60D5E5",
+        "ChangedBetweenReleases":  false
+    },
+    {
+        "Firmware":  "1.7.3",
+        "Component":  "box_extras",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/box_extras.so",
+        "Bytes":  3852728,
+        "SHA256":  "5365CE78CFF4D0E5FB480EE1366ADDFAE227606EE7B28F16D97DA3224D490CD3",
+        "ChangedBetweenReleases":  true
+    },
+    {
+        "Firmware":  "1.7.3",
+        "Component":  "box_rfid",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/box_rfid.so",
+        "Bytes":  539144,
+        "SHA256":  "D5282BE85179A826B56F04D51CEA24A0F7630940F0B3E9607C8A2B2F4169CDCA",
+        "ChangedBetweenReleases":  false
+    },
+    {
+        "Firmware":  "1.7.3",
+        "Component":  "box_stepper",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/box_stepper.so",
+        "Bytes":  2578704,
+        "SHA256":  "D3168F9067CF81BAD1B5AD86C2219B72DE66A5A8D68BEA10E141FBE407CDA867",
+        "ChangedBetweenReleases":  true
+    },
+    {
+        "Firmware":  "1.7.3",
+        "Component":  "buttons_irq",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/buttons_irq.so",
+        "Bytes":  563376,
+        "SHA256":  "24BF1383F3057BC9CE80DE11654D7F33405CDAE85F68CEE5C721C5EC1785F65F",
+        "ChangedBetweenReleases":  false
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "aht20_f",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/aht20_f.so",
+        "Bytes":  896960,
+        "SHA256":  "430FA9F500190DFB58AE66C2AFF5A0BE8BC90DCD0BC34832EC96782D3B4DF08E",
+        "ChangedBetweenReleases":  false
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "box_detect",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/box_detect.so",
+        "Bytes":  1676864,
+        "SHA256":  "36479013701A4D896B15CBB38BC95C2F2616302AFCBF23C29DFB74F6DE60D5E5",
+        "ChangedBetweenReleases":  false
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "box_extras",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/box_extras.so",
+        "Bytes":  3880952,
+        "SHA256":  "FDEB7DF7366E7712D9A74E46267F28781C44680F9C00DA954B051FA7CB652D4C",
+        "ChangedBetweenReleases":  true
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "box_rfid",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/box_rfid.so",
+        "Bytes":  539144,
+        "SHA256":  "D5282BE85179A826B56F04D51CEA24A0F7630940F0B3E9607C8A2B2F4169CDCA",
+        "ChangedBetweenReleases":  false
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "box_stepper",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/box_stepper.so",
+        "Bytes":  2581392,
+        "SHA256":  "09BCCB521762F318DF59BE8D9AC26693E4853E1F302BA0FE8F29BC12F3ABB3D5",
+        "ChangedBetweenReleases":  true
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "buttons_irq",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/buttons_irq.so",
+        "Bytes":  563376,
+        "SHA256":  "24BF1383F3057BC9CE80DE11654D7F33405CDAE85F68CEE5C721C5EC1785F65F",
+        "ChangedBetweenReleases":  false
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "multi_color_controller",
+        "Subsystem":  "Klipper",
+        "RelativePath":  "klipper/klippy/extras/multi_color_controller.so",
+        "Bytes":  7206256,
+        "SHA256":  "7D1025390705F6D8B108B8345F7B3AD81C2BDB516D6BDE897B9CCD1BB4AB5B6C",
+        "ChangedBetweenReleases":  true
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "extensions",
+        "Subsystem":  "Moonraker",
+        "RelativePath":  "moonraker/moonraker/components/extensions.so",
+        "Bytes":  1416032,
+        "SHA256":  "A02201D8CBFE1DBF5FBCFAC81A3A9BBD967302DA8E02276EEC05CA256808711A",
+        "ChangedBetweenReleases":  true
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "frp_manager",
+        "Subsystem":  "Moonraker",
+        "RelativePath":  "moonraker/moonraker/components/frp_manager.so",
+        "Bytes":  1049360,
+        "SHA256":  "6358703140C69822444F539A2B9053169200D4F680843D89D479473AFC9EB5C9",
+        "ChangedBetweenReleases":  true
+    },
+    {
+        "Firmware":  "1.8.2",
+        "Component":  "mqtt",
+        "Subsystem":  "Moonraker",
+        "RelativePath":  "moonraker/moonraker/components/mqtt.so",
+        "Bytes":  5193768,
+        "SHA256":  "1E722C8683EEFFD82E79EB82875855914162EAFD3A032C08F50789F44CE8E49E",
+        "ChangedBetweenReleases":  true
+    }
+]

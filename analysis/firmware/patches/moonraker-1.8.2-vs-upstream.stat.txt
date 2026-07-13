@@ -1,0 +1,26 @@
+ moonraker/common.py                               |  34 +
+ moonraker/components/announcements.py             |  10 +-
+ moonraker/components/authorization.py             |  44 +-
+ moonraker/components/database.py                  | 378 ++++++++++
+ moonraker/components/extensions.py                | 257 -------
+ moonraker/components/file_manager/file_manager.py |  37 +
+ moonraker/components/file_manager/metadata.py     | 154 +++-
+ moonraker/components/history.py                   |  86 +++
+ moonraker/components/http_client.py               |  18 +-
+ moonraker/components/job_queue.py                 |  42 +-
+ moonraker/components/klippy_apis.py               | 162 ++++
+ moonraker/components/klippy_connection.py         |  75 +-
+ moonraker/components/machine.py                   |  10 +
+ moonraker/components/mqtt.py                      | 862 ----------------------
+ moonraker/components/octoprint_compat.py          |   5 +-
+ moonraker/components/power.py                     |  81 +-
+ moonraker/components/proc_stats.py                |  21 +-
+ moonraker/components/websockets.py                |   2 +
+ moonraker/confighelper.py                         |  34 +-
+ moonraker/eventloop.py                            |  10 +-
+ moonraker/loghelper.py                            |   3 +-
+ moonraker/moonraker.py                            |   4 +
+ moonraker/server.py                               | 128 ++--
+ moonraker/utils/__init__.py                       |   6 +-
+ moonraker/utils/source_info.py                    | 123 ++-
+ 25 files changed, 1270 insertions(+), 1316 deletions(-)

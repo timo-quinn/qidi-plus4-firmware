@@ -1,0 +1,247 @@
+firmware,module,api,state,published_signature,published_line,version_sensitive
+1.7.3,aht20_f,AHT20_F.__init__,published-and-binary,"def __init__(self, config)",26,False
+1.7.3,aht20_f,AHT20_F._init_aht20_f,published-and-binary,def _init_aht20_f(self),183,False
+1.7.3,aht20_f,AHT20_F._make_measurement,published-and-binary,def _make_measurement(self),76,False
+1.7.3,aht20_f,AHT20_F._reset_device,published-and-binary,def _reset_device(self),147,False
+1.7.3,aht20_f,AHT20_F._sample_aht20_f,published-and-binary,"def _sample_aht20_f(self, eventtime)",195,False
+1.7.3,aht20_f,AHT20_F.check_crc8,published-and-binary,"def check_crc8(self, data, length)",63,False
+1.7.3,aht20_f,AHT20_F.cmd_READ_TEMP_RH,published-and-binary,"def cmd_READ_TEMP_RH(self, gcmd)",58,False
+1.7.3,aht20_f,AHT20_F.get_report_time_delta,published-and-binary,def get_report_time_delta(self),55,False
+1.7.3,aht20_f,AHT20_F.get_status,published-and-binary,"def get_status(self, eventtime)",213,False
+1.7.3,aht20_f,AHT20_F.handle_connect,published-and-binary,def handle_connect(self),44,False
+1.7.3,aht20_f,AHT20_F.setup_callback,published-and-binary,"def setup_callback(self, cb)",52,False
+1.7.3,aht20_f,AHT20_F.setup_minmax,published-and-binary,"def setup_minmax(self, min_temp, max_temp)",48,False
+1.7.3,aht20_f,load_config,published-and-binary,def load_config(config),220,False
+1.8.2,aht20_f,AHT20_F.__init__,published-and-binary,"def __init__(self, config)",26,False
+1.8.2,aht20_f,AHT20_F._init_aht20_f,published-and-binary,def _init_aht20_f(self),183,False
+1.8.2,aht20_f,AHT20_F._make_measurement,published-and-binary,def _make_measurement(self),76,False
+1.8.2,aht20_f,AHT20_F._reset_device,published-and-binary,def _reset_device(self),147,False
+1.8.2,aht20_f,AHT20_F._sample_aht20_f,published-and-binary,"def _sample_aht20_f(self, eventtime)",195,False
+1.8.2,aht20_f,AHT20_F.check_crc8,published-and-binary,"def check_crc8(self, data, length)",63,False
+1.8.2,aht20_f,AHT20_F.cmd_READ_TEMP_RH,published-and-binary,"def cmd_READ_TEMP_RH(self, gcmd)",58,False
+1.8.2,aht20_f,AHT20_F.get_report_time_delta,published-and-binary,def get_report_time_delta(self),55,False
+1.8.2,aht20_f,AHT20_F.get_status,published-and-binary,"def get_status(self, eventtime)",213,False
+1.8.2,aht20_f,AHT20_F.handle_connect,published-and-binary,def handle_connect(self),44,False
+1.8.2,aht20_f,AHT20_F.setup_callback,published-and-binary,"def setup_callback(self, cb)",52,False
+1.8.2,aht20_f,AHT20_F.setup_minmax,published-and-binary,"def setup_minmax(self, min_temp, max_temp)",48,False
+1.8.2,aht20_f,load_config,published-and-binary,def load_config(config),220,False
+1.7.3,box_detect,BoxDetect.__init__,published-and-binary,"def __init__(self, config)",10,False
+1.7.3,box_detect,BoxDetect._handle_ready,published-and-binary,def _handle_ready(self),31,False
+1.7.3,box_detect,BoxDetect._request_restart,published-and-binary,def _request_restart(self),175,False
+1.7.3,box_detect,BoxDetect._update_config_file,published-and-binary,"def _update_config_file(self, current_devices, box_index)",162,False
+1.7.3,box_detect,BoxDetect.count_box_includes,published-and-binary,"def count_box_includes(self, file_path)",193,False
+1.7.3,box_detect,BoxDetect.get_check_serials_id,published-and-binary,"def get_check_serials_id(self, config_path, box_index)",183,False
+1.7.3,box_detect,BoxDetect.get_config_mcu_serials,published-and-binary,def get_config_mcu_serials(self),38,False
+1.7.3,box_detect,BoxDetect.monitor_serial_by_id,published-and-binary,"def monitor_serial_by_id(self, eventtime)",50,False
+1.7.3,box_detect,add_printer_objects,published-and-binary,def add_printer_objects(config),294,False
+1.7.3,box_detect,is_monitor_config_file_empty,published-and-binary,"def is_monitor_config_file_empty(self, file_path)",261,False
+1.7.3,box_detect,monitor_serial_devices,published-and-binary,def monitor_serial_devices(self),201,False
+1.7.3,box_detect,update_monitor_config_file,published-and-binary,"def update_monitor_config_file(self, current_devices, box_index)",268,False
+1.8.2,box_detect,BoxDetect.__init__,published-and-binary,"def __init__(self, config)",10,False
+1.8.2,box_detect,BoxDetect._handle_ready,published-and-binary,def _handle_ready(self),31,False
+1.8.2,box_detect,BoxDetect._request_restart,published-and-binary,def _request_restart(self),175,False
+1.8.2,box_detect,BoxDetect._update_config_file,published-and-binary,"def _update_config_file(self, current_devices, box_index)",162,False
+1.8.2,box_detect,BoxDetect.count_box_includes,published-and-binary,"def count_box_includes(self, file_path)",193,False
+1.8.2,box_detect,BoxDetect.get_check_serials_id,published-and-binary,"def get_check_serials_id(self, config_path, box_index)",183,False
+1.8.2,box_detect,BoxDetect.get_config_mcu_serials,published-and-binary,def get_config_mcu_serials(self),38,False
+1.8.2,box_detect,BoxDetect.monitor_serial_by_id,published-and-binary,"def monitor_serial_by_id(self, eventtime)",50,False
+1.8.2,box_detect,add_printer_objects,published-and-binary,def add_printer_objects(config),294,False
+1.8.2,box_detect,is_monitor_config_file_empty,published-and-binary,"def is_monitor_config_file_empty(self, file_path)",261,False
+1.8.2,box_detect,monitor_serial_devices,published-and-binary,def monitor_serial_devices(self),201,False
+1.8.2,box_detect,update_monitor_config_file,published-and-binary,"def update_monitor_config_file(self, current_devices, box_index)",268,False
+1.7.3,box_extras,BoxButton.__init__,published-and-binary,"def __init__(self, config, pin, bc)",7,False
+1.7.3,box_extras,BoxEndstop.__init__,published-and-binary,"def __init__(self, config, name, pin, reuse)",13,False
+1.7.3,box_extras,BoxEndstop.add_stepper,published-and-binary,"def add_stepper(self, stepper)",27,False
+1.7.3,box_extras,BoxEndstop.get_endstops,published-and-binary,def get_endstops(self),29,False
+1.7.3,box_extras,BoxEndstop.set_scram,published-and-binary,"def set_scram(self, value)",31,False
+1.7.3,box_extras,BoxExtras.__init__,published-and-binary,"def __init__(self, config)",201,False
+1.7.3,box_extras,BoxExtras._create_drying_state_setter,published-and-binary,def _create_drying_state_setter(self),641,True
+1.7.3,box_extras,BoxExtras._create_drying_state_setter_1set_drying_state,binary-only,,,False
+1.7.3,box_extras,BoxExtras.b_button_callback,published-and-binary,"def b_button_callback(self, eventtime, state)",263,False
+1.7.3,box_extras,BoxExtras.button_box_unload,published-and-binary,"def button_box_unload(self, gcmd)",526,False
+1.7.3,box_extras,BoxExtras.button_extruder_load,published-and-binary,"def button_extruder_load(self, gcmd)",468,False
+1.7.3,box_extras,BoxExtras.button_extruder_unload,published-and-binary,"def button_extruder_unload(self, gcmd)",503,False
+1.7.3,box_extras,BoxExtras.cmd_AUTO_RELOAD_FILAMENT,published-and-binary,"def cmd_AUTO_RELOAD_FILAMENT(self, gcmd)",379,False
+1.7.3,box_extras,BoxExtras.cmd_BOX_PRINT_START,binary-only,,,True
+1.7.3,box_extras,BoxExtras.cmd_CLEAR_FLUSH,published-and-binary,"def cmd_CLEAR_FLUSH(self, gcmd)",349,False
+1.7.3,box_extras,BoxExtras.cmd_CLEAR_OOZE,published-and-binary,"def cmd_CLEAR_OOZE(self, gcmd)",352,False
+1.7.3,box_extras,BoxExtras.cmd_CLEAR_RUNOUT_NUM,published-and-binary,"def cmd_CLEAR_RUNOUT_NUM(self, gcmd)",831,False
+1.7.3,box_extras,BoxExtras.cmd_CUT_FILAMENT,published-and-binary,"def cmd_CUT_FILAMENT(self, gcmd)",356,False
+1.7.3,box_extras,BoxExtras.cmd_DISABLE_BOX_DRY,published-and-binary,"def cmd_DISABLE_BOX_DRY(self, gcmd)",701,False
+1.7.3,box_extras,BoxExtras.cmd_ENABLE_BOX_DRY,published-and-binary,"def cmd_ENABLE_BOX_DRY(self, gcmd)",660,False
+1.7.3,box_extras,BoxExtras.cmd_ENABLE_BOX_DRY_lambda,binary-only,,,False
+1.7.3,box_extras,BoxExtras.cmd_INIT_MAPPING_VALUE,binary-only,,,True
+1.7.3,box_extras,BoxExtras.cmd_INIT_RFID_READ,published-and-binary,"def cmd_INIT_RFID_READ(self, gcmd)",556,False
+1.7.3,box_extras,BoxExtras.cmd_RELOAD_ALL,published-and-binary,"def cmd_RELOAD_ALL(self, gcmd)",317,False
+1.7.3,box_extras,BoxExtras.cmd_RETRY,published-and-binary,"def cmd_RETRY(self, gcmd)",393,False
+1.7.3,box_extras,BoxExtras.cmd_RUN_STEPPER,published-and-binary,"def cmd_RUN_STEPPER(self, gcmd)",653,False
+1.7.3,box_extras,BoxExtras.cmd_SELF_INSPECTION,published-and-binary,"def cmd_SELF_INSPECTION(self, gcmd)",739,False
+1.7.3,box_extras,BoxExtras.cmd_TIGHTEN_FILAMENT,published-and-binary,"def cmd_TIGHTEN_FILAMENT(self, gcmd)",835,False
+1.7.3,box_extras,BoxExtras.cmd_TRY_RESUME_PRINT,binary-only,,,False
+1.7.3,box_extras,BoxExtras.cmd_disable_box_heater,published-and-binary,"def cmd_disable_box_heater(self, gcmd)",627,False
+1.7.3,box_extras,BoxExtras.delayed_init_error_raw,published-and-binary,"def delayed_init_error_raw(self, eventtime)",303,False
+1.7.3,box_extras,BoxExtras.delayed_init_rfid,published-and-binary,"def delayed_init_rfid(self, eventtime)",291,False
+1.7.3,box_extras,BoxExtras.delayed_self_inspection,published-and-binary,"def delayed_self_inspection(self, eventtime)",297,False
+1.7.3,box_extras,BoxExtras.get_box_temp_by_slot,published-and-binary,"def get_box_temp_by_slot(self, slot)",920,False
+1.7.3,box_extras,BoxExtras.get_key_by_value,published-and-binary,"def get_key_by_value(self, value, default, keyword)",867,False
+1.7.3,box_extras,BoxExtras.get_status,published-and-binary,"def get_status(self, eventtime)",633,False
+1.7.3,box_extras,BoxExtras.get_temp_by_num,published-and-binary,"def get_temp_by_num(self, num)",880,False
+1.7.3,box_extras,BoxExtras.get_temp_by_slot,published-and-binary,"def get_temp_by_slot(self, slot)",900,False
+1.7.3,box_extras,BoxExtras.get_value_by_key,published-and-binary,"def get_value_by_key(self, varname, default_value)",864,False
+1.7.3,box_extras,BoxExtras.handle_connect,published-and-binary,def handle_connect(self),265,False
+1.7.3,box_extras,BoxExtras.heating_handler,published-and-binary,"def heating_handler(self, eventtime, box_num, start_time, end_time)",715,False
+1.7.3,box_extras,BoxExtras.motion_tips,published-and-binary,"def motion_tips(self, gcmd)",827,False
+1.7.3,box_extras,BoxExtras.print_sensor_state_to_log,published-and-binary,"def print_sensor_state_to_log(self, eventtime)",940,False
+1.7.3,box_extras,BoxExtras.save_variable,published-and-binary,"def save_variable(self, varname, value)",847,False
+1.7.3,box_extras,BoxExtras.search_index_by_value,published-and-binary,"def search_index_by_value(self, value)",873,False
+1.7.3,box_extras,BoxExtras.set_box_temp,published-and-binary,"def set_box_temp(self, gcmd)",578,True
+1.7.3,box_extras,BoxExtras.update_b_endstop,published-and-binary,"def update_b_endstop(self, eventtime)",307,False
+1.7.3,box_extras,BoxExtras.update_e_endstop,published-and-binary,"def update_e_endstop(self, eventtime)",310,True
+1.7.3,box_extras,BoxMotion.__init__,published-and-binary,"def __init__(self, config)",57,False
+1.7.3,box_extras,BoxMotion._check_motion_callback,published-and-binary,"def _check_motion_callback(self, eventtime)",135,False
+1.7.3,box_extras,BoxMotion.box_scram,published-and-binary,def box_scram(self),112,False
+1.7.3,box_extras,BoxMotion.check_motion_state,published-and-binary,"def check_motion_state(self, time_limit, check_num)",122,False
+1.7.3,box_extras,BoxMotion.init_box_motion,published-and-binary,"def init_box_motion(self, name, speed, start, end)",81,False
+1.7.3,box_extras,BoxMotion.stop_check_motion,published-and-binary,def stop_check_motion(self),152,False
+1.7.3,box_extras,BoxMotion.update_box_motion,published-and-binary,"def update_box_motion(self, eventtime)",90,False
+1.7.3,box_extras,BoxOutput.__init__,published-and-binary,"def __init__(self, config, pin)",35,False
+1.7.3,box_extras,BoxOutput.set_pin,published-and-binary,"def set_pin(self, value)",47,False
+1.7.3,box_extras,ToolChange.__init__,published-and-binary,"def __init__(self, config)",159,False
+1.7.3,box_extras,ToolChange.cmd_TOOL_CHANGE_END,published-and-binary,"def cmd_TOOL_CHANGE_END(self, gcmd)",183,False
+1.7.3,box_extras,ToolChange.cmd_TOOL_CHANGE_START,published-and-binary,"def cmd_TOOL_CHANGE_START(self, gcmd)",169,False
+1.7.3,box_extras,ToolChange.get_position,published-and-binary,def get_position(self),194,False
+1.7.3,box_extras,ToolChange.move,published-and-binary,"def move(self, newpos, speed)",197,False
+1.7.3,box_extras,load_config,published-and-binary,def load_config(config),966,False
+1.8.2,box_extras,BoxButton.__init__,published-and-binary,"def __init__(self, config, pin, bc)",7,False
+1.8.2,box_extras,BoxEndstop.__init__,published-and-binary,"def __init__(self, config, name, pin, reuse)",13,False
+1.8.2,box_extras,BoxEndstop.add_stepper,published-and-binary,"def add_stepper(self, stepper)",27,False
+1.8.2,box_extras,BoxEndstop.get_endstops,published-and-binary,def get_endstops(self),29,False
+1.8.2,box_extras,BoxEndstop.set_scram,published-and-binary,"def set_scram(self, value)",31,False
+1.8.2,box_extras,BoxExtras.__init__,published-and-binary,"def __init__(self, config)",201,False
+1.8.2,box_extras,BoxExtras._create_drying_state_setter,published-and-binary,def _create_drying_state_setter(self),641,True
+1.8.2,box_extras,BoxExtras._create_drying_state_setter_1set_drying_state,binary-only,,,False
+1.8.2,box_extras,BoxExtras.b_button_callback,published-and-binary,"def b_button_callback(self, eventtime, state)",263,False
+1.8.2,box_extras,BoxExtras.button_box_unload,published-and-binary,"def button_box_unload(self, gcmd)",526,False
+1.8.2,box_extras,BoxExtras.button_extruder_load,published-and-binary,"def button_extruder_load(self, gcmd)",468,False
+1.8.2,box_extras,BoxExtras.button_extruder_unload,published-and-binary,"def button_extruder_unload(self, gcmd)",503,False
+1.8.2,box_extras,BoxExtras.cmd_AUTO_RELOAD_FILAMENT,published-and-binary,"def cmd_AUTO_RELOAD_FILAMENT(self, gcmd)",379,False
+1.8.2,box_extras,BoxExtras.cmd_BOX_PRINT_START,binary-only,,,True
+1.8.2,box_extras,BoxExtras.cmd_CLEAR_FLUSH,published-and-binary,"def cmd_CLEAR_FLUSH(self, gcmd)",349,False
+1.8.2,box_extras,BoxExtras.cmd_CLEAR_OOZE,published-and-binary,"def cmd_CLEAR_OOZE(self, gcmd)",352,False
+1.8.2,box_extras,BoxExtras.cmd_CLEAR_RUNOUT_NUM,published-and-binary,"def cmd_CLEAR_RUNOUT_NUM(self, gcmd)",831,False
+1.8.2,box_extras,BoxExtras.cmd_CUT_FILAMENT,published-and-binary,"def cmd_CUT_FILAMENT(self, gcmd)",356,False
+1.8.2,box_extras,BoxExtras.cmd_DISABLE_BOX_DRY,published-and-binary,"def cmd_DISABLE_BOX_DRY(self, gcmd)",701,False
+1.8.2,box_extras,BoxExtras.cmd_ENABLE_BOX_DRY,published-and-binary,"def cmd_ENABLE_BOX_DRY(self, gcmd)",660,False
+1.8.2,box_extras,BoxExtras.cmd_ENABLE_BOX_DRY_lambda,binary-only,,,False
+1.8.2,box_extras,BoxExtras.cmd_INIT_MAPPING_VALUE,binary-only,,,True
+1.8.2,box_extras,BoxExtras.cmd_INIT_RFID_READ,published-and-binary,"def cmd_INIT_RFID_READ(self, gcmd)",556,False
+1.8.2,box_extras,BoxExtras.cmd_RELOAD_ALL,published-and-binary,"def cmd_RELOAD_ALL(self, gcmd)",317,False
+1.8.2,box_extras,BoxExtras.cmd_RETRY,published-and-binary,"def cmd_RETRY(self, gcmd)",393,False
+1.8.2,box_extras,BoxExtras.cmd_RUN_STEPPER,published-and-binary,"def cmd_RUN_STEPPER(self, gcmd)",653,False
+1.8.2,box_extras,BoxExtras.cmd_SELF_INSPECTION,published-and-binary,"def cmd_SELF_INSPECTION(self, gcmd)",739,False
+1.8.2,box_extras,BoxExtras.cmd_TIGHTEN_FILAMENT,published-and-binary,"def cmd_TIGHTEN_FILAMENT(self, gcmd)",835,False
+1.8.2,box_extras,BoxExtras.cmd_TRY_RESUME_PRINT,binary-only,,,False
+1.8.2,box_extras,BoxExtras.cmd_disable_box_heater,published-and-binary,"def cmd_disable_box_heater(self, gcmd)",627,False
+1.8.2,box_extras,BoxExtras.delayed_init_error_raw,published-and-binary,"def delayed_init_error_raw(self, eventtime)",303,False
+1.8.2,box_extras,BoxExtras.delayed_init_rfid,published-and-binary,"def delayed_init_rfid(self, eventtime)",291,False
+1.8.2,box_extras,BoxExtras.delayed_self_inspection,published-and-binary,"def delayed_self_inspection(self, eventtime)",297,False
+1.8.2,box_extras,BoxExtras.get_box_temp_by_slot,published-and-binary,"def get_box_temp_by_slot(self, slot)",920,False
+1.8.2,box_extras,BoxExtras.get_key_by_value,published-and-binary,"def get_key_by_value(self, value, default, keyword)",867,False
+1.8.2,box_extras,BoxExtras.get_status,published-and-binary,"def get_status(self, eventtime)",633,False
+1.8.2,box_extras,BoxExtras.get_temp_by_num,published-and-binary,"def get_temp_by_num(self, num)",880,False
+1.8.2,box_extras,BoxExtras.get_temp_by_slot,published-and-binary,"def get_temp_by_slot(self, slot)",900,False
+1.8.2,box_extras,BoxExtras.get_value_by_key,published-and-binary,"def get_value_by_key(self, varname, default_value)",864,False
+1.8.2,box_extras,BoxExtras.handle_connect,published-and-binary,def handle_connect(self),265,False
+1.8.2,box_extras,BoxExtras.heating_handler,published-and-binary,"def heating_handler(self, eventtime, box_num, start_time, end_time)",715,False
+1.8.2,box_extras,BoxExtras.motion_tips,published-and-binary,"def motion_tips(self, gcmd)",827,False
+1.8.2,box_extras,BoxExtras.print_sensor_state_to_log,published-and-binary,"def print_sensor_state_to_log(self, eventtime)",940,False
+1.8.2,box_extras,BoxExtras.save_variable,published-and-binary,"def save_variable(self, varname, value)",847,False
+1.8.2,box_extras,BoxExtras.search_index_by_value,published-and-binary,"def search_index_by_value(self, value)",873,False
+1.8.2,box_extras,BoxExtras.set_box_temp,published-and-binary,"def set_box_temp(self, gcmd)",578,True
+1.8.2,box_extras,BoxExtras.update_b_endstop,published-and-binary,"def update_b_endstop(self, eventtime)",307,False
+1.8.2,box_extras,BoxExtras.update_e_endstop,published-and-binary,"def update_e_endstop(self, eventtime)",310,True
+1.8.2,box_extras,BoxMotion.__init__,published-and-binary,"def __init__(self, config)",57,False
+1.8.2,box_extras,BoxMotion._check_motion_callback,published-and-binary,"def _check_motion_callback(self, eventtime)",135,False
+1.8.2,box_extras,BoxMotion.box_scram,published-and-binary,def box_scram(self),112,False
+1.8.2,box_extras,BoxMotion.check_motion_state,published-and-binary,"def check_motion_state(self, time_limit, check_num)",122,False
+1.8.2,box_extras,BoxMotion.init_box_motion,published-and-binary,"def init_box_motion(self, name, speed, start, end)",81,False
+1.8.2,box_extras,BoxMotion.stop_check_motion,published-and-binary,def stop_check_motion(self),152,False
+1.8.2,box_extras,BoxMotion.update_box_motion,published-and-binary,"def update_box_motion(self, eventtime)",90,False
+1.8.2,box_extras,BoxOutput.__init__,published-and-binary,"def __init__(self, config, pin)",35,False
+1.8.2,box_extras,BoxOutput.set_pin,published-and-binary,"def set_pin(self, value)",47,False
+1.8.2,box_extras,ToolChange.__init__,published-and-binary,"def __init__(self, config)",159,False
+1.8.2,box_extras,ToolChange.cmd_TOOL_CHANGE_END,published-and-binary,"def cmd_TOOL_CHANGE_END(self, gcmd)",183,False
+1.8.2,box_extras,ToolChange.cmd_TOOL_CHANGE_START,published-and-binary,"def cmd_TOOL_CHANGE_START(self, gcmd)",169,False
+1.8.2,box_extras,ToolChange.get_position,published-and-binary,def get_position(self),194,False
+1.8.2,box_extras,ToolChange.move,published-and-binary,"def move(self, newpos, speed)",197,False
+1.8.2,box_extras,load_config,published-and-binary,def load_config(config),966,False
+1.7.3,box_rfid,BoxRFID.__init__,published-and-binary,"def __init__(self, config)",4,False
+1.7.3,box_rfid,BoxRFID._build_config,published-and-binary,def _build_config(self),28,False
+1.7.3,box_rfid,BoxRFID._schedule_rfid_read,published-and-binary,"def _schedule_rfid_read(self, eventtime)",43,False
+1.7.3,box_rfid,BoxRFID.read_card,published-and-binary,def read_card(self),36,False
+1.7.3,box_rfid,BoxRFID.read_card_from_slot,published-and-binary,def read_card_from_slot(self),40,False
+1.7.3,box_rfid,BoxRFID.start_rfid_read,published-and-binary,"def start_rfid_read(self, stepper)",84,False
+1.7.3,box_rfid,BoxRFID.stop_read,published-and-binary,def stop_read(self),98,False
+1.7.3,box_rfid,load_config_prefix,published-and-binary,def load_config_prefix(config),106,False
+1.8.2,box_rfid,BoxRFID.__init__,published-and-binary,"def __init__(self, config)",4,False
+1.8.2,box_rfid,BoxRFID._build_config,published-and-binary,def _build_config(self),28,False
+1.8.2,box_rfid,BoxRFID._schedule_rfid_read,published-and-binary,"def _schedule_rfid_read(self, eventtime)",43,False
+1.8.2,box_rfid,BoxRFID.read_card,published-and-binary,def read_card(self),36,False
+1.8.2,box_rfid,BoxRFID.read_card_from_slot,published-and-binary,def read_card_from_slot(self),40,False
+1.8.2,box_rfid,BoxRFID.start_rfid_read,published-and-binary,"def start_rfid_read(self, stepper)",84,False
+1.8.2,box_rfid,BoxRFID.stop_read,published-and-binary,def stop_read(self),98,False
+1.8.2,box_rfid,load_config_prefix,published-and-binary,def load_config_prefix(config),106,False
+1.7.3,box_stepper,BoxExtruderStepper.__init__,published-and-binary,"def __init__(self, config)",14,False
+1.7.3,box_stepper,BoxExtruderStepper._calc_endstop_rate,published-and-binary,"def _calc_endstop_rate(self, mcu_endstop, movepos, speed)",125,False
+1.7.3,box_stepper,BoxExtruderStepper.cmd_EXTRUDER_LOAD,published-and-binary,"def cmd_EXTRUDER_LOAD(self, gcmd)",294,True
+1.7.3,box_stepper,BoxExtruderStepper.cmd_EXTRUDER_UNLOAD,published-and-binary,"def cmd_EXTRUDER_UNLOAD(self, gcmd, can_cut)",399,False
+1.7.3,box_stepper,BoxExtruderStepper.cmd_SLOT_PROMPT_MOVE,published-and-binary,"def cmd_SLOT_PROMPT_MOVE(self, gcmd)",465,False
+1.7.3,box_stepper,BoxExtruderStepper.cmd_SLOT_RFID_READ,published-and-binary,"def cmd_SLOT_RFID_READ(self, gcmd)",531,False
+1.7.3,box_stepper,BoxExtruderStepper.cmd_SLOT_UNLOAD,published-and-binary,"def cmd_SLOT_UNLOAD(self, gcmd)",257,True
+1.7.3,box_stepper,BoxExtruderStepper.disable_stepper,published-and-binary,def disable_stepper(self),121,False
+1.7.3,box_stepper,BoxExtruderStepper.do_home,published-and-binary,"def do_home(self, endstops, movepos, speed, accel, triggered, motion)",147,False
+1.7.3,box_stepper,BoxExtruderStepper.do_home_repeatedly,published-and-binary,"def do_home_repeatedly(self, box_endstop, movepos, speed, accel, triggered)",189,False
+1.7.3,box_stepper,BoxExtruderStepper.do_move,published-and-binary,"def do_move(self, movepos, speed, accel)",105,False
+1.7.3,box_stepper,BoxExtruderStepper.drip_move,published-and-binary,"def drip_move(self, newpos, speed, accel, drip_completion)",119,False
+1.7.3,box_stepper,BoxExtruderStepper.dwell,published-and-binary,"def dwell(self, delay)",117,False
+1.7.3,box_stepper,BoxExtruderStepper.flush_all_filament,published-and-binary,def flush_all_filament(self),484,False
+1.7.3,box_stepper,BoxExtruderStepper.get_mcu_endstops,published-and-binary,def get_mcu_endstops(self),187,False
+1.7.3,box_stepper,BoxExtruderStepper.get_status,published-and-binary,"def get_status(self, eventtime)",93,False
+1.7.3,box_stepper,BoxExtruderStepper.led_handle_connect,published-and-binary,def led_handle_connect(self),623,False
+1.7.3,box_stepper,BoxExtruderStepper.multi_complete,published-and-binary,"def multi_complete(self, completions)",137,False
+1.7.3,box_stepper,BoxExtruderStepper.multi_complete_1lambda1,binary-only,,,False
+1.7.3,box_stepper,BoxExtruderStepper.multi_complete_lambda,binary-only,,,False
+1.7.3,box_stepper,BoxExtruderStepper.runout_button_callback,published-and-binary,"def runout_button_callback(self, eventtime, state)",78,True
+1.7.3,box_stepper,BoxExtruderStepper.set_led,published-and-binary,"def set_led(self, eventtime)",578,False
+1.7.3,box_stepper,BoxExtruderStepper.slot_load,published-and-binary,def slot_load(self),209,False
+1.7.3,box_stepper,BoxExtruderStepper.slot_sync,published-and-binary,"def slot_sync(self, value)",472,True
+1.7.3,box_stepper,BoxExtruderStepper.switch_next_slot,published-and-binary,def switch_next_slot(self),500,False
+1.7.3,box_stepper,BoxExtruderStepper.sync_print_time,published-and-binary,def sync_print_time(self),98,False
+1.7.3,box_stepper,load_config_prefix,published-and-binary,def load_config_prefix(config),626,False
+1.8.2,box_stepper,BoxExtruderStepper.__init__,published-and-binary,"def __init__(self, config)",14,False
+1.8.2,box_stepper,BoxExtruderStepper._calc_endstop_rate,published-and-binary,"def _calc_endstop_rate(self, mcu_endstop, movepos, speed)",125,False
+1.8.2,box_stepper,BoxExtruderStepper.cmd_EXTRUDER_LOAD,published-and-binary,"def cmd_EXTRUDER_LOAD(self, gcmd)",294,True
+1.8.2,box_stepper,BoxExtruderStepper.cmd_EXTRUDER_UNLOAD,published-and-binary,"def cmd_EXTRUDER_UNLOAD(self, gcmd, can_cut)",399,False
+1.8.2,box_stepper,BoxExtruderStepper.cmd_SLOT_PROMPT_MOVE,published-and-binary,"def cmd_SLOT_PROMPT_MOVE(self, gcmd)",465,False
+1.8.2,box_stepper,BoxExtruderStepper.cmd_SLOT_RFID_READ,published-and-binary,"def cmd_SLOT_RFID_READ(self, gcmd)",531,False
+1.8.2,box_stepper,BoxExtruderStepper.cmd_SLOT_UNLOAD,published-and-binary,"def cmd_SLOT_UNLOAD(self, gcmd)",257,True
+1.8.2,box_stepper,BoxExtruderStepper.disable_stepper,published-and-binary,def disable_stepper(self),121,False
+1.8.2,box_stepper,BoxExtruderStepper.do_home,published-and-binary,"def do_home(self, endstops, movepos, speed, accel, triggered, motion)",147,False
+1.8.2,box_stepper,BoxExtruderStepper.do_home_repeatedly,published-and-binary,"def do_home_repeatedly(self, box_endstop, movepos, speed, accel, triggered)",189,False
+1.8.2,box_stepper,BoxExtruderStepper.do_move,published-and-binary,"def do_move(self, movepos, speed, accel)",105,False
+1.8.2,box_stepper,BoxExtruderStepper.drip_move,published-and-binary,"def drip_move(self, newpos, speed, accel, drip_completion)",119,False
+1.8.2,box_stepper,BoxExtruderStepper.dwell,published-and-binary,"def dwell(self, delay)",117,False
+1.8.2,box_stepper,BoxExtruderStepper.flush_all_filament,published-and-binary,def flush_all_filament(self),484,False
+1.8.2,box_stepper,BoxExtruderStepper.get_mcu_endstops,published-and-binary,def get_mcu_endstops(self),187,False
+1.8.2,box_stepper,BoxExtruderStepper.get_status,published-and-binary,"def get_status(self, eventtime)",93,False
+1.8.2,box_stepper,BoxExtruderStepper.led_handle_connect,published-and-binary,def led_handle_connect(self),623,False
+1.8.2,box_stepper,BoxExtruderStepper.multi_complete,published-and-binary,"def multi_complete(self, completions)",137,False
+1.8.2,box_stepper,BoxExtruderStepper.multi_complete_1lambda1,binary-only,,,False
+1.8.2,box_stepper,BoxExtruderStepper.multi_complete_lambda,binary-only,,,False
+1.8.2,box_stepper,BoxExtruderStepper.runout_button_callback,published-and-binary,"def runout_button_callback(self, eventtime, state)",78,True
+1.8.2,box_stepper,BoxExtruderStepper.set_led,published-and-binary,"def set_led(self, eventtime)",578,False
+1.8.2,box_stepper,BoxExtruderStepper.slot_load,published-and-binary,def slot_load(self),209,False
+1.8.2,box_stepper,BoxExtruderStepper.slot_sync,published-and-binary,"def slot_sync(self, value)",472,True
+1.8.2,box_stepper,BoxExtruderStepper.switch_next_slot,published-and-binary,def switch_next_slot(self),500,False
+1.8.2,box_stepper,BoxExtruderStepper.sync_print_time,published-and-binary,def sync_print_time(self),98,False
+1.8.2,box_stepper,load_config_prefix,published-and-binary,def load_config_prefix(config),626,False
