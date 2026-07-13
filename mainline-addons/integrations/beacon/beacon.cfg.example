@@ -1,0 +1,18 @@
+# Merge after installing the current beacon_klipper module.
+# Replace every CHANGE_ME value and verify the mount geometry.
+
+[beacon]
+serial: /dev/serial/by-id/CHANGE_ME
+x_offset: 0
+y_offset: CHANGE_ME
+home_xy_position: CHANGE_ME, CHANGE_ME
+home_z_hop: 5
+home_z_hop_speed: 30
+home_xy_move_speed: 100
+contact_max_hotend_temperature: 180
+
+[resonance_tester]
+accel_chip: beacon
+probe_points:
+    CHANGE_ME, CHANGE_ME, 20
+

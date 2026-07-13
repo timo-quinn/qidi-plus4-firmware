@@ -17,6 +17,8 @@ source, and MCU flashing research. The companion configuration profiles live in
   utilities. Ghidra helper scripts are grouped under [`tools/ghidra/`](tools/ghidra/).
 - [`firmware-configs/`](firmware-configs/) contains reproducible Klipper and
   Katapult build fragments for the verified Plus4 controller boards.
+- [`mainline-addons/`](mainline-addons/) contains opt-in, safe-default Klipper
+  macro scaffolds and separate Beacon/Happy Hare integration templates.
 - [`screen-bridge/`](screen-bridge/) scaffolds an independent Python bridge for
   retaining the stock serial touchscreen with mainline Moonraker.
 - `data/printer-backups/` contains sensitive local inputs and is ignored by Git.
@@ -26,9 +28,11 @@ source, and MCU flashing research. The companion configuration profiles live in
 - [Firmware changes from 1.7.3 to 1.8.2](docs/FIRMWARE-CHANGES.md)
 - [Firmware lineage from factory 1.1.2 through 1.8.2](docs/FIRMWARE-LINEAGE.md)
 - [Mainline Klipper migration](docs/MAINLINE-MIGRATION.md)
+- [Optional mainline add-ons](mainline-addons/README.md)
 - [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
 - [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
 - [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)
+- [Install Happy Hare after mainline migration](docs/HAPPY-HARE-INSTALLATION.md)
 - [Stock touchscreen bridge research](docs/SCREEN-BRIDGE.md)
 - [Live hardware and runtime inventory](docs/LIVE-HARDWARE-INVENTORY.md)
 - [Compiled component reference](analysis/components/INDEX.md)

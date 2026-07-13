@@ -1,0 +1,9 @@
+# Example attachment point for Happy Hare's form_tip_macro setting.
+# This remains intentionally disabled until cutter and filament movements are
+# tested together.
+
+[gcode_macro PLUS4_HH_CUT_TIP]
+description: Future Happy Hare to Plus4 cutter adapter
+gcode:
+    { action_raise_error("Happy Hare cutter integration is not commissioned") }
+

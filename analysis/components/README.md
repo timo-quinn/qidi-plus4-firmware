@@ -32,7 +32,8 @@ From the repository root on Windows:
 
 Requirements:
 
-* extracted backups below `data/printer-backups/analysis/qidi1` and `qidi2`;
+* compact snapshots prepared below `data/printer-backups/work/1.7.3` and
+  `1.8.2` with `tools/Prepare-QidiAnalysisSnapshots.py`;
 * Docker Desktop;
 * Docker access to the digest-pinned `blacktop/ghidra` analysis image selected
   by the script.

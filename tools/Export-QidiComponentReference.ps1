@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$BackupRoot = (Join-Path $PSScriptRoot '..\data\printer-backups\analysis'),
+    [string]$BackupRoot = (Join-Path $PSScriptRoot '..\data\printer-backups\work'),
     [string]$OutputRoot = (Join-Path $PSScriptRoot '..\analysis\components'),
     [ValidateSet('All', 'ChangedOnly')]
     [string]$Scope = 'All',
@@ -41,8 +41,8 @@ $outputRootPath = [System.IO.Path]::GetFullPath($OutputRoot)
 New-Item -ItemType Directory -Force -Path $outputRootPath | Out-Null
 
 $firmware = [ordered]@{
-    '1.7.3' = Join-Path $backupRootPath 'qidi2\home\mks'
-    '1.8.2' = Join-Path $backupRootPath 'qidi1\home\mks'
+    '1.7.3' = Join-Path $backupRootPath '1.7.3\home\mks'
+    '1.8.2' = Join-Path $backupRootPath '1.8.2\home\mks'
 }
 
 $records = @()

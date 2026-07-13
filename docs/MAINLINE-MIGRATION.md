@@ -21,6 +21,8 @@ dependencies, and keeps a straightforward stock recovery path.
 7. Attach four temporary ST-Link wires to the toolhead, install Katapult once,
    disconnect it, and flash toolhead Klipper over SSH.
 8. Install a reviewed mainline configuration and perform cold commissioning.
+9. After single-material printing is proven, install and commission Happy Hare
+   using [HAPPY-HARE-INSTALLATION.md](HAPPY-HARE-INSTALLATION.md).
 
 This removes the mainboard microSD step and avoids soldering or removing the
 toolhead board. It is not physically hands-off: the stock toolhead has no
@@ -311,6 +313,15 @@ Before enabling heaters or normal-speed movement:
 8. Calibrate PID, Z offset, mesh, and input shaping before printing.
 
 Do not enable QIDI Box includes until a reviewed mainline backend exists.
+
+Happy Hare is an optional post-migration layer. Do not install it until the
+printer passes this commissioning sequence. A supported third-party MMU can
+then follow [HAPPY-HARE-INSTALLATION.md](HAPPY-HARE-INSTALLATION.md); the QIDI
+Box remains behind the compatibility boundary described above.
+
+Optional dependency-free macros and separate Beacon/Happy Hare templates are
+scaffolded under [`../mainline-addons/`](../mainline-addons/). Enable them one at
+a time only after the base printer is commissioned.
 
 ## Rollback
 

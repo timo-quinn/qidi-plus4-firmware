@@ -14,6 +14,8 @@ Human-readable findings and practical integration guidance:
   third-party AMS interoperability.
 - [HAPPY-HARE-INTEGRATION.md](HAPPY-HARE-INTEGRATION.md) records the QIDI Box
   hardware interface and possible Happy Hare integration approaches.
+- [HAPPY-HARE-INSTALLATION.md](HAPPY-HARE-INSTALLATION.md) provides the guarded
+  post-migration install, commissioning and OrcaSlicer workflow.
 - [SCREEN-BRIDGE.md](SCREEN-BRIDGE.md) defines the evidence, capture plan,
   safety boundary, and staged independent replacement for QIDI's `xindi`.
 - [LIVE-HARDWARE-INVENTORY.md](LIVE-HARDWARE-INVENTORY.md) records the

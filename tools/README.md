@@ -4,6 +4,8 @@
 - `Analyze-QidiFirmware.py` compares extracted 1.7.3 and 1.8.2 filesystems.
 - `Analyze-QidiFirmwareLineage.py` produces an ordered multi-release file,
   source-patch, native-component and `xindi` lineage.
+- `Prepare-QidiAnalysisSnapshots.py` verifies and extracts the compact private
+  1.1.2, 1.7.3 and 1.8.2 analysis snapshots.
 - `Export-QidiComponentReference.ps1` extracts native component metadata and
   drives the digest-pinned Ghidra container.
 - `Generate-QidiEstimatedSource.py` creates API-oriented Python outlines from

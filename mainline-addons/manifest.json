@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "addons": {
+    "adaptive-mesh": {
+      "file": "addons/adaptive-mesh.cfg",
+      "requires": ["bed_mesh", "exclude_object", "Klipper 0.13+"]
+    },
+    "chamber-control": {
+      "file": "addons/chamber-control.cfg",
+      "requires": ["heater_generic chamber"]
+    },
+    "cutter-contract": {
+      "file": "addons/cutter-contract.cfg",
+      "requires": ["tested user implementation"]
+    },
+    "diagnostics": {
+      "file": "addons/diagnostics.cfg",
+      "requires": []
+    },
+    "print-end-safety": {
+      "file": "addons/print-end-safety.cfg",
+      "requires": []
+    },
+    "purge-park": {
+      "file": "addons/purge-park.cfg",
+      "requires": ["measured park coordinates"]
+    }
+  }
+}
+
