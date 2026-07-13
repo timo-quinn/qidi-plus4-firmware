@@ -15,14 +15,20 @@ source, and MCU flashing research. The companion configuration profiles live in
   index, ARM64 disassembly, Ghidra pseudocode, and source reconstructions.
 - [`tools/`](tools/) contains the backup, comparison, export, and reconstruction
   utilities. Ghidra helper scripts are grouped under [`tools/ghidra/`](tools/ghidra/).
+- [`firmware-configs/`](firmware-configs/) contains reproducible Klipper and
+  Katapult build fragments for the verified Plus4 controller boards.
+- [`screen-bridge/`](screen-bridge/) scaffolds an independent Python bridge for
+  retaining the stock serial touchscreen with mainline Moonraker.
 - `data/printer-backups/` contains sensitive local inputs and is ignored by Git.
 
 ## Start here
 
 - [Firmware changes from 1.7.3 to 1.8.2](docs/FIRMWARE-CHANGES.md)
+- [Mainline Klipper migration](docs/MAINLINE-MIGRATION.md)
 - [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
 - [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
 - [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)
+- [Stock touchscreen bridge research](docs/SCREEN-BRIDGE.md)
 - [Compiled component reference](analysis/components/INDEX.md)
 - [Published-source lineage analysis](analysis/components/LINEAGE-ANALYSIS.md)
 

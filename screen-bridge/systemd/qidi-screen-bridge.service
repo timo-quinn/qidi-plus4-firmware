@@ -1,0 +1,23 @@
+[Unit]
+Description=QIDI Plus4 stock-screen bridge (experimental)
+After=network-online.target moonraker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=qidi-screen
+Group=dialout
+# No executable Run command exists yet. This unit is a packaging placeholder
+# and must not be enabled until the bridge has a reviewed read-only mode.
+ExecStart=/usr/bin/qidi-screen-bridge --help
+Restart=no
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,12 @@
 data/printer-backups/
-tools/__pycache__/
+artifacts/
+**/__pycache__/
 *.pyc
 *.log
 *.log.*
+.pytest_cache/
+.ruff_cache/
+.venv/
+build/
+dist/
+*.egg-info/

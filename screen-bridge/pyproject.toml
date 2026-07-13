@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qidi-plus4-screen-bridge"
+version = "0.1.0.dev0"
+description = "Experimental open bridge between the QIDI Plus4 stock TJC touchscreen and Moonraker"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "QIDI Plus4 community" }]
+dependencies = ["pyserial>=3.5"]
+
+[project.optional-dependencies]
+moonraker = ["aiohttp>=3.9"]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.scripts]
+qidi-screen-bridge = "qidi_screen_bridge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

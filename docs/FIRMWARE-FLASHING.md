@@ -303,8 +303,11 @@ A conservative conversion path is:
    captured.
 5. Do not treat Beacon as a Klipper MCU. Keep its own firmware/update utility
    and use the mainline `beacon_klipper` host module.
-6. Replace the QIDI screen integration with FreeDi or KlipperScreen. The stock
-   `xindi` application depends on QIDI-specific host APIs and configuration.
+6. Replace the QIDI screen integration with FreeDi, or use KlipperScreen on a
+   separate compatible display. The stock panel is a serial HMI rather than a
+   KlipperScreen-compatible Linux display, and `xindi` depends on QIDI-specific
+   host APIs and configuration. The independent bridge research is documented
+   in [SCREEN-BRIDGE.md](SCREEN-BRIDGE.md).
 
 It may be possible to send a correctly linked mainboard image through
 `/root/hid-flash ... ttyS0`, because the recovered flasher does not validate

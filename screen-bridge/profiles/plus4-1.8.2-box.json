@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "profile_id": "qidi-plus4-stock-1.8.2-box",
+  "printer_model": "QIDI Plus4 with QIDI Box",
+  "firmware_release": "1.8.2",
+  "serial": {
+    "device": "/dev/ttyS1",
+    "runtime_baud": 115200,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1,
+    "hardware_flow_control": false,
+    "software_flow_control": false
+  },
+  "screen_resource": {
+    "installed_path": "/root/800_480.tft.bak",
+    "size": 20540552,
+    "sha256": "a64a9c470b6bf8784272c0aba885ad567f1c5596aeb54ad9e8e0161a99b19397",
+    "ui_version": "V182"
+  },
+  "evidence": {
+    "source": "live read-only inspection",
+    "printer": "qidi1",
+    "observed_on": "2026-07-13",
+    "xindi_path": "/root/xindi/build/xindi",
+    "xindi_size": 14284000,
+    "uart_owner": "xindi"
+  },
+  "mappings": {
+    "pages": {},
+    "components": {},
+    "touch_events": {},
+    "moonraker_fields": {},
+    "actions": {},
+    "multi_color_controller": {}
+  },
+  "unknowns": [
+    "Page and component identifiers",
+    "QIDI-specific inbound message formats",
+    "Screen property names updated by xindi",
+    "QIDI Box page and slot event mapping",
+    "multi_color_controller to screen field transformation"
+  ]
+}

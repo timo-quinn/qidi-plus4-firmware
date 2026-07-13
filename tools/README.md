@@ -11,6 +11,9 @@
 - `Generate-QidiCythonBaseline.py` creates Cython C templates from the published
   Python baseline.
 - [`ghidra/`](ghidra/) contains the Java scripts used by headless Ghidra.
+- [`migration/`](migration/) contains the official Armbian image helper,
+  reproducible MCU builder, upstream host bootstrap, SSH orchestrator, and
+  guarded remote flashing helper.
 
 Run tools from the repository root so the commands documented under
 [`../docs/`](../docs/) use the expected relative paths.

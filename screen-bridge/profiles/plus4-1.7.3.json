@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "profile_id": "qidi-plus4-stock-1.7.3",
+  "printer_model": "QIDI Plus4",
+  "firmware_release": "1.7.3",
+  "serial": {
+    "device": "/dev/ttyS1",
+    "runtime_baud": null
+  },
+  "mappings": {
+    "pages": {},
+    "components": {},
+    "touch_events": {},
+    "moonraker_fields": {},
+    "actions": {}
+  },
+  "unknowns": [
+    "Runtime UART baud and termios settings",
+    "Touchscreen resource build/version identifier",
+    "Page and component identifiers",
+    "QIDI-specific inbound message formats",
+    "Screen property names updated by xindi"
+  ]
+}
