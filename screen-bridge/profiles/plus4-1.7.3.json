@@ -5,7 +5,27 @@
   "firmware_release": "1.7.3",
   "serial": {
     "device": "/dev/ttyS1",
-    "runtime_baud": null
+    "runtime_baud": 115200,
+    "data_bits": 8,
+    "parity": "none",
+    "stop_bits": 1,
+    "hardware_flow_control": false,
+    "software_flow_control": false
+  },
+  "screen_resource": {
+    "installed_path": "/root/800_480.tft.bak",
+    "size": 20480808,
+    "sha256": "3374f5eb770696f6c3458d0dc53de4e3ca419ec10114744d2dcbdf708793dc25",
+    "ui_version": "V173"
+  },
+  "evidence": {
+    "source": "live read-only inspection",
+    "printer": "qidi2",
+    "observed_on": "2026-07-13",
+    "xindi_path": "/root/xindi/build/xindi",
+    "xindi_size": 12465248,
+    "xindi_sha256": "e65dfa302f964a8d28efcee05c71d036199247f7755a59975171f11229c214fd",
+    "uart_owner": "xindi"
   },
   "mappings": {
     "pages": {},
@@ -15,8 +35,6 @@
     "actions": {}
   },
   "unknowns": [
-    "Runtime UART baud and termios settings",
-    "Touchscreen resource build/version identifier",
     "Page and component identifiers",
     "QIDI-specific inbound message formats",
     "Screen property names updated by xindi"

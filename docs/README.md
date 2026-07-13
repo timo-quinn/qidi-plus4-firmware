@@ -4,6 +4,8 @@ Human-readable findings and practical integration guidance:
 
 - [FIRMWARE-CHANGES.md](FIRMWARE-CHANGES.md) compares firmware 1.7.3 and 1.8.2
   across Klipper, Moonraker, QIDI services, the touchscreen, and update payloads.
+- [FIRMWARE-LINEAGE.md](FIRMWARE-LINEAGE.md) extends that analysis backward
+  through the pristine factory 1.1.2 image.
 - [FIRMWARE-FLASHING.md](FIRMWARE-FLASHING.md) documents QIDI's update sources,
   package flow, and the known flashing paths for each controller.
 - [MAINLINE-MIGRATION.md](MAINLINE-MIGRATION.md) provides the guarded,
@@ -14,5 +16,7 @@ Human-readable findings and practical integration guidance:
   hardware interface and possible Happy Hare integration approaches.
 - [SCREEN-BRIDGE.md](SCREEN-BRIDGE.md) defines the evidence, capture plan,
   safety boundary, and staged independent replacement for QIDI's `xindi`.
+- [LIVE-HARDWARE-INVENTORY.md](LIVE-HARDWARE-INVENTORY.md) records the
+  sanitized runtime hardware, boot, MCU, USB, and service comparison.
 
 Generated evidence supporting these documents is under [`../analysis/`](../analysis/).

@@ -24,6 +24,7 @@
     "observed_on": "2026-07-13",
     "xindi_path": "/root/xindi/build/xindi",
     "xindi_size": 14284000,
+    "xindi_sha256": "492d57792b08ffba9b9f1567ca21a8999140f4dfab7d8a04f63ef62938de8efd",
     "uart_owner": "xindi"
   },
   "mappings": {

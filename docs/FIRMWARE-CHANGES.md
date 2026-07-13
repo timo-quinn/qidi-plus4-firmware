@@ -1,5 +1,9 @@
 # QIDI Plus4 firmware static analysis: 1.7.3 to 1.8.2
 
+> A pristine factory 1.1.2 image is now included in the broader
+> [three-way firmware lineage](FIRMWARE-LINEAGE.md). This document retains the
+> detailed 1.7.3-to-1.8.2 source/API analysis.
+
 This report compares freshly regenerated filesystem backups from:
 
 * QIDI Plus4 firmware 1.7.3 (`qidi2`);

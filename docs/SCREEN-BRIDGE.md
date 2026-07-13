@@ -40,15 +40,19 @@ confirmed:
 - `xindi` exclusively held `/dev/ttyS1` on file descriptor 12;
 - the active UART configuration was 115200 baud, raw 8N1, with hardware and
   software flow control disabled;
-- the UART is the RK3399 `ff120000.serial` 16550A controller;
+- the UART is the RK3328 `ff120000.serial` 16550A controller;
 - `/root/xindi/version` reported UI `V182` and SoC release `V1.8.2`;
 - `/root/800_480.tft.bak` was 20,540,552 bytes with SHA-256
   `a64a9c470b6bf8784272c0aba885ad567f1c5596aeb54ad9e8e0161a99b19397`;
 - printable `xindi` command templates include `sendme`, `page`, `click`, `ref`,
   and `vis`, consistent with the TJC/Nextion command family.
 
-These observations are recorded in the `plus4-1.8.2-box` profile. File
-descriptor numbers are process-instance details and must not be hard-coded.
+The connected 1.7.3 screen was subsequently confirmed to use the same 115200
+baud raw 8N1 settings. It reports UI `V173`; its 20,480,808-byte screen resource
+has SHA-256
+`3374f5eb770696f6c3458d0dc53de4e3ca419ec10114744d2dcbdf708793dc25`.
+These observations are recorded in both profiles. File descriptor numbers are
+process-instance details and must not be hard-coded.
 
 The inferred integration boundary is:
 
@@ -71,7 +75,6 @@ a control-path contract.
 
 Still unknown:
 
-- whether the 1.7.3 screen uses the same runtime termios configuration;
 - every page and component identifier;
 - names of screen properties written by `xindi`;
 - QIDI-specific event payloads and keyboard encoding;

@@ -24,11 +24,13 @@ source, and MCU flashing research. The companion configuration profiles live in
 ## Start here
 
 - [Firmware changes from 1.7.3 to 1.8.2](docs/FIRMWARE-CHANGES.md)
+- [Firmware lineage from factory 1.1.2 through 1.8.2](docs/FIRMWARE-LINEAGE.md)
 - [Mainline Klipper migration](docs/MAINLINE-MIGRATION.md)
 - [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
 - [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
 - [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)
 - [Stock touchscreen bridge research](docs/SCREEN-BRIDGE.md)
+- [Live hardware and runtime inventory](docs/LIVE-HARDWARE-INVENTORY.md)
 - [Compiled component reference](analysis/components/INDEX.md)
 - [Published-source lineage analysis](analysis/components/LINEAGE-ANALYSIS.md)
 

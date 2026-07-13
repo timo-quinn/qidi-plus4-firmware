@@ -1,0 +1,20 @@
+{
+  "1.1.2": {
+    "bytes": 9380776,
+    "filtered_strings": 3347,
+    "sha256": "B3C9BA5BAECED281ABB9B4AD6EB24EEC6346370D7F5B58FC950DA17670F75617",
+    "symbols": 574
+  },
+  "1.7.3": {
+    "bytes": 12465248,
+    "filtered_strings": 4665,
+    "sha256": "E65DFA302F964A8D28EFCEE05C71D036199247F7755A59975171F11229C214FD",
+    "symbols": 922
+  },
+  "1.8.2": {
+    "bytes": 14284000,
+    "filtered_strings": 6672,
+    "sha256": "492D57792B08FFBA9B9F1567CA21A8999140F4DFAB7D8A04F63EF62938DE8EFD",
+    "symbols": 1223
+  }
+}

@@ -1,0 +1,376 @@
+diff --git a/moonraker/components/authorization.py b/moonraker/components/authorization.py
+index bb3e3ef..d9ffda0 100644
+--- a/moonraker/components/authorization.py
++++ b/moonraker/components/authorization.py
+@@ -254,6 +254,11 @@ class Authorization:
+             "/access/user/password", RequestType.POST, self._handle_password_reset,
+             transports=TransportType.HTTP | TransportType.WEBSOCKET
+         )
++        # Custom endpoint: find a user by username and reset password (only suitable for ordinary user)
++        self.server.register_endpoint(
++            "/access/user/password_by_name", RequestType.POST, self._handle_password_reset_by_name,
++            transports=TransportType.HTTP | TransportType.WEBSOCKET
++        )
+         self.server.register_endpoint(
+             "/access/api_key", RequestType.GET | RequestType.POST,
+             self._handle_apikey_request,
+@@ -501,6 +506,29 @@ class Authorization:
+             'action': "user_password_reset"
+         }
+     
++    async def _handle_password_reset_by_name(self,
++                                     web_request: WebRequest
++                                     ) -> Dict[str, str]:
++        username: str = web_request.get_str('username')
++        new_pass: str = web_request.get_str('new_password')
++
++        user_info = self.users[username]
++        if user_info.source == "ldap":
++            raise self.server.error(
++                f"Can´t Reset password for ldap user {username}")
++        if username in RESERVED_USERS:
++            raise self.server.error(
++                f"Invalid Reset Request for user {username}")
++        salt = bytes.fromhex(user_info.salt)
++        new_hashed_pass = hashlib.pbkdf2_hmac(
++            'sha256', new_pass.encode(), salt, HASH_ITER).hex()
++        self.users[username].password = new_hashed_pass
++        await self._sync_user(username)
++        return {
++            'username': username,
++            'action': "user_password_reset_by_name"
++        }
++
+     async def _login_jwt_user(
+         self, web_request: WebRequest, create: bool = False
+     ) -> Dict[str, Any]:
+@@ -853,18 +881,22 @@ class Authorization:
+         if request.method == "OPTIONS":
+             return None
+         
+-        # Check JSON Web Token
+-        jwt_user = self._check_json_web_token(request, auth_required)
+-        if jwt_user is not None:
+-            return jwt_user
+-
++        # Allow local request
+         try:
+-            ip = ipaddress.ip_address(request.remote_ip)  # type: ignore
++            # logging.info(f"request.remote_ip: {request.remote_ip}, is_loopback: {ipaddress.ip_address(request.remote_ip).is_loopback}") # type: ignore
++            ip = ipaddress.ip_address(request.remote_ip) # type: ignore
++            if ip.is_loopback:
++                return None
+         except ValueError:
+             logging.exception(
+                 f"Unable to Create IP Address {request.remote_ip}")
+             ip = None
+ 
++        # Check JSON Web Token
++        jwt_user = self._check_json_web_token(request, auth_required)
++        if jwt_user is not None:
++            return jwt_user
++
+         # Check oneshot access token
+         ost: Optional[List[bytes]] = request.arguments.get('token', None)
+         if ost is not None:
+diff --git a/moonraker/components/file_manager/metadata.py b/moonraker/components/file_manager/metadata.py
+index 31c1e42..1a3dfa3 100644
+--- a/moonraker/components/file_manager/metadata.py
++++ b/moonraker/components/file_manager/metadata.py
+@@ -222,7 +222,7 @@ class BaseSlicer(object):
+                 return None
+         thumb_base = os.path.splitext(os.path.basename(self.path))[0]
+         parsed_matches: List[Dict[str, Any]] = []
+-        has_miniature: bool = False
++        #has_miniature: bool = False
+         for match in thumb_matches:
+             lines = re.split(r"\r?\n", match.replace('; ', ''))
+             info = regex_find_ints(r"(%D)", lines[0])
+@@ -239,40 +239,52 @@ class BaseSlicer(object):
+                 continue
+             thumb_name = f"{thumb_base}-{info[0]}x{info[1]}.png"
+             thumb_path = os.path.join(thumb_dir, thumb_name)
++            thumb_jpg_name = f"{thumb_base}-{info[0]}x{info[1]}.jpg"
++            thumb_jpg_path = os.path.join(thumb_dir, thumb_jpg_name)
+             rel_thumb_path = os.path.join(".thumbs", thumb_name)
+             with open(thumb_path, "wb") as f:
+                 f.write(base64.b64decode(data.encode()))
++            with Image.open(thumb_path) as img:
++                if img.mode != "RGBA":
++                    img = img.convert("RGBA")
++                new_img = Image.new("RGB", size=(info[0], info[1]), color=(255, 255, 255))
++                img = img.resize((info[0], info[1]))
++                new_img.paste(img, (0, 0), mask=img)
++                new_img.save(thumb_jpg_path, "JPEG", quality=90)
+             parsed_matches.append({
+                 'width': info[0], 'height': info[1],
+                 'size': os.path.getsize(thumb_path),
+                 'relative_path': rel_thumb_path})
+-            if info[0] == 32 and info[1] == 32:
+-                has_miniature = True
+-        if len(parsed_matches) > 0 and not has_miniature:
+-            # find the largest thumb index
+-            largest_match = parsed_matches[0]
+-            for item in parsed_matches:
+-                if item['size'] > largest_match['size']:
+-                    largest_match = item
+-            # Create miniature thumbnail if one does not exist
+-            thumb_full_name = largest_match['relative_path'].split("/")[-1]
+-            thumb_path = os.path.join(thumb_dir, f"{thumb_full_name}")
+-            rel_path_small = os.path.join(".thumbs", f"{thumb_base}-32x32.png")
+-            thumb_path_small = os.path.join(
+-                thumb_dir, f"{thumb_base}-32x32.png")
+-            # read file
+-            try:
+-                with Image.open(thumb_path) as im:
+-                    # Create 32x32 thumbnail
+-                    im.thumbnail((32, 32))
+-                    im.save(thumb_path_small, format="PNG")
+-                    parsed_matches.insert(0, {
+-                        'width': im.width, 'height': im.height,
+-                        'size': os.path.getsize(thumb_path_small),
+-                        'relative_path': rel_path_small
+-                    })
+-            except Exception as e:
++        # find the smallest thumb index
++        smallest_match = parsed_matches[0]
++        max_size = min_size = smallest_match['size']
++        for item in parsed_matches:
++            if item['size'] < smallest_match['size']:
++                smallest_match = item
++            if item["size"] < min_size:
++                min_size = item["size"]
++            if item["size"] > max_size:
++                max_size = item["size"]
++        # Create thumbnail for screen
++        thumb_full_name = smallest_match['relative_path'].split("/")[-1]
++        thumb_path = os.path.join(thumb_dir, f"{thumb_full_name}")
++        thumb_QD_full_name = f"{thumb_base}-{smallest_match['width']}x{smallest_match['height']}_QD.jpg"
++        thumb_QD_path = os.path.join(thumb_dir, f"{thumb_QD_full_name}")
++        rel_path_QD = os.path.join(".thumbs", thumb_QD_full_name)
++        try:
++            with Image.open(thumb_path) as img:
++                if img.mode != "RGBA":
++                    img = img.convert("RGBA")
++                new_img = Image.new("RGB", size=(smallest_match['width'], smallest_match['height']), color=(255, 255, 255))
++                img = img.resize((smallest_match['width'], smallest_match['height']))
++                new_img.paste(img, (0, 0), mask=img)
++                new_img.save(thumb_QD_path, "JPEG", quality=90)
++        except Exception as e:
+                 logger.info(str(e))
++        parsed_matches.append({
++            'width': smallest_match['width'], 'height': smallest_match['height'],
++            'size': (max_size + min_size) // 2,
++            'relative_path': rel_path_QD})
+         return parsed_matches
+ 
+     def parse_layer_count(self) -> Optional[int]:
+@@ -306,6 +318,8 @@ class UnknownSlicer(BaseSlicer):
+ class PrusaSlicer(BaseSlicer):
+     def check_identity(self, data: str) -> Optional[Dict[str, str]]:
+         aliases = {
++            'QIDIStudio': r"QIDIStudio\s(.*)",
++            'QIDISlicer': r"QIDISlicer\s(.*)\son",
+             'PrusaSlicer': r"PrusaSlicer\s(.*)\son",
+             'SuperSlicer': r"SuperSlicer\s(.*)\son",
+             'OrcaSlicer': r"OrcaSlicer\s(.*)\son",
+@@ -421,6 +435,35 @@ class PrusaSlicer(BaseSlicer):
+     def parse_layer_count(self) -> Optional[int]:
+         return regex_find_int(r"; total layers count = (%D)", self.footer_data)
+ 
++    def parse_gimage(self) -> Optional[str]:
++        return regex_find_string(
++            r";gimage:(.*)", self.footer_data)
++
++    def parse_simage(self) -> Optional[str]:
++        return regex_find_string(
++            r";simage:(.*)", self.footer_data)
++    
++    def parse_preset_colours(self) -> Optional[List[str]]:
++        colour_data = regex_find_string(r";\sfilament_colour\s=\s(%S)", self.footer_data)
++        if colour_data:
++            colours = [c.strip() for c in colour_data.split(";") if c.strip()]
++            return colours
++        return None
++    def parse_used_extruders(self) -> Optional[List[str]]:
++        extruder_str = regex_find_string(r";\sused_extruders\s=\s(%S)", self.footer_data)
++        if extruder_str:
++            try:
++                
++                extruder_list = extruder_str.split(";")
++                extruders = []
++                for e in extruder_list:
++                    if e.strip():  
++                        extruders.append(int(e.strip()))
++                return extruders
++            except ValueError:
++                return None
++        return None
++    
+ class Slic3rPE(PrusaSlicer):
+     def check_identity(self, data: str) -> Optional[Dict[str, str]]:
+         match = re.search(r"Slic3r\sPrusa\sEdition\s(.*)\son", data)
+@@ -555,6 +598,14 @@ class Cura(BaseSlicer):
+             return None
+         return thumbs
+ 
++    def parse_gimage(self) -> Optional[str]:
++        return regex_find_string(
++            r";gimage:(.*)", self.header_data)
++
++    def parse_simage(self) -> Optional[str]:
++        return regex_find_string(
++            r";simage:(.*)", self.header_data)
++
+ class Simplify3D(BaseSlicer):
+     def check_identity(self, data: str) -> Optional[Dict[str, str]]:
+         match = re.search(r"Simplify3D\(R\)\sVersion\s(.*)", data)
+@@ -926,6 +977,8 @@ SUPPORTED_SLICERS: List[Type[BaseSlicer]] = [
+     KISSlicer, IdeaMaker, IceSL, KiriMoto
+ ]
+ SUPPORTED_DATA = [
++    'gimage',
++    'simage',
+     'gcode_start_byte',
+     'gcode_end_byte',
+     'layer_count',
+@@ -941,6 +994,8 @@ SUPPORTED_DATA = [
+     'filament_type',
+     'filament_total',
+     'filament_weight_total',
++    'preset_colours',
++    'used_extruders',
+     'thumbnails']
+ 
+ def process_objects(file_path: str, slicer: BaseSlicer, name: str) -> bool:
+diff --git a/moonraker/components/klippy_apis.py b/moonraker/components/klippy_apis.py
+index 26c96e3..8d3855b 100644
+--- a/moonraker/components/klippy_apis.py
++++ b/moonraker/components/klippy_apis.py
+@@ -8,6 +8,9 @@ from __future__ import annotations
+ import logging
+ from ..utils import Sentinel
+ from ..common import WebRequest, APITransport, RequestType
++import os
++import shutil
++import json
+ 
+ # Annotation imports
+ from typing import (
+@@ -26,6 +29,7 @@ if TYPE_CHECKING:
+     from ..confighelper import ConfigHelper
+     from ..common import UserInfo
+     from .klippy_connection import KlippyConnection as Klippy
++    from .file_manager.file_manager import FileManager
+     Subscription = Dict[str, Optional[List[Any]]]
+     SubCallback = Callable[[Dict[str, Dict[str, Any]], float], Optional[Coroutine]]
+     _T = TypeVar("_T")
+@@ -44,6 +48,7 @@ class KlippyAPI(APITransport):
+     def __init__(self, config: ConfigHelper) -> None:
+         self.server = config.get_server()
+         self.klippy: Klippy = self.server.lookup_component("klippy_connection")
++        self.fm: FileManager = self.server.lookup_component("file_manager")
+         self.eventloop = self.server.get_event_loop()
+         app_args = self.server.get_app_args()
+         self.version = app_args.get('software_version')
+@@ -74,6 +79,15 @@ class KlippyAPI(APITransport):
+         self.server.register_event_handler(
+             "server:klippy_disconnect", self._on_klippy_disconnect
+         )
++        self.server.register_endpoint(
++            "/printer/list_endpoints", RequestType.GET, self.list_endpoints
++        )
++        self.server.register_endpoint(
++            "/printer/breakheater", RequestType.POST, self.breakheater
++        )
++        self.server.register_endpoint(
++            "/printer/breakmacro", RequestType.POST, self.breakmacro
++        )
+ 
+     def _on_klippy_disconnect(self) -> None:
+         self.host_subscription.clear()
+@@ -140,6 +154,20 @@ class KlippyAPI(APITransport):
+             filename = filename[1:]
+         # Escape existing double quotes in the file name
+         filename = filename.replace("\"", "\\\"")
++        homedir = os.path.expanduser("~")
++        if os.path.split(filename)[0].split(os.path.sep)[0] != ".cache":
++            base_path = os.path.join(homedir, "printer_data/gcodes")
++            target = os.path.join(".cache", os.path.basename(filename))
++            cache_path = os.path.join(base_path, ".cache")
++            if not os.path.exists(cache_path):
++                os.makedirs(cache_path)
++            shutil.rmtree(cache_path)
++            os.makedirs(cache_path)
++            metadata = self.fm.gcode_metadata.metadata.get(filename, None)
++            self.copy_file_to_cache(os.path.join(base_path, filename), os.path.join(base_path, target))
++            msg = "// metadata=" + json.dumps(metadata)
++            self.server.send_event("server:gcode_response", msg)
++            filename = target
+         script = f'SDCARD_PRINT_FILE FILENAME="{filename}"'
+         if wait_klippy_started:
+             await self.klippy.wait_started()
+@@ -169,9 +197,25 @@ class KlippyAPI(APITransport):
+     ) -> Union[_T, str]:
+         self.server.send_event("klippy_apis:cancel_requested")
+         logging.info("Requesting job cancel...")
++        await self._send_klippy_request(
++            "breakmacro", {}, default)
++        await self._send_klippy_request(
++            "breakheater", {}, default)
+         return await self._send_klippy_request(
+             "pause_resume/cancel", {}, default)
+     
++    async def breakheater(
++        self, default: Union[Sentinel, _T] = Sentinel.MISSING
++    ) -> Union[_T, str]:
++        return await self._send_klippy_request(
++            "breakheater", {}, default)
++    
++    async def breakmacro(
++        self, default: Union[Sentinel, _T] = Sentinel.MISSING
++    ) -> Union[_T, str]:
++        return await self._send_klippy_request(
++            "breakmacro", {}, default)
++
+     async def do_restart(
+         self, gc: str, wait_klippy_started: bool = False
+     ) -> str:
+@@ -295,5 +339,16 @@ class KlippyAPI(APITransport):
+             self.eventloop.register_callback(cb, status, eventtime)
+         self.server.send_event("server:status_update", status)
+ 
++    def copy_file_to_cache(self, origin, target):
++        stat = os.statvfs("/")
++        free_space = stat.f_frsize * stat.f_bfree
++        filesize = os.path.getsize(os.path.join(origin))
++        if (filesize < free_space):
++            shutil.copy(origin, target)
++        else:
++            msg = "!! Insufficient disk space, unable to read the file."
++            self.server.send_event("server:gcode_response", msg)
++            raise self.server.error("Insufficient disk space, unable to read the file.", 500)
++
+ def load_component(config: ConfigHelper) -> KlippyAPI:
+     return KlippyAPI(config)
+diff --git a/moonraker/components/machine.py b/moonraker/components/machine.py
+index 5bd2603..4556b4d 100644
+--- a/moonraker/components/machine.py
++++ b/moonraker/components/machine.py
+@@ -357,6 +357,16 @@ class Machine:
+             "moonraker": self.unit_name,
+             "klipper": kconn.unit_name
+         }
++        # Used for Qidi Slicer searching device
++        dev_name = web_request.get_str('dev_name',default=None)
++        if dev_name !=None:
++            Note=open('/dev_info.txt',mode='w')   
++            Note.write(dev_name)   
++            Note.close()
++        with open('/dev_info.txt', 'r') as f:         
++            content = f.read() 
++            f.close()
++        self.system_info["machine_name"] =  content          
+         return {"system_info": sys_info}
+ 
+     async def _set_sudo_password(

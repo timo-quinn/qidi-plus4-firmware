@@ -1,0 +1,331 @@
+{
+  "boot/Image": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "C6DCAE6707C9B67957A5F97374D09342DCE5FA1E6C0B4AE0DF19E22AD2F03009",
+      "size": 30327296
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "C6DCAE6707C9B67957A5F97374D09342DCE5FA1E6C0B4AE0DF19E22AD2F03009",
+      "size": 30327296
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "C6DCAE6707C9B67957A5F97374D09342DCE5FA1E6C0B4AE0DF19E22AD2F03009",
+      "size": 30327296
+    }
+  },
+  "boot/dtb/rockchip/rk3328-roc-cc.dtb": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "CDE8CB7B706B49489E4E912B073ACAF66FCD0984889991B997B795F75672B329",
+      "size": 64654
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "CDE8CB7B706B49489E4E912B073ACAF66FCD0984889991B997B795F75672B329",
+      "size": 64654
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "CDE8CB7B706B49489E4E912B073ACAF66FCD0984889991B997B795F75672B329",
+      "size": 64654
+    }
+  },
+  "boot/extlinux/extlinux.conf": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "140F355E122CB0B7BB65B649C082F5EC25EB93164D9C0EFFB4872AB9D03BA65E",
+      "size": 286
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "140F355E122CB0B7BB65B649C082F5EC25EB93164D9C0EFFB4872AB9D03BA65E",
+      "size": 286
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "140F355E122CB0B7BB65B649C082F5EC25EB93164D9C0EFFB4872AB9D03BA65E",
+      "size": 286
+    }
+  },
+  "boot/uInitrd": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "EA5FDDBFF9ED827593EBA84733FD2569D2E894D3761A03DABD8B5CACF55BF1A6",
+      "size": 12587104
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "EA5FDDBFF9ED827593EBA84733FD2569D2E894D3761A03DABD8B5CACF55BF1A6",
+      "size": 12587104
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "EA5FDDBFF9ED827593EBA84733FD2569D2E894D3761A03DABD8B5CACF55BF1A6",
+      "size": 12587104
+    }
+  },
+  "home/mks/gene4.py": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "678BA57BFDFAC8514D3C2608492E7812E8AA9EFB54505C6960007074354CC801",
+      "size": 2493
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "678BA57BFDFAC8514D3C2608492E7812E8AA9EFB54505C6960007074354CC801",
+      "size": 2493
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "678BA57BFDFAC8514D3C2608492E7812E8AA9EFB54505C6960007074354CC801",
+      "size": 2493
+    }
+  },
+  "home/mks/hid-flash": {
+    "1.1.2": null,
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "B53ABFDA5F9C295E2CE1CF59B1FD04DF7DEAC043810AA6AC77A3BF4857E55A7E",
+      "size": 53136
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "B53ABFDA5F9C295E2CE1CF59B1FD04DF7DEAC043810AA6AC77A3BF4857E55A7E",
+      "size": 53136
+    }
+  },
+  "home/mks/json_reader": {
+    "1.1.2": null,
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "E52B400F6175413F2371B2DAAFF7647194A24275A1AFD122B64A718C439E34BE",
+      "size": 588224
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "E52B400F6175413F2371B2DAAFF7647194A24275A1AFD122B64A718C439E34BE",
+      "size": 588224
+    }
+  },
+  "home/mks/klipper/klippy/klippy.py": {
+    "1.1.2": {
+      "mode": "0o644",
+      "sha256": "7A179CD5CB0DC1EE4C2878C3321648CB3E11C4E0C19AA68F74CFD68241BA323D",
+      "size": 16784
+    },
+    "1.7.3": {
+      "mode": "0o644",
+      "sha256": "9DA3907F0B07C5E7FD3B628870AD55097280A2E5006B8C6E8EE8CAC9119484CA",
+      "size": 17095
+    },
+    "1.8.2": {
+      "mode": "0o644",
+      "sha256": "9DA3907F0B07C5E7FD3B628870AD55097280A2E5006B8C6E8EE8CAC9119484CA",
+      "size": 17095
+    }
+  },
+  "home/mks/libColPic.so": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "3711DA614E19D8947828B8A118705B5315D65131C614CD942604F96D275DBC39",
+      "size": 12448
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "3711DA614E19D8947828B8A118705B5315D65131C614CD942604F96D275DBC39",
+      "size": 12448
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "3711DA614E19D8947828B8A118705B5315D65131C614CD942604F96D275DBC39",
+      "size": 12448
+    }
+  },
+  "home/mks/mcu_box_to_v1_1.1.1.bin": {
+    "1.1.2": null,
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "EB5C326E95B739B4C16BE957CEA18682F1B4EEE972CA47061077D28CF86EF362",
+      "size": 36280
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "EB5C326E95B739B4C16BE957CEA18682F1B4EEE972CA47061077D28CF86EF362",
+      "size": 36280
+    }
+  },
+  "home/mks/mcu_update_BOX_to_v1.sh": {
+    "1.1.2": null,
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "4AE5086954628F34582397D30870479E9039BC36AF2C0B3EA5B681F4DBD42380",
+      "size": 2344
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "4AE5086954628F34582397D30870479E9039BC36AF2C0B3EA5B681F4DBD42380",
+      "size": 2344
+    }
+  },
+  "home/mks/moonraker/moonraker/moonraker.py": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "C0111C255C60B3465798E4ABF70DE4492E1B16E016CEBFFE51C252A9CEC94116",
+      "size": 486
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "C0111C255C60B3465798E4ABF70DE4492E1B16E016CEBFFE51C252A9CEC94116",
+      "size": 486
+    },
+    "1.8.2": {
+      "mode": "0o644",
+      "sha256": "6D59328CA99DC3545737B239BA2CC805F987AA752A86ED75C93A1EE04CC4EB3D",
+      "size": 515
+    }
+  },
+  "home/mks/serial_com": {
+    "1.1.2": null,
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "4FF66C68F8FBE4C18D81D1E24983B0D8E5947F393D76022F4F3DE3BA0C70B323",
+      "size": 18752
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "4FF66C68F8FBE4C18D81D1E24983B0D8E5947F393D76022F4F3DE3BA0C70B323",
+      "size": 18752
+    }
+  },
+  "home/mks/serial_com_dict": {
+    "1.1.2": null,
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "B637412170BD90BE00D1FA1B8C1AC5BA2151D53BDEC650E6238187FAEA27619E",
+      "size": 18912
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "B637412170BD90BE00D1FA1B8C1AC5BA2151D53BDEC650E6238187FAEA27619E",
+      "size": 18912
+    }
+  },
+  "home/mks/tjc": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "7FA5BA0CD415A484C60CA937CB46FE182CB353EE01A565BCCDB3DB13A8F6B030",
+      "size": 10276
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "5BA0395CE5700AD19D254446B2AAF71F372FA6C45B7CC42766D416D280B46E64",
+      "size": 31384
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "C9B4A34439015447E5AC52EEF0DA52A33443133762C68850D10BC68134348750",
+      "size": 20396
+    }
+  },
+  "home/mks/zlib_decompress": {
+    "1.1.2": null,
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "FF061CFCAF67A5035478A29522D10D04A85B003B79D188931990F4458D7BE15C",
+      "size": 14024
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "FF061CFCAF67A5035478A29522D10D04A85B003B79D188931990F4458D7BE15C",
+      "size": 14024
+    }
+  },
+  "root/800_480.tft.bak": {
+    "1.1.2": {
+      "mode": "0o644",
+      "sha256": "7AB12A2B011498E53E6BCD6456F30674616CC08975CD97D5615140EABB4A733B",
+      "size": 28972292
+    },
+    "1.7.3": {
+      "mode": "0o644",
+      "sha256": "3374F5EB770696F6C3458D0DC53DE4E3CA419EC10114744D2DCBDF708793DC25",
+      "size": 20480808
+    },
+    "1.8.2": {
+      "mode": "0o644",
+      "sha256": "A64A9C470B6BF8784272C0ABA885AD567F1C5596AEB54AD9E8E0161A99B19397",
+      "size": 20540552
+    }
+  },
+  "root/hid-flash": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "22A3B082954567F9AB3168333AFBEB14FB8503C11ECEDAD6263D2DB70A3A2519",
+      "size": 44264
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "22A3B082954567F9AB3168333AFBEB14FB8503C11ECEDAD6263D2DB70A3A2519",
+      "size": 44264
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "22A3B082954567F9AB3168333AFBEB14FB8503C11ECEDAD6263D2DB70A3A2519",
+      "size": 44264
+    }
+  },
+  "root/uart": {
+    "1.1.2": {
+      "mode": "0o755",
+      "sha256": "C38D9420180E0D5775D6D7B4A1FC84A3F53D3233C91D60AADFFBCBCDE6721EF6",
+      "size": 35000
+    },
+    "1.7.3": {
+      "mode": "0o755",
+      "sha256": "C38D9420180E0D5775D6D7B4A1FC84A3F53D3233C91D60AADFFBCBCDE6721EF6",
+      "size": 35000
+    },
+    "1.8.2": {
+      "mode": "0o755",
+      "sha256": "C38D9420180E0D5775D6D7B4A1FC84A3F53D3233C91D60AADFFBCBCDE6721EF6",
+      "size": 35000
+    }
+  },
+  "root/xindi/build/xindi": {
+    "1.1.2": {
+      "mode": "0o700",
+      "sha256": "B3C9BA5BAECED281ABB9B4AD6EB24EEC6346370D7F5B58FC950DA17670F75617",
+      "size": 9380776
+    },
+    "1.7.3": {
+      "mode": "0o700",
+      "sha256": "E65DFA302F964A8D28EFCEE05C71D036199247F7755A59975171F11229C214FD",
+      "size": 12465248
+    },
+    "1.8.2": {
+      "mode": "0o700",
+      "sha256": "492D57792B08FFBA9B9F1567CA21A8999140F4DFAB7D8A04F63EF62938DE8EFD",
+      "size": 14284000
+    }
+  },
+  "root/xindi/version": {
+    "1.1.2": {
+      "mode": "0o700",
+      "sha256": "C2937962FE12955FA9EEDF50196ABE01F6116B0211D41CA9108E12FC34631606",
+      "size": 86
+    },
+    "1.7.3": {
+      "mode": "0o700",
+      "sha256": "5AE41981B90428E78139C604C71A9A35677C8AFA48C610956EB651231FFF5726",
+      "size": 86
+    },
+    "1.8.2": {
+      "mode": "0o700",
+      "sha256": "333CDA9A173302925ACF7EE6AB946B6873A265E391941163C6308D4DC9E4E94D",
+      "size": 86
+    }
+  }
+}

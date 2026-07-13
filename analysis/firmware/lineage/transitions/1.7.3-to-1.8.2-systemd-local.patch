@@ -1,0 +1,5 @@
+--- /dev/null
++++ b/1.8.2/systemd-local/systemd-timesyncd.service.d/override.conf
+@@ -0,0 +1,2 @@
++[Unit]
++ConditionFileIsExecutable=

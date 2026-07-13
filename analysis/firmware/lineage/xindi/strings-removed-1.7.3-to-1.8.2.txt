@@ -1,0 +1,36 @@
+.qidi3dprinter.com/#/?
+.qidi3dprinter.com/QD_Plus4
+/home/mks/printer_data/gcodes/sda1
+/home/mks/printer_data/gcodes/sda1/mks-super.sh
+/home/mks/printer_data/gcodes/sda1/mksclient.recovery
+/home/mks/printer_data/gcodes/sda1/mksscreen.recovery
+/home/mks/printer_data/gcodes/sda1/QD_factory_mode.txt
+/home/mks/printer_data/gcodes/sda1/QD_MCU/MCU
+/home/mks/printer_data/gcodes/sda1/QD_Update/
+/home/mks/printer_data/gcodes/sda1/QD_Update/config.mksini
+/home/mks/printer_data/gcodes/sda1/QD_Update/gcode_macro.cfg
+/home/mks/printer_data/gcodes/sda1/QD_Update/mks.deb
+/home/mks/printer_data/gcodes/sda1/QD_Update/MKS_THR.cfg
+/home/mks/printer_data/gcodes/sda1/QD_Update/printer.cfg
+/home/mks/printer_data/gcodes/sda1/QD_Update/QD_factory_mode.txt
+/home/mks/printer_data/gcodes/sda1/QD_Update/QD_Gcode
+?St23_Sp_counted_ptr_inplaceI4HttpSaIS0_ELN9__gnu_cxx12_Lock_policyE2EE
+bash -c 'cp /home/mks/printer_data/logs/*.log* /home/mks/printer_data/gcodes/sda1/QD_Log/'
+bash -c 'cp /root/QIDILink-client/*.log* /home/mks/printer_data/gcodes/sda1/QD_Log/'
+bash /home/mks/printer_data/gcodes/sda1/mks-super.sh
+cp -f /home/mks/gcode_files/sda1/QD_Update/QD_gcode/*.gcode /home/mks/gcode_files/
+cp /home/mks/printer_data/gcodes/sda1/mksscreen.recovery /root/800_480.tft; sync
+cp /home/mks/printer_data/gcodes/sda1/QD_MCU/MCU /root/klipper.bin;
+cp /home/mks/printer_data/gcodes/sda1/QD_Update/config.mksini /home/mks/printer_data/config/config.mksini; chmod 777 /home/mks/printer_data/config/config.mksini; sync
+cp /home/mks/printer_data/gcodes/sda1/QD_Update/gcode_macro.cfg /home/mks/printer_data/config/gcode_macro.cfg; chmod 777 /home/mks/printer_data/config/gcode_macro.cfg; sync
+cp /home/mks/printer_data/gcodes/sda1/QD_Update/MKS_THR.cfg /home/mks/printer_data/config/MKS_THR.cfg; chmod 777 /home/mks/printer_data/config/MKS_THR.cfg; sync
+cp /home/mks/printer_data/gcodes/sda1/QD_Update/printer.cfg /home/mks/printer_data/config/printer.cfg; chmod 777 /home/mks/printer_data/config/printer.cfg; sync
+cp /root/log/wpa_supplicant.log /home/mks/printer_data/gcodes/sda1/QD_Log/wpa_supplicant.log
+cp /root/QIDILink-client/frpc.json /home/mks/printer_data/gcodes/sda1/QD_Log/QIDILink-client.cfg
+dmesg > /home/mks/printer_data/gcodes/sda1/mks-dmesg.log; sync;
+dpkg -i --force-overwrite /home/mks/printer_data/gcodes/sda1/QD_Update/mks.deb;sync
+dpkg -i /home/mks/printer_data/gcodes/sda1/mksclient.recovery; sync
+find /home/mks/gcode_files/sda1/QD_Update/QD_gcode -name "*.gcode" -exec basename {} \; | xargs -I {} chmod 777 /home/mks/gcode_files/{}
+https://download_
+mkdir /home/mks/printer_data/gcodes/sda1/QD_Log
+service klipper stop; /root/hid-flash /root/klipper.bin ttyS0; systemctl start klipper; mv /home/mks/printer_data/gcodes/sda1/QD_MCU/MCU /home/mks/printer_data/gcodes/sda1/QD_MCU/MCU.bak

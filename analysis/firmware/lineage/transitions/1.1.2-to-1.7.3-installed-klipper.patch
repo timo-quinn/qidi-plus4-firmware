@@ -1,0 +1,572 @@
+--- /dev/null
++++ b/1.7.3/installed-klipper/klippy/extras/box_heater_fan.py
+@@ -0,0 +1,70 @@
++from . import fan
++
++PIN_MIN_TIME = 0.100
++
++class BoxHeaterFan:
++    def __init__(self, config):
++        self.printer = config.get_printer()
++        self.printer.register_event_handler("klippy:ready", self.handle_ready)
++        self.printer.register_event_handler("klippy:connect",
++                                            self.handle_connect)
++        self.stepper_names = config.getlist("stepper", None)
++        self.stepper_enable = self.printer.load_object(config, 'stepper_enable')
++        self.printer.load_object(config, 'heaters')
++        self.heater_temp = config.getfloat("heater_temp", 50.0)
++        self.heaters = []
++        self.fan = fan.Fan(config)
++        self.fan_speed = config.getfloat('fan_speed', default=1.,
++                                         minval=0., maxval=1.)
++        self.idle_speed = config.getfloat(
++            'idle_speed', default=self.fan_speed, minval=0., maxval=1.)
++        self.idle_timeout = config.getint("idle_timeout", default=30, minval=0)
++        self.heater_names = config.getlist("heater", ("extruder",))
++        self.last_on = self.idle_timeout
++        self.last_speed = 0.
++    def handle_connect(self):
++        # Heater lookup
++        pheaters = self.printer.lookup_object('heaters')
++        self.heaters = [pheaters.lookup_heater(n) for n in self.heater_names]
++        # Stepper lookup
++        all_steppers = self.stepper_enable.get_steppers()
++        if self.stepper_names is None:
++            self.stepper_names = all_steppers
++            return
++        if not all(x in all_steppers for x in self.stepper_names):
++            raise self.printer.config_error(
++                "One or more of these steppers are unknown: "
++                 "%s (valid steppers are: %s)"
++                % (self.stepper_names, ", ".join(all_steppers)))
++    def handle_ready(self):
++        reactor = self.printer.get_reactor()
++        reactor.register_timer(self.callback, reactor.monotonic()+PIN_MIN_TIME)
++    def get_status(self, eventtime):
++        return self.fan.get_status(eventtime)
++    def callback(self, eventtime):
++        speed = 0.
++        active = False
++        for name in self.stepper_names:
++            active |= self.stepper_enable.lookup_enable(name).is_motor_enabled()
++        for heater in self.heaters:
++            current_temp, target_temp = heater.get_temp(eventtime)
++            if target_temp or current_temp > self.heater_temp:
++                active = True
++        
++
++
++        if active:
++            self.last_on = 0
++            speed = self.fan_speed
++        elif self.last_on < self.idle_timeout:
++            speed = self.idle_speed
++            self.last_on += 1
++        if speed != self.last_speed:
++            self.last_speed = speed
++            curtime = self.printer.get_reactor().monotonic()
++            print_time = self.fan.get_mcu().estimated_print_time(curtime)
++            self.fan.set_speed(print_time + PIN_MIN_TIME, speed)
++        return eventtime + 1.
++
++def load_config_prefix(config):
++    return BoxHeaterFan(config)
+--- a/1.1.2/installed-klipper/klippy/extras/filament_motion_sensor.py
++++ b/1.7.3/installed-klipper/klippy/extras/filament_motion_sensor.py
+@@ -16,9 +16,21 @@
+         self.extruder_name = config.get('extruder')
+         self.detection_length = config.getfloat(
+                 'detection_length', 7., above=0.)
++        self.use_irq = config.getboolean('use_irq', False)
++        logging.info(f"motion use_irq?:{self.use_irq}")
++        self.debounce_us = 0
+         # Configure pins
+-        buttons = self.printer.load_object(config, 'buttons')
+-        buttons.register_buttons([switch_pin], self.encoder_event)
++        if self.use_irq:
++            logging.info(f"motion use_irq1?:{self.use_irq}")
++            self.debounce_us = config.getint('debounce_us', 0)          
++            irq_button = config.printer.load_object(config, "buttons_irq")
++            #irq_button.register_buttons([switch_pin], callback=self.encoder_event, self.debounce_us)
++            irq_button.register_buttons([switch_pin], callback=self.encoder_event, debounce_us = self.debounce_us)
++        else:
++            logging.info(f"motion use_irq2?:{self.use_irq}")
++            buttons = self.printer.load_object(config, 'buttons')
++            buttons.register_buttons([switch_pin], self.encoder_event)
++
+         # Get printer objects
+         self.reactor = self.printer.get_reactor()
+         self.runout_helper = filament_switch_sensor.RunoutHelper(config)
+@@ -27,6 +39,7 @@
+         self.estimated_print_time = None
+         # Initialise internal state
+         self.filament_runout_pos = None
++        self.button_state = 0
+         # Register commands and event handlers
+         self.printer.register_event_handler('klippy:ready',
+                 self._handle_ready)
+@@ -36,12 +49,46 @@
+                 self._handle_not_printing)
+         self.printer.register_event_handler('idle_timeout:idle',
+                 self._handle_not_printing)
++        self.gcode = self.printer.lookup_object('gcode')
++        # self.gcode.register_command(
++        #     'CLEAR_MOTION_DATA',
++        #     self.cmd_CLEAR_MOTION_DATA
++        # )
++        self.motion_name = config.get_name().split()[1]
++        self.gcode.register_mux_command('SET_MOTION_DETECTION', "NAME", self.motion_name, self.cmd_SET_MOTION_DETECTION)
++        self.gcode.register_mux_command('GET_MOTION_DETECTION', "NAME", self.motion_name, self.cmd_GET_MOTION_DETECTION)
++        self.gcode.register_mux_command('CLEAR_MOTION_DATA', "SENSOR", self.motion_name, self.cmd_CLEAR_MOTION_DATA)
++
+     def _update_filament_runout_pos(self, eventtime=None):
+         if eventtime is None:
+             eventtime = self.reactor.monotonic()
+         self.filament_runout_pos = (
+                 self._get_extruder_pos(eventtime) +
+                 self.detection_length)
++    def cmd_SET_MOTION_DETECTION(self, gcmd):
++        d_l = gcmd.get_float('LENGTH', 0.)
++        if d_l <= 0:
++            self.gcode.respond_info("The LENGTH value is error")
++        else:
++            self.detection_length = d_l
++            self._update_filament_runout_pos()
++            self.gcode.respond_info("the detection_length has changed successsful. The will restart after next restart.")
++    
++    def cmd_GET_MOTION_DETECTION(self, gcmd):
++        self.gcode.respond_info("the detection_length is: " + str(self.detection_length))
++
++    def cmd_CLEAR_MOTION_DATA(self, gcmd):
++        box_extras = self.printer.lookup_object('box_extras')
++        loaded_slot = box_extras.get_value_by_key("extrude_state",-2)
++        if loaded_slot == -2:
++            return
++        if loaded_slot >= 0:
++            box_stepper = self.printer.lookup_object('box_stepper slot' + str(loaded_slot))
++            if not box_stepper.r_endstop_state:
++                self._update_filament_runout_pos()
++                self.runout_helper.sensor_enabled = True
++            else:
++                self.gcode.respond_info("The filament has been exhausted, box_motion failed to enable.")
+     def _handle_ready(self):
+         self.extruder = self.printer.lookup_object(self.extruder_name)
+         self.estimated_print_time = (
+@@ -67,11 +114,14 @@
+                 extruder_pos < self.filament_runout_pos)
+         return eventtime + CHECK_RUNOUT_TIMEOUT
+     def encoder_event(self, eventtime, state):
++        #self.gcode.respond_info(f"motion state: {state} ")
+         if self.extruder is not None:
+             self._update_filament_runout_pos(eventtime)
++            self.button_state = state
+             # Check for filament insertion
+             # Filament is always assumed to be present on an encoder event
+             self.runout_helper.note_filament_present(True)
++            
+ 
+ def load_config_prefix(config):
+     return EncoderSensor(config)
+--- a/1.1.2/installed-klipper/klippy/extras/gcode_arcs.py
++++ b/1.7.3/installed-klipper/klippy/extras/gcode_arcs.py
+@@ -154,7 +154,8 @@
+             mm_of_travel = math.hypot(flat_mm, linear_travel)
+         else:
+             mm_of_travel = math.fabs(flat_mm)
+-        segments = max(1., math.floor(mm_of_travel / self.mm_per_arc_segment))
++        #segments = max(1., math.floor(mm_of_travel / self.mm_per_arc_segment))
++        segments = math.ceil(mm_of_travel / self.mm_per_arc_segment)
+ 
+         # Generate coordinates
+         theta_per_segment = angular_travel / segments
+--- a/1.1.2/installed-klipper/klippy/extras/heater_bed.py
++++ b/1.7.3/installed-klipper/klippy/extras/heater_bed.py
+@@ -15,6 +15,9 @@
+         gcode = self.printer.lookup_object('gcode')
+         gcode.register_command("M140", self.cmd_M140)
+         gcode.register_command("M190", self.cmd_M190)
++        gcode.register_command("CLOSE_BED_DEBUG", self.cmd_close_bed_debug)
++        self.heater_bed_state = 0
++        self.is_heater_bed = 1
+     def cmd_M140(self, gcmd, wait=False):
+         # Set Bed Temperature
+         temp = gcmd.get_float('S', 0.)
+@@ -23,6 +26,9 @@
+     def cmd_M190(self, gcmd):
+         # Set Bed Temperature and Wait
+         self.cmd_M140(gcmd, wait=True)
++    def cmd_close_bed_debug(self, gcmd):
++        is_close = gcmd.get_int('S', 1)
++        self.is_heater_bed = is_close
+ 
+ def load_config(config):
+     return PrinterHeaterBed(config)
+--- a/1.1.2/installed-klipper/klippy/extras/heaters.py
++++ b/1.7.3/installed-klipper/klippy/extras/heaters.py
+@@ -11,7 +11,7 @@
+ ######################################################################
+ 
+ KELVIN_TO_CELSIUS = -273.15
+-MAX_HEAT_TIME = 5.0
++MAX_HEAT_TIME = 10.0
+ AMBIENT_TEMP = 25.
+ PID_PARAM_BASE = 255.
+ 
+@@ -21,6 +21,10 @@
+         self.name = config.get_name().split()[-1]
+         # Setup sensor
+         self.sensor = sensor
++        self.target_min_temp = config.getfloat('target_min_temp', 0.)
++        self.target_max_temp = config.getfloat('target_max_temp', 999.)
++        self.heat_with_heater_bed = config.getboolean("heat_with_heater_bed", False)
++        self.heat_with_heater_bed_tem_add = config.getfloat('heat_with_heater_bed_tem_add', 0.)
+         self.min_temp = config.getfloat('min_temp', minval=KELVIN_TO_CELSIUS)
+         self.max_temp = config.getfloat('max_temp', above=self.min_temp)
+         self.sensor.setup_minmax(self.min_temp, self.max_temp)
+@@ -61,6 +65,7 @@
+         gcode.register_mux_command("SET_HEATER_TEMPERATURE", "HEATER",
+                                    self.name, self.cmd_SET_HEATER_TEMPERATURE,
+                                    desc=self.cmd_SET_HEATER_TEMPERATURE_help)
++        self.can_wait = True
+     def set_pwm(self, read_time, value):
+         if self.target_temp <= 0.:
+             value = 0.
+@@ -85,6 +90,16 @@
+             adj_time = min(time_diff * self.inv_smooth_time, 1.)
+             self.smoothed_temp += temp_diff * adj_time
+             self.can_extrude = (self.smoothed_temp >= self.min_extrude_temp)
++
++        toolhead = self.printer.lookup_object("toolhead")
++        curtime = self.printer.get_reactor().monotonic()
++        position_z = toolhead.get_position()[2]
++        if position_z > 270. and "xyz" in toolhead.get_status(curtime)["homed_axes"]:
++            heaters = self.printer.lookup_object("heaters")
++            heater = heaters.lookup_heater("chamber")
++            if heater.target_temp > 0.:
++                heaters.set_temperature(heater, 0.)
++
+         #logging.debug("temp: %.3f %f = %f", read_time, temp)
+     # External commands
+     def get_pwm_delay(self):
+@@ -139,7 +154,25 @@
+     def cmd_SET_HEATER_TEMPERATURE(self, gcmd):
+         temp = gcmd.get_float('TARGET', 0.)
+         pheaters = self.printer.lookup_object('heaters')
+-        pheaters.set_temperature(self, temp)
++        if self.name == "chamber" :
++            if temp and (temp < max(self.target_min_temp,self.min_temp) or temp > min(self.target_max_temp,self.max_temp)):
++                raise self.printer.command_error(
++                    "Requested temperature (%.1f) out of range (%.1f:%.1f)"
++                    % (temp, max(self.target_min_temp,self.min_temp),min(self.target_max_temp,self.max_temp)))
++            pheaters.set_temperature(self, temp)
++            if self.heat_with_heater_bed and temp > 0.:
++                heater_bed = pheaters.lookup_heater("heater_bed")
++                if heater_bed.target_temp < (temp+self.heat_with_heater_bed_tem_add):
++                    pheaters.set_temperature(heater_bed, (temp+self.heat_with_heater_bed_tem_add))
++                    msg = "The hotbed temperature is too low, and it will automatically heat up to " + str((temp+self.heat_with_heater_bed_tem_add))
++                    gcmd.respond_info(msg)
++        else:
++            wait = bool(gcmd.get_int('WAIT', 0))
++            if not self.can_wait:
++                wait = False
++            pheaters.set_temperature(self, temp, wait)
++    def set_can_wait(self, value):
++        self.can_wait = value
+ 
+ 
+ ######################################################################
+@@ -174,6 +207,7 @@
+ 
+ class ControlPID:
+     def __init__(self, heater, config):
++        self.printer = config.get_printer()
+         self.heater = heater
+         self.heater_max_power = heater.get_max_power()
+         self.Kp = config.getfloat('pid_Kp') / PID_PARAM_BASE
+@@ -188,6 +222,7 @@
+         self.prev_temp_deriv = 0.
+         self.prev_temp_integ = 0.
+     def temperature_update(self, read_time, temp, target_temp):
++        heater_bed = self.printer.lookup_object('heater_bed')
+         time_diff = read_time - self.prev_temp_time
+         # Calculate change of temperature
+         temp_diff = temp - self.prev_temp
+@@ -205,13 +240,24 @@
+         #logging.debug("pid: %f@%.3f -> diff=%f deriv=%f err=%f integ=%f co=%d",
+         #    temp, read_time, temp_diff, temp_deriv, temp_err, temp_integ, co)
+         bounded_co = max(0., min(self.heater_max_power, co))
+-        self.heater.set_pwm(read_time, bounded_co)
++        if self.heater.name == "chamber" and heater_bed.heater_bed_state != 2 and heater_bed.is_heater_bed == 1:
++            self.heater.set_pwm(read_time, 0.)
++        else:
++            self.heater.set_pwm(read_time, bounded_co)
+         # Store state for next measurement
+         self.prev_temp = temp
+         self.prev_temp_time = read_time
+         self.prev_temp_deriv = temp_deriv
+         if co == bounded_co:
+             self.prev_temp_integ = temp_integ
++        if self.heater.name == "heater_bed" :
++            if target_temp < 70:
++                heater_bed.heater_bed_state = 0
++            elif temp < target_temp - 2.:
++                heater_bed.heater_bed_state = 1
++            else:
++                heater_bed.heater_bed_state = 2
++
+     def check_busy(self, eventtime, smoothed_temp, target_temp):
+         temp_diff = target_temp - smoothed_temp
+         return (abs(temp_diff) > PID_SETTLE_DELTA
+@@ -268,6 +314,7 @@
+         self.sensor_factories[sensor_type] = sensor_factory
+     def setup_heater(self, config, gcode_id=None):
+         heater_name = config.get_name().split()[-1]
++        logging.info("EEEEEEE %s", heater_name)
+         if heater_name in self.heaters:
+             raise config.error("Heater %s already registered" % (heater_name,))
+         # Setup sensor
+--- a/1.1.2/installed-klipper/klippy/extras/probe.py
++++ b/1.7.3/installed-klipper/klippy/extras/probe.py
+@@ -483,13 +483,13 @@
+             pos = probe.run_probe(gcmd)
+             probe.probe_count += 1
+             gcode = self.printer.lookup_object('gcode')
+-            if probe.vibrate and probe.probe_count % probe.vibrate == 0:
+-                commands = [
+-                    'G90',
+-                    'G1 Z'+ str(self.horizontal_move_z) + ' F300',
+-                    'Z_VIBRATE'
+-                ]
+-                gcode._process_commands(commands, False)
++            #if probe.vibrate and probe.probe_count % probe.vibrate == 0:
++            #    commands = [
++            #        'G90',
++            #        'G1 Z'+ str(self.horizontal_move_z) + ' F300',
++            #        'Z_VIBRATE'
++            #    ]
++            #    gcode._process_commands(commands, False)
+             self.results.append(pos)
+         probe.multi_probe_end()
+     def _manual_probe_start(self):
+--- a/1.1.2/installed-klipper/klippy/extras/save_variables.py
++++ b/1.7.3/installed-klipper/klippy/extras/save_variables.py
+@@ -11,6 +11,28 @@
+         self.printer = config.get_printer()
+         self.filename = os.path.expanduser(config.get('filename'))
+         self.allVariables = {}
++        
++        self.default_values = {
++            'auto_reload_detect': 0, 'auto_read_rfid': 0, 'auto_init_detect': 0,
++            'box_count': 0, 'enable_box': 0,'load_retry_num': 0,
++            'slot_sync': "", 'retry_step': "", 'last_load_slot': ""
++        }
++        
++        for i in range(16):
++            self.default_values[f'filament_slot{i}'] = 0
++            self.default_values[f'color_slot{i}'] = 0
++            self.default_values[f'vendor_slot{i}'] = 0
++            self.default_values[f'slot{i}'] = 0
++            self.default_values[f'value_t{i}'] = ""
++            self.default_values[f'runout_{i}'] = 0
++        
++        self.default_values['filament_slot16'] = 0
++        self.default_values['color_slot16'] = 0
++        self.default_values['vendor_slot16'] = 0
++        
++        for key, value in self.default_values.items():
++            setattr(self, key, value)
++            
+         try:
+             if not os.path.exists(self.filename):
+                 open(self.filename, "w").close()
+@@ -20,6 +42,7 @@
+         gcode = self.printer.lookup_object('gcode')
+         gcode.register_command('SAVE_VARIABLE', self.cmd_SAVE_VARIABLE,
+                                desc=self.cmd_SAVE_VARIABLE_help)
++                               
+     def load_variable(self, section, option):
+         varfile = configparser.ConfigParser()
+         try:
+@@ -29,6 +52,7 @@
+             msg = "Unable to parse existing variable file"
+             logging.exception(msg)
+             raise self.printer.command_error(msg)
++            
+     def save_variable(self, section, option, value):
+         varfile = configparser.ConfigParser()
+         try:
+@@ -43,6 +67,7 @@
+             logging.exception(msg)
+             raise self.printer.command_error(msg)
+         self.loadVariables()
++        
+     def loadVariables(self):
+         allvars = {}
+         varfile = configparser.ConfigParser()
+@@ -56,7 +81,12 @@
+             logging.exception(msg)
+             raise self.printer.command_error(msg)
+         self.allVariables = allvars
++        
++        for key, default in self.default_values.items():
++            setattr(self, key, self.allVariables.get(key, default))
++            
+     cmd_SAVE_VARIABLE_help = "Save arbitrary variables to disk"
++    
+     def cmd_SAVE_VARIABLE(self, gcmd):
+         varname = gcmd.get('VARIABLE')
+         value = gcmd.get('VALUE')
+@@ -80,8 +110,14 @@
+             logging.exception(msg)
+             raise gcmd.error(msg)
+         self.loadVariables()
++        
+     def get_status(self, eventtime):
+-        return {'variables': self.allVariables}
++        status = {'variables': self.allVariables}
++        
++        for key in self.default_values.keys():
++            status[key] = getattr(self, key)
++            
++        return status
+ 
+ def load_config(config):
+     return SaveVariables(config)
+--- a/1.1.2/installed-klipper/klippy/extras/temperature_sensors.cfg
++++ b/1.7.3/installed-klipper/klippy/extras/temperature_sensors.cfg
+@@ -20,6 +20,9 @@
+ 
+ # Load "AHT10"
+ [aht10]
++
++# Load "AHT20_F"
++[aht20_f]
+ 
+ # Load "LM75" sensor
+ [lm75]
+--- a/1.1.2/installed-klipper/klippy/extras/verify_heater.py
++++ b/1.7.3/installed-klipper/klippy/extras/verify_heater.py
+@@ -22,6 +22,7 @@
+         self.hysteresis = config.getfloat('hysteresis', 5., minval=0.)
+         self.max_error = config.getfloat('max_error', 120., minval=0.)
+         self.heating_gain = config.getfloat('heating_gain', 2., above=0.)
++        self.position_z = config.getfloat('position_z', 9999., minval=0.)
+         default_gain_time = 20.
+         if self.heater_name == 'heater_bed':
+             default_gain_time = 60.
+@@ -31,6 +32,7 @@
+         self.last_target = self.goal_temp = self.error = 0.
+         self.goal_systime = self.printer.get_reactor().NEVER
+         self.check_timer = None
++        self.is_box_heater = config.getboolean('is_box_heater',False)
+     def handle_connect(self):
+         if self.printer.get_start_args().get('debugoutput') is not None:
+             # Disable verify_heater if outputting to a debug file
+@@ -45,6 +47,7 @@
+             reactor = self.printer.get_reactor()
+             reactor.update_timer(self.check_timer, reactor.NEVER)
+     def check_event(self, eventtime):
++        heater_bed = self.printer.lookup_object('heater_bed')
+         temp, target = self.heater.get_temp(eventtime)
+         if temp >= target - self.hysteresis or target <= 0.:
+             # Temperature near target - reset checks
+@@ -66,8 +69,21 @@
+                 self.goal_temp = temp + self.heating_gain
+                 self.goal_systime = eventtime + self.check_gain_time
+             elif self.error >= self.max_error:
+-                # Failure due to inability to maintain target temperature
+-                return self.heater_fault()
++                toolhead = self.printer.lookup_object('toolhead')
++                position_z = toolhead.get_position()[2]
++                logging.info("Check error: position_z is %f", position_z)
++                if position_z > self.position_z:
++                    self.error = 0.
++                else:
++                    # Failure due to inability to maintain target temperature
++                    if self.is_box_heater and target > 0:
++                        self.box_heater_fault()
++                        return eventtime + 1.
++                    else:
++                        return self.heater_fault()
++        elif heater_bed.heater_bed_state == 1 and self.heater_name == "chamber":
++            self.error = 0.
++            self.goal_temp = temp - self.heating_gain
+         elif temp >= self.goal_temp:
+             # Temperature approaching target - reset checks
+             self.starting_approach = False
+@@ -88,6 +104,16 @@
+         logging.error(msg)
+         self.printer.invoke_shutdown(msg + HINT_THERMAL)
+         return self.printer.get_reactor().NEVER
++    
++    def box_heater_fault(self):
++        msg = "Heater %s not heating at expected rate" % (self.heater_name,)
++        logging.error(msg)
++        self.printer.lookup_object('gcode').respond_info("Code:QDE_005_001; Message:"+ msg)
++        pheaters = self.printer.lookup_object('heaters')
++        heater = pheaters.lookup_heater(self.heater_name)
++        heater.set_temp(0)
++        self.last_target = 0
++        return
+ 
+ def load_config_prefix(config):
+     return HeaterCheck(config)
+--- a/1.1.2/installed-klipper/klippy/gcode.py
++++ b/1.7.3/installed-klipper/klippy/gcode.py
+@@ -358,7 +358,7 @@
+                 not gcmd.get_float('S', 1.) or self.is_fileinput)):
+             # Don't warn about requests to turn off fan when fan not present
+             return
+-        gcmd.respond_info('Unknown command:"%s"' % (cmd,))
++        #gcmd.respond_info('Unknown command:"%s"' % (cmd,))
+     def _cmd_mux(self, command, gcmd):
+         key, values = self.mux_commands[command]
+         if None in values:
+--- a/1.1.2/installed-klipper/klippy/klippy.py
++++ b/1.7.3/installed-klipper/klippy/klippy.py
+@@ -7,6 +7,8 @@
+ import sys, os, gc, optparse, logging, time, collections, importlib
+ import util, reactor, queuelogger, msgproto
+ import gcode, configfile, pins, mcu, toolhead, webhooks
++from extras import box_detect
++import pyudev, shutil, configparser
+ 
+ message_ready = "Printer is ready"
+ 
+@@ -112,9 +114,10 @@
+         module_name = module_parts[0]
+         py_name = os.path.join(os.path.dirname(__file__),
+                                'extras', module_name + '.py')
++        so_name = os.path.join(os.path.dirname(__file__), 'extras', module_name + '.so')
+         py_dirname = os.path.join(os.path.dirname(__file__),
+                                   'extras', module_name, '__init__.py')
+-        if not os.path.exists(py_name) and not os.path.exists(py_dirname):
++        if not os.path.exists(py_name) and not os.path.exists(so_name) and not os.path.exists(py_dirname):
+             if default is not configfile.sentinel:
+                 return default
+             raise self.config_error("Unable to load module '%s'" % (section,))
+@@ -139,6 +142,8 @@
+             m.add_printer_objects(config)
+         for section_config in config.get_prefix_sections(''):
+             self.load_object(config, section_config.get_name(), None)
++        for m in [box_detect]:
++            m.add_printer_objects(config)
+         for m in [toolhead]:
+             m.add_printer_objects(config)
+         # Validate that there are no undefined parameters in the config file
+@@ -172,6 +177,7 @@
+         return "\n".join(msg)
+     def _connect(self, eventtime):
+         try:
++            box_detect.monitor_serial_devices(self)
+             self._read_config()
+             self.send_event("klippy:mcu_identify")
+             for cb in self.event_handlers.get("klippy:connect", []):
+@@ -266,7 +272,6 @@
+             self.run_result = result
+         self.reactor.end()
+ 
+-
+ ######################################################################
+ # Startup
+ ######################################################################

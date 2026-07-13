@@ -1,0 +1,3638 @@
+diff --git a/moonraker/common.py b/moonraker/common.py
+index b467b98..c83d599 100644
+--- a/moonraker/common.py
++++ b/moonraker/common.py
+@@ -673,6 +673,40 @@ class WebRequest:
+         count: Optional[int] = None
+     ) -> Union[_T, List[str]]:
+         return self._parse_list(key, sep, str, count, default)
++    
++    def get_json_list(
++        self,
++        key: str,
++        default: Union[Sentinel, _T] = Sentinel.MISSING,
++        item_type: Optional[Type] = None
++    ) -> Union[List[Any], _T]:
++        """
++        专门用于解析 JSON 请求中的数组。如果提供了 item_type，会尝试将每个元素转换为该类型。
++        """
++        if key not in self.args:
++            if default is Sentinel.MISSING:
++                raise ServerError(f"No data for argument: {key}")
++            return default
++            
++        value = self.args[key]
++        if not isinstance(value, list):
++            if isinstance(value, str) and value.startswith('['):
++                try:
++                    import json
++                    value = json.loads(value)
++                except:
++                    raise ServerError(f"Argument '{key}' is not a valid JSON list string")
++            else:
++                raise ServerError(f"Argument '{key}' expected List, got {type(value).__name__}")
++        if item_type is not None:
++            try:
++                return [item_type(val) for val in value]
++            except (ValueError, TypeError):
++                raise ServerError(
++                    f"Unable to convert all items in '{key}' to {item_type.__name__}"
++                )
++        
++        return value
+ 
+ 
+ class JsonRPC:
+diff --git a/moonraker/components/announcements.py b/moonraker/components/announcements.py
+index 55c223e..9ddc9d3 100644
+--- a/moonraker/components/announcements.py
++++ b/moonraker/components/announcements.py
+@@ -422,9 +422,13 @@ class RssFeed:
+         self.etag: Optional[str] = None
+         self.dev_xml_path: Optional[pathlib.Path] = None
+         if dev_mode:
+-            res_dir = pathlib.Path(__file__).parent.parent.parent.resolve()
+-            res_path = res_dir.joinpath(".devel/announcement_xml")
+-            self.dev_xml_path = res_path.joinpath(self.xml_file)
++            data_path = pathlib.Path(self.server.get_app_arg("data_path"))
++            dev_folder = data_path.joinpath("development/announcements")
++            dev_folder.mkdir(parents=True, exist_ok=True)
++            self.dev_xml_path = dev_folder.joinpath(self.xml_file)
++            logging.info(
++                f"Announcement Feed {name}: Dev XML path set to {self.dev_xml_path}"
++            )
+ 
+     async def initialize(self) -> None:
+         self.etag = await self.database.get_item(
+diff --git a/moonraker/components/authorization.py b/moonraker/components/authorization.py
+index bb3e3ef..d9ffda0 100644
+--- a/moonraker/components/authorization.py
++++ b/moonraker/components/authorization.py
+@@ -254,6 +254,11 @@ class Authorization:
+             "/access/user/password", RequestType.POST, self._handle_password_reset,
+             transports=TransportType.HTTP | TransportType.WEBSOCKET
+         )
++        # Custom endpoint: find a user by username and reset password (only suitable for ordinary user)
++        self.server.register_endpoint(
++            "/access/user/password_by_name", RequestType.POST, self._handle_password_reset_by_name,
++            transports=TransportType.HTTP | TransportType.WEBSOCKET
++        )
+         self.server.register_endpoint(
+             "/access/api_key", RequestType.GET | RequestType.POST,
+             self._handle_apikey_request,
+@@ -500,6 +505,29 @@ class Authorization:
+             'username': username,
+             'action': "user_password_reset"
+         }
++    
++    async def _handle_password_reset_by_name(self,
++                                     web_request: WebRequest
++                                     ) -> Dict[str, str]:
++        username: str = web_request.get_str('username')
++        new_pass: str = web_request.get_str('new_password')
++
++        user_info = self.users[username]
++        if user_info.source == "ldap":
++            raise self.server.error(
++                f"Can´t Reset password for ldap user {username}")
++        if username in RESERVED_USERS:
++            raise self.server.error(
++                f"Invalid Reset Request for user {username}")
++        salt = bytes.fromhex(user_info.salt)
++        new_hashed_pass = hashlib.pbkdf2_hmac(
++            'sha256', new_pass.encode(), salt, HASH_ITER).hex()
++        self.users[username].password = new_hashed_pass
++        await self._sync_user(username)
++        return {
++            'username': username,
++            'action': "user_password_reset_by_name"
++        }
+ 
+     async def _login_jwt_user(
+         self, web_request: WebRequest, create: bool = False
+@@ -852,19 +880,23 @@ class Authorization:
+     ) -> Optional[UserInfo]:
+         if request.method == "OPTIONS":
+             return None
+-
+-        # Check JSON Web Token
+-        jwt_user = self._check_json_web_token(request, auth_required)
+-        if jwt_user is not None:
+-            return jwt_user
+-
++        
++        # Allow local request
+         try:
+-            ip = ipaddress.ip_address(request.remote_ip)  # type: ignore
++            # logging.info(f"request.remote_ip: {request.remote_ip}, is_loopback: {ipaddress.ip_address(request.remote_ip).is_loopback}") # type: ignore
++            ip = ipaddress.ip_address(request.remote_ip) # type: ignore
++            if ip.is_loopback:
++                return None
+         except ValueError:
+             logging.exception(
+                 f"Unable to Create IP Address {request.remote_ip}")
+             ip = None
+ 
++        # Check JSON Web Token
++        jwt_user = self._check_json_web_token(request, auth_required)
++        if jwt_user is not None:
++            return jwt_user
++
+         # Check oneshot access token
+         ost: Optional[List[bytes]] = request.arguments.get('token', None)
+         if ost is not None:
+diff --git a/moonraker/components/database.py b/moonraker/components/database.py
+index ced670e..a9fd2a0 100644
+--- a/moonraker/components/database.py
++++ b/moonraker/components/database.py
+@@ -20,6 +20,7 @@ import sqlite3
+ from ..utils import Sentinel, ServerError
+ from ..utils import json_wrapper as jsonw
+ from ..common import RequestType, SqlTableDefinition
++import copy
+ 
+ # Annotation imports
+ from typing import (
+@@ -51,12 +52,79 @@ if TYPE_CHECKING:
+ DATABASE_VERSION = 2
+ SQL_DB_FILENAME = "moonraker-sql.db"
+ NAMESPACE_TABLE = "namespace_store"
++CONFIG_TABLE = "config"
+ REGISTRATION_TABLE = "table_registry"
+ SCHEMA_TABLE = (
+     "sqlite_schema" if sqlite3.sqlite_version_info >= (3, 33, 0)
+     else "sqlite_master"
+ )
+ 
++PRINT_STATE_TEMPLATE = {
++    "extruder_target": "EXTRUDER_TEMP",
++    "heater_bed_target": "BED_TEMP",
++    "chamber_target": "CHAMBER_TEMP",
++    "cooling_fan_speed": "FAN_SPEED",
++    "auxiliary_cooling_fan_speed": "AUX_FAN_SPEED",
++    "chamber_circulation_fan_speed": "CHAMBER_FAN_SPEED",
++    "absolute_coord": "ABSOLUTE_COORD",
++    "absolute_extrude": "ABSOLUTE_EXTRUDE",
++    "base_position": "BASE_POSITION",
++    "gcode_position": "LAST_POSITION",
++    "homing_position": "HOME_POSITION",
++    "speed": "SPEED",
++    "speed_factor": "SPEED_FACTOR",
++    "extrude_factor": "EXTRUDE_FACTOR",
++    "file_position": "FILE_POSITION",
++    #"plate_index": "PLATE_INDEX",
++}
++
++def get_cpu_serial():
++    path = "/proc/device-tree/serial-number"
++    try:
++        with open(path, "rb") as f:
++            raw = f.read()
++            cleaned_bytes = raw.rstrip(b'\x00 \t\n\r')
++            serial = cleaned_bytes.decode('ascii').upper()   
++            return serial
++            
++    except Exception as e:
++        logging.error(f"读取 {path} 失败: {e}")
++    return "0000000000"
++    
++
++# 在定义配置字典前先拿到 SN
++_sn = get_cpu_serial()
++_alias_default = f"3DP-{_sn[:3]}-{_sn[-3:]}" 
++
++DEFAULT_CONFIGA_ITEM = {
++    "box.auto_read_rfid": "1",
++    "box.auto_refill": "1",
++    "box.self_test": "1",
++    "ai.noodle_detection": "0",
++    "ai.sensitivity": "HIGH",
++    "ai.spool_detection": "0",
++    "ai.foreign_object_detection": "0",
++    "ai.bed_detection": "0",
++    "printing.cache": "1",
++    "printing.polar_cooler": "1",
++    "general.video": "1",
++    "general.sound": "1",
++    "general.sleep_time": "5",
++    "general.chamber_light": "1",
++    "general.indicator_light": "1",
++    "general.language": "en_US",
++    "general.lan_mode": "0",
++    "general.startup_guide": "1",
++    "general.wlan": "1",
++    "user.nickname": "",
++    "user.avatarUrl": "",
++    "user.token": "",
++    "user.region": "NA",
++    "user.alias": _alias_default,
++    "mqtt.account": "",
++    "mqtt.password": ""
++}
++
+ RECORD_ENCODE_FUNCS: Dict[Type, Callable[..., bytes]] = {
+     int: lambda x: b"q" + struct.pack("q", x),
+     float: lambda x: b"d" + struct.pack("d", x),
+@@ -197,6 +265,7 @@ def generate_lmdb_entries(
+                     yield (ns, decoded_key, value)
+     lmdb_env.close()
+ 
++### 数据库请求包装类-service 和control
+ class MoonrakerDatabase:
+     def __init__(self, config: ConfigHelper) -> None:
+         self.server = config.get_server()
+@@ -241,6 +310,9 @@ class MoonrakerDatabase:
+         msg = f"Unsafe Shutdown Count: {self.unsafe_shutdowns}"
+         self.server.add_log_rollover_item("database", msg)
+         self.insert_item("database", "database_version", DATABASE_VERSION)
++        # config表默认值
++        self.config_items = copy.deepcopy(DEFAULT_CONFIGA_ITEM)
++        # 普通接口
+         self.server.register_endpoint(
+             "/server/database/list", RequestType.GET, self._handle_list_request
+         )
+@@ -257,6 +329,23 @@ class MoonrakerDatabase:
+         self.server.register_endpoint(
+             "/server/database/compact", RequestType.POST, self._handle_compact_request
+         )
++        # TODO：访问config接口
++        self.server.register_endpoint(
++            "/server/database/config/select", RequestType.POST, self._handle_config_select_request
++        )
++        self.server.register_endpoint(
++            "/server/database/config/select_all", RequestType.POST, self._handle_config_select_all_request
++        )
++        self.server.register_endpoint(
++            "/server/database/config/update", RequestType.POST, self._handle_config_update_request
++        )
++        self.server.register_endpoint(
++            "/server/database/config/delete", RequestType.DELETE, self._handle_config_delete_request
++        )
++        self.server.register_endpoint(
++            "/server/database/config/update_batch", RequestType.POST, self._handle_config_update_batch_request
++        )
++        # debug 接口
+         self.server.register_debug_endpoint(
+             "/debug/database/list", RequestType.GET, self._handle_list_request
+         )
+@@ -278,6 +367,8 @@ class MoonrakerDatabase:
+         await self.insert_item(
+             "database", "unsafe_shutdowns", self.unsafe_shutdowns + 1
+         )
++        
++        await self._init_config_items()
+ 
+     def get_database_path(self) -> str:
+         return str(self._sql_db)
+@@ -310,6 +401,18 @@ class MoonrakerDatabase:
+             db_path.mkdir()
+         return db_path
+ 
++    async def _init_config_items(self):
++        for key, value in self.config_items.items():
++            parts = key.split('.')
++            cur = await self.get_value_from_config(parts[0], parts[1])
++            item = dict(await cur.fetchone() or {})
++            logging.info(f"init item -> {item}")
++            if item:
++                self.config_items[key] = item['value']
++    
++    def get_status(self, eventtime=None) -> Dict:
++        return self.config_items
++
+     # *** Nested Database operations***
+     # The insert_item(), delete_item(), and get_item() methods may operate on
+     # nested objects within a namespace.  Each operation takes a key argument
+@@ -431,6 +534,28 @@ class MoonrakerDatabase:
+             self.db_provider.namespace_contains, namespace
+         )
+ 
++    # ***** Config table opertations *****
++    def get_value_from_config(self, section: str, key: str)-> Future[Dict[str, Any]]:
++        return self.db_provider.execute_db_function(
++            self.db_provider.get_value_from_config, section, key
++        )
++    def update_value_from_config(self, section: str, key: str, value)-> Future[bool]:
++        return self.db_provider.execute_db_function(
++            self.db_provider.update_value_from_config, section, key, value
++        )
++    def update_value_from_config_batch(self, records: List[Tuple[str, str, Any]])-> Future[bool]:
++        return self.db_provider.execute_db_function(
++            self.db_provider.update_value_from_config_batch, records
++        )
++    def delete_value_from_config(self, section: str, key: str | None)-> Future[bool]:
++        return self.db_provider.execute_db_function(
++            self.db_provider.delete_value_from_config, section, key
++        )
++    def get_all_by_section_from_config(self, section: str)-> Future[Dict[str, Any]]:
++        return self.db_provider.execute_db_function(
++            self.db_provider.get_all_by_section_from_config, section
++        )
++
+     # SQL direct query methods
+     def sql_execute(
+         self, sql: str, params: SqlParams = []
+@@ -734,7 +859,169 @@ class MoonrakerDatabase:
+         return {
+             "row": item
+         }
++    # config表的查询接口
++    async def _handle_config_select_request(self, web_request: WebRequest) -> Dict[str, Any]:
++        try:
++            section = web_request.get_str("section")
++            key = web_request.get_str("key")
++            default_value = web_request.get("default", None)
++            
++            cur = await self.get_value_from_config(section, key)
++            row = dict(await cur.fetchone() or {})
++            section_key = f"{section}.{key}"
++            
++            if not row and default_value is not None:
++                item = {section_key: default_value}
++                return {
++                    "status": "success",
++                    "result": item
++                }
++            elif row:
++                item = {section_key: row['value']}
++                return {
++                    "status": "success",
++                    "result": item
++                }
++            else:
++                return {
++                    "status": "error",
++                    "message": f"Config item '{section_key}' not found"
++                }
++        except Exception as e:
++            logging.exception(f"Error selecting config item: {e}")
++            return {
++                "status": "error",
++                "message": f"Failed to select config item: {str(e)}"
++            }
++    
++    async def _handle_config_select_all_request(self, web_request: WebRequest) -> Dict[str, Any]:
++        return self.get_config_items()
++
++    async def _handle_config_update_request(self, web_request: WebRequest) -> Dict[str, Any]:
++        try:
++            section = web_request.get_str("section")
++            key = web_request.get_str("key")
++            value = web_request.get("value")
++            
++            await self.update_value_from_config(section, key, value)
++            local_str = f"{section}.{key}"
++            logging.info(f"local_str: {local_str}")
++            if local_str in self.config_items.keys():
++                self.config_items[local_str] = value
++                if local_str == "user.token":
++                    self.server.send_event("account:user_login_status", len(self.config_items[local_str]) > 0)
++                
++                if local_str == "user.password":
++                    self.server.send_event("account:user_account_password")
++
++            section_key = f"{section}.{key}"
++            item = {section_key: value}
++            return {
++                "status": "success",
++                "result": item
++            }
++        except Exception as e:
++            logging.exception(f"Error updating config item: {e}")
++            return {
++                "status": "error",
++                "message": f"Failed to update config item: {str(e)}"
++            }
++
++    async def _handle_config_delete_request(self, web_request: WebRequest) -> Dict[str, Any]:
++        try:
++            section = web_request.get_str("section")
++            key = web_request.get_str("key", None)
++            
++            await self.delete_value_from_config(section, key)
++            if key:
++                local_str = f"{section}.{key}"
++                if local_str in self.config_items.keys():
++                    self.config_items[local_str] = DEFAULT_CONFIGA_ITEM[local_str]
++                    if local_str == "user.token":
++                        self.server.send_event("account:user_login_status", len(self.config_items[local_str]) > 0)
++
++                    if local_str == "user.region":
++                        self.server.send_event("account:user_region", len(self.config_items[local_str]) > 0)
++
++                return {
++                    "status": "success",
++                    "message": f"Config item '{section}.{key}' deleted successfully"
++                }
++            else:
++                keys_to_reset = []
++                for key_local, value in self.config_items.items():
++                    if key_local.startswith(f"{section}."):
++                        keys_to_reset.append(key_local)
++                
++                for reset_keys in keys_to_reset:
++                    self.config_items[reset_keys] = DEFAULT_CONFIGA_ITEM[reset_keys]
++                    if reset_keys == "user.token":
++                        self.server.send_event("account:user_login_status", len(self.config_items[local_str]) > 0)
++
++                    if reset_keys == "user.region":
++                        self.server.send_event("account:user_region", len(self.config_items[local_str]) > 0)
++
++                return {
++                    "status": "success",
++                    "message": f"Config item '{section}' deleted successfully"
++                }
++
++        except Exception as e:
++            logging.exception(f"Error deleting config item: {e}")
++            return {
++                "status": "error",
++                "message": f"Failed to delete config item: {str(e)}"
++            }
++
++    async def _handle_config_update_batch_request(self, web_request: WebRequest) -> Dict[str, Any]: 
++        try:
++            # 1. 解析原始数据
++            items = web_request.get_json_list("items", default=[])
++            
++            valid_records = []
++            result_details = []
++
++            # 2. 数据清洗与转换
++            for item in items:
++                if not isinstance(item, dict):
++                    continue
++                
++                section = item.get("section", "").strip()
++                key = item.get("key", "").strip()
++                value = item.get("value") # value 允许为空或 None，取决于业务需求
++
++                # 3. 剔除空 key 或空 section
++                if not section or not key:
++                    logging.warning(f"Skipping invalid config item: {item}")
++                    continue
++
++                # 构造数据库所需的元组列表
++                valid_records.append((section, key, value))
++                result_details.append({f"{section}.{key}": value})
++
++            # 4. 如果有有效记录，执行批量插入
++            if valid_records:
++                await self.update_value_from_config_batch(valid_records)
++                for s, k, v in valid_records:
++                    local_str = f"{s}.{k}"
++                    if local_str in self.config_items:
++                        self.config_items[local_str] = v
+ 
++            # 5. 返回处理结果
++            return {
++                "status": "success",
++                "count": len(valid_records),
++                "result": result_details
++            }
++
++        except Exception as e:
++            logging.exception(f"Error updating config item: {e}")
++            return {
++                "status": "error",
++                "message": f"Failed to update config item: {str(e)}"
++            }
++
++### map类-查询数据的sql语句
+ class SqliteProvider(Thread):
+     def __init__(self, config: ConfigHelper, db_path: pathlib.Path) -> None:
+         super().__init__()
+@@ -819,6 +1106,8 @@ class SqliteProvider(Thread):
+             self._migrate_from_lmdb()
+         elif REGISTRATION_TABLE not in self._tables:
+             self._create_registration_table()
++        if CONFIG_TABLE not in self._tables:      #创建默认config表
++            self._create_config_tables()
+         # Find namespaces
+         cur = self.sync_conn.execute(
+             f"SELECT DISTINCT namespace FROM {NAMESPACE_TABLE}"
+@@ -875,6 +1164,22 @@ class SqliteProvider(Thread):
+             self.sync_conn.execute(f"CREATE TABLE {reg_tbl_proto}")
+         self._tables.add(REGISTRATION_TABLE)
+ 
++    def _create_config_tables(self) -> None:
++        reg_tbl_proto = inspect.cleandoc(
++            f"""
++            {CONFIG_TABLE} (
++                id INTEGER PRIMARY KEY AUTOINCREMENT,
++                section TEXT NOT NULL,
++                key TEXT NOT NULL,
++                value TEXT,
++                UNIQUE(section, key)
++            )
++            """
++        )
++        with self.sync_conn:
++            self.sync_conn.execute(f"CREATE TABLE {reg_tbl_proto}")
++        self._tables.add(CONFIG_TABLE)
++
+     def _save_registered_table(
+         self, table_name: str, prototype: str, version: int
+     ) -> None:
+@@ -1248,6 +1553,79 @@ class SqliteProvider(Thread):
+         cur.arraysize = 200
+         return dict(cur.fetchall())
+ 
++    # config Query Ops
++    def get_value_from_config(
++        self,
++        conn: sqlite3.Connection,
++        section: str,
++        key: str
++    ) -> SqliteCursorProxy:
++        cur = conn.execute(            
++            f"SELECT value FROM {CONFIG_TABLE} WHERE section = ? AND key = ?",
++            (section, key, )
++        )
++        cur.arraysize = 100
++        return SqliteCursorProxy(self, cur)
++    
++    def update_value_from_config(
++        self,
++        conn: sqlite3.Connection,
++        section: str,
++        key: str,
++        value,
++    ) -> None:
++        with conn:
++            conn.execute(            
++                f"INSERT OR REPLACE INTO {CONFIG_TABLE} (section, key, value) VALUES (?, ?, ?)",
++                (section, key, value)
++            )
++    
++    def update_value_from_config_batch(
++        self,
++        conn: sqlite3.Connection,
++        records: List[Tuple[str, str, Any]] # 格式: [('user', 'token', 'abc'), ('system', 'ip', '1.1.1.1')]
++    ) -> None:
++        def generate_params():
++            for section, key, val in records:
++            # 在这里可以统一处理编码逻辑，比如 json.dumps(val)
++                yield (section, key, val)
++        with conn:
++            conn.executemany(
++                f"INSERT INTO {CONFIG_TABLE} (section, key, value) VALUES(?, ?, ?) "
++                "ON CONFLICT(section, key) DO UPDATE SET value=excluded.value",
++                generate_params()
++            )
++
++    def delete_value_from_config(
++        self,
++        conn: sqlite3.Connection,
++        section: str,
++        key: str | None
++    ) -> None:
++        with conn:
++            if key == None:
++                conn.execute(            
++                    f"DELETE FROM {CONFIG_TABLE} WHERE section = ?",
++                    (section, )
++                )
++            else:
++                conn.execute(            
++                    f"DELETE FROM {CONFIG_TABLE} WHERE section = ? AND key = ?",
++                    (section, key,)
++                )
++
++    def get_all_by_section_from_config(
++        self,
++        conn: sqlite3.Connection,
++        section: str
++    ) -> SqliteCursorProxy:
++        cur = conn.execute(            
++            f"SELECT key, value FROM {CONFIG_TABLE} WHERE section = ?",
++            (section, )
++        )
++        cur.arraysize = 100
++        return SqliteCursorProxy(self, cur)
++
+     # SQL Direct Manipulation
+     def sql_execute(
+         self,
+diff --git a/moonraker/components/extensions.py b/moonraker/components/extensions.py
+deleted file mode 100644
+index cd74a9a..0000000
+--- a/moonraker/components/extensions.py
++++ /dev/null
+@@ -1,257 +0,0 @@
+-# Moonraker extension management
+-#
+-# Copyright (C) 2022 Eric Callahan <arksine.code@gmail.com>
+-#
+-# This file may be distributed under the terms of the GNU GPLv3 license.
+-from __future__ import annotations
+-import asyncio
+-import pathlib
+-import logging
+-from ..common import BaseRemoteConnection, RequestType, TransportType
+-from ..utils import get_unix_peer_credentials
+-
+-# Annotation imports
+-from typing import (
+-    TYPE_CHECKING,
+-    Any,
+-    Dict,
+-    List,
+-    Optional,
+-    Union,
+-)
+-
+-if TYPE_CHECKING:
+-    from ..server import Server
+-    from ..confighelper import ConfigHelper
+-    from ..common import WebRequest
+-    from .klippy_connection import KlippyConnection as Klippy
+-
+-UNIX_BUFFER_LIMIT = 20 * 1024 * 1024
+-
+-class ExtensionManager:
+-    def __init__(self, config: ConfigHelper) -> None:
+-        self.server = config.get_server()
+-        self.agents: Dict[str, BaseRemoteConnection] = {}
+-        self.agent_methods: Dict[int, List[str]] = {}
+-        self.uds_server: Optional[asyncio.AbstractServer] = None
+-        self.server.register_endpoint(
+-            "/connection/register_remote_method", RequestType.POST,
+-            self._register_agent_method,
+-            transports=TransportType.WEBSOCKET
+-        )
+-        self.server.register_endpoint(
+-            "/connection/send_event", RequestType.POST, self._handle_agent_event,
+-            transports=TransportType.WEBSOCKET
+-        )
+-        self.server.register_endpoint(
+-            "/server/extensions/list", RequestType.GET, self._handle_list_extensions
+-        )
+-        self.server.register_endpoint(
+-            "/server/extensions/request", RequestType.POST, self._handle_call_agent
+-        )
+-
+-    def register_agent(self, connection: BaseRemoteConnection) -> None:
+-        data = connection.client_data
+-        name = data["name"]
+-        client_type = data["type"]
+-        if client_type != "agent":
+-            raise self.server.error(
+-                f"Cannot register client type '{client_type}' as an agent"
+-            )
+-        if name in self.agents:
+-            raise self.server.error(
+-                f"Agent '{name}' already registered and connected'"
+-            )
+-        self.agents[name] = connection
+-        data = connection.client_data
+-        evt: Dict[str, Any] = {
+-            "agent": name, "event": "connected", "data": data
+-        }
+-        connection.send_notification("agent_event", [evt])
+-
+-    def remove_agent(self, connection: BaseRemoteConnection) -> None:
+-        name = connection.client_data["name"]
+-        if name in self.agents:
+-            klippy: Klippy = self.server.lookup_component("klippy_connection")
+-            registered_methods = self.agent_methods.pop(connection.uid, [])
+-            for method in registered_methods:
+-                klippy.unregister_method(method)
+-            del self.agents[name]
+-            evt: Dict[str, Any] = {"agent": name, "event": "disconnected"}
+-            connection.send_notification("agent_event", [evt])
+-
+-    async def _handle_agent_event(self, web_request: WebRequest) -> str:
+-        conn = web_request.get_client_connection()
+-        if conn is None:
+-            raise self.server.error("No connection detected")
+-        if conn.client_data["type"] != "agent":
+-            raise self.server.error(
+-                "Only connections of the 'agent' type can send events"
+-            )
+-        name = conn.client_data["name"]
+-        evt_name = web_request.get_str("event")
+-        if evt_name in ["connected", "disconnected"]:
+-            raise self.server.error(f"Event '{evt_name}' is reserved")
+-        data: Optional[Union[List, Dict[str, Any]]]
+-        data = web_request.get("data", None)
+-        evt: Dict[str, Any] = {"agent": name, "event": evt_name}
+-        if data is not None:
+-            evt["data"] = data
+-        conn.send_notification("agent_event", [evt])
+-        return "ok"
+-
+-    async def _register_agent_method(self, web_request: WebRequest) -> str:
+-        conn = web_request.get_client_connection()
+-        if conn is None:
+-            raise self.server.error("No connection detected")
+-        method_name = web_request.get_str("method_name")
+-        klippy: Klippy = self.server.lookup_component("klippy_connection")
+-        klippy.register_method_from_agent(conn, method_name)
+-        self.agent_methods.setdefault(conn.uid, []).append(method_name)
+-        return "ok"
+-
+-    async def _handle_list_extensions(
+-        self, web_request: WebRequest
+-    ) -> Dict[str, List[Dict[str, Any]]]:
+-        agents: List[Dict[str, Any]]
+-        agents = [agt.client_data for agt in self.agents.values()]
+-        return {"agents": agents}
+-
+-    async def _handle_call_agent(self, web_request: WebRequest) -> Any:
+-        agent = web_request.get_str("agent")
+-        method: str = web_request.get_str("method")
+-        args: Optional[Union[List, Dict[str, Any]]]
+-        args = web_request.get("arguments", None)
+-        if args is not None and not isinstance(args, (list, dict)):
+-            raise self.server.error(
+-                "The 'arguments' field must contain an object or a list"
+-            )
+-        if agent not in self.agents:
+-            raise self.server.error(f"Agent {agent} not connected")
+-        conn = self.agents[agent]
+-        return await conn.call_method_with_response(method, args)
+-
+-    async def start_unix_server(self) -> None:
+-        sockfile: str = self.server.get_app_args()["unix_socket_path"]
+-        sock_path = pathlib.Path(sockfile).expanduser().resolve()
+-        logging.info(f"Creating Unix Domain Socket at '{sock_path}'")
+-        try:
+-            self.uds_server = await asyncio.start_unix_server(
+-                self.on_unix_socket_connected, sock_path, limit=UNIX_BUFFER_LIMIT
+-            )
+-        except asyncio.CancelledError:
+-            raise
+-        except Exception:
+-            logging.exception(f"Failed to create Unix Domain Socket: {sock_path}")
+-            self.uds_server = None
+-
+-    def on_unix_socket_connected(
+-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+-    ) -> None:
+-        peercred = get_unix_peer_credentials(writer, "Unix Client Connection")
+-        UnixSocketClient(self.server, reader, writer, peercred)
+-
+-    async def close(self) -> None:
+-        if self.uds_server is not None:
+-            self.uds_server.close()
+-            await self.uds_server.wait_closed()
+-            self.uds_server = None
+-
+-class UnixSocketClient(BaseRemoteConnection):
+-    def __init__(
+-        self,
+-        server: Server,
+-        reader: asyncio.StreamReader,
+-        writer: asyncio.StreamWriter,
+-        peercred: Dict[str, int]
+-    ) -> None:
+-        self.on_create(server)
+-        self.writer = writer
+-        self._peer_cred = peercred
+-        self._connected_time = self.eventloop.get_loop_time()
+-        pid = self._peer_cred.get("process_id")
+-        uid = self._peer_cred.get("user_id")
+-        gid = self._peer_cred.get("group_id")
+-        self.wsm.add_client(self)
+-        logging.info(
+-            f"Unix Socket Opened - Client ID: {self.uid}, "
+-            f"Process ID: {pid}, User ID: {uid},  Group ID: {gid}"
+-        )
+-        self.eventloop.register_callback(self._read_messages, reader)
+-
+-    async def _read_messages(self, reader: asyncio.StreamReader) -> None:
+-        errors_remaining: int = 10
+-        while not reader.at_eof():
+-            try:
+-                data = await reader.readuntil(b'\x03')
+-                decoded = data[:-1].decode(encoding="utf-8")
+-            except (ConnectionError, asyncio.IncompleteReadError):
+-                break
+-            except asyncio.CancelledError:
+-                logging.exception("Unix Client Stream Read Cancelled")
+-                raise
+-            except Exception:
+-                logging.exception("Unix Client Stream Read Error")
+-                errors_remaining -= 1
+-                if not errors_remaining or self.is_closed:
+-                    break
+-                continue
+-            errors_remaining = 10
+-            self.eventloop.register_callback(self._process_message, decoded)
+-        logging.debug("Unix Socket Disconnection From _read_messages()")
+-        await self._on_close(reason="Read Exit")
+-
+-    async def write_to_socket(self, message: Union[bytes, str]) -> None:
+-        if isinstance(message, str):
+-            data = message.encode() + b"\x03"
+-        else:
+-            data = message + b"\x03"
+-        try:
+-            self.writer.write(data)
+-            await self.writer.drain()
+-        except asyncio.CancelledError:
+-            raise
+-        except Exception:
+-            logging.debug("Unix Socket Disconnection From write_to_socket()")
+-            await self._on_close(reason="Write Exception")
+-
+-    async def _on_close(
+-        self,
+-        code: Optional[int] = None,
+-        reason: Optional[str] = None
+-    ) -> None:
+-        if self.is_closed:
+-            return
+-        self.is_closed = True
+-        kconn: Klippy = self.server.lookup_component("klippy_connection")
+-        kconn.remove_subscription(self)
+-        if not self.writer.is_closing():
+-            self.writer.close()
+-            try:
+-                await self.writer.wait_closed()
+-            except Exception:
+-                pass
+-        self.message_buf = []
+-        for resp in self.pending_responses.values():
+-            resp.set_exception(
+-                self.server.error("Client Socket Disconnected", 500)
+-            )
+-        self.pending_responses = {}
+-        logging.info(
+-            f"Unix Socket Closed: ID: {self.uid}, "
+-            f"Close Code: {code}, "
+-            f"Close Reason: {reason}"
+-        )
+-        if self._client_data["type"] == "agent":
+-            extensions: ExtensionManager
+-            extensions = self.server.lookup_component("extensions")
+-            extensions.remove_agent(self)
+-        self.wsm.remove_client(self)
+-
+-    def close_socket(self, code: int, reason: str) -> None:
+-        if not self.is_closed:
+-            self.eventloop.register_callback(self._on_close, code, reason)
+-
+-
+-def load_component(config: ConfigHelper) -> ExtensionManager:
+-    return ExtensionManager(config)
+diff --git a/moonraker/components/file_manager/file_manager.py b/moonraker/components/file_manager/file_manager.py
+index 64d5733..43685ba 100644
+--- a/moonraker/components/file_manager/file_manager.py
++++ b/moonraker/components/file_manager/file_manager.py
+@@ -22,6 +22,8 @@ from ...utils import source_info
+ from ...utils import json_wrapper as jsonw
+ from ...common import RequestType, TransportType
+ 
++import inspect
++
+ # Annotation imports
+ from typing import (
+     TYPE_CHECKING,
+@@ -137,6 +139,9 @@ class FileManager:
+             "/server/files/delete_file", RequestType.DELETE, self._handle_file_delete,
+             transports=TransportType.WEBSOCKET
+         )
++        self.server.register_endpoint(
++            "/server/files/delete_batch_file", RequestType.DELETE, self._handle_batch_file_delete
++        )
+         # register client notificaitons
+         self.server.register_notification("file_manager:filelist_changed")
+ 
+@@ -1066,6 +1071,27 @@ class FileManager:
+                                   ) -> Dict[str, Any]:
+         file_path: str = web_request.get_str("path")
+         return await self.delete_file(file_path)
++        
++    async def _handle_batch_file_delete(self,
++                                  web_request: WebRequest
++                                  ) -> Dict[str, Any]:
++        file_path_data = web_request.get('path')
++        
++        # 1. 如果传的是列表（批量删除）
++        if isinstance(file_path_data, list):
++            results = []
++            for path in file_path_data:
++                res = await self.delete_file(path)
++                results.append(res)
++            return {"status": "batch_completed", "details": results}
++        
++        # 2. 如果传的是字符串（单个删除，保持原逻辑兼容）
++        elif isinstance(file_path_data, str):
++            return await self.delete_file(file_path_data)
++            
++        # 3. 容错处理
++        else:
++            raise web_request.error("Invalid path format. Expected string or list of strings.")
+ 
+     async def delete_file(self, path: str) -> Dict[str, Any]:
+         async with self.sync_lock:
+@@ -2400,6 +2426,17 @@ class MetadataStorage:
+             if "thumbnails" in metadata:
+                 thumb: Dict[str, Any]
+                 for thumb in metadata["thumbnails"]:
++                    # 检查是否有 extra_thumb_dir_path 字段，如果有则删除整个目录
++                    extra_thumb_dir_path: Optional[str] = thumb.get("extra_thumb_dir_path", None)
++                    if extra_thumb_dir_path is not None:
++                        if os.path.isdir(extra_thumb_dir_path):
++                            try:
++                                shutil.rmtree(extra_thumb_dir_path)
++                                logging.debug(f"Removed extra thumb directory: {extra_thumb_dir_path}")
++                            except Exception:
++                                logging.debug(f"Error removing extra thumb directory: {extra_thumb_dir_path}")
++                        continue
++
+                     path: Optional[str] = thumb.get("relative_path", None)
+                     if path is None:
+                         continue
+diff --git a/moonraker/components/file_manager/metadata.py b/moonraker/components/file_manager/metadata.py
+index 31c1e42..8cbbc3b 100644
+--- a/moonraker/components/file_manager/metadata.py
++++ b/moonraker/components/file_manager/metadata.py
+@@ -205,7 +205,7 @@ class BaseSlicer(object):
+     def parse_first_layer_extr_temp(self) -> Optional[float]:
+         return None
+ 
+-    def parse_thumbnails(self) -> Optional[List[Dict[str, Any]]]:
++    def parse_thumbnails(self,filename) -> Optional[List[Dict[str, Any]]]:
+         for data in [self.header_data, self.footer_data]:
+             thumb_matches: List[str] = re.findall(
+                 r"; thumbnail begin[;/\+=\w\s]+?; thumbnail end", data)
+@@ -222,7 +222,8 @@ class BaseSlicer(object):
+                 return None
+         thumb_base = os.path.splitext(os.path.basename(self.path))[0]
+         parsed_matches: List[Dict[str, Any]] = []
+-        has_miniature: bool = False
++        #has_miniature: bool = False
++        first_thumbnail = True
+         for match in thumb_matches:
+             lines = re.split(r"\r?\n", match.replace('; ', ''))
+             info = regex_find_ints(r"(%D)", lines[0])
+@@ -239,40 +240,77 @@ class BaseSlicer(object):
+                 continue
+             thumb_name = f"{thumb_base}-{info[0]}x{info[1]}.png"
+             thumb_path = os.path.join(thumb_dir, thumb_name)
++            thumb_jpg_name = f"{thumb_base}-{info[0]}x{info[1]}.jpg"
++            thumb_jpg_path = os.path.join(thumb_dir, thumb_jpg_name)
+             rel_thumb_path = os.path.join(".thumbs", thumb_name)
+             with open(thumb_path, "wb") as f:
+                 f.write(base64.b64decode(data.encode()))
++
++            if first_thumbnail:
++                extra_thumb_dir = os.path.join("/home/mks/printer_data/gcodes/.thumbs", filename)
++                extra_thumb_path = os.path.join(extra_thumb_dir, "plate_.png")
++                try:
++                    # 确保父目录存在
++                    parent_dir = "/home/mks/printer_data/gcodes/.thumbs"
++                    if not os.path.exists(parent_dir):
++                        os.makedirs(parent_dir, exist_ok=True)
++                    # 创建目标目录
++                    if not os.path.exists(extra_thumb_dir):
++                        os.makedirs(extra_thumb_dir, exist_ok=True)
++                    with open(thumb_path, "rb") as src:
++                        with open(extra_thumb_path, "wb") as dst:
++                            dst.write(src.read())
++                    # 将额外缩略图信息添加到元数据中
++                    parsed_matches.append({
++                        'width': info[0], 'height': info[1],
++                        'size': os.path.getsize(extra_thumb_path),
++                        'relative_path': extra_thumb_path,  # 使用绝对路径
++                        'extra_thumb_dir_path': extra_thumb_dir  # 存储目录路径用于删除
++                    })
++                except Exception as e:
++                    logger.info(f"Unable to create extra thumbnail: {e}")
++                first_thumbnail = False
++            with Image.open(thumb_path) as img:
++                if img.mode != "RGBA":
++                    img = img.convert("RGBA")
++                new_img = Image.new("RGB", size=(info[0], info[1]), color=(255, 255, 255))
++                img = img.resize((info[0], info[1]))
++                new_img.paste(img, (0, 0), mask=img)
++                new_img.save(thumb_jpg_path, "JPEG", quality=90)
+             parsed_matches.append({
+                 'width': info[0], 'height': info[1],
+                 'size': os.path.getsize(thumb_path),
+                 'relative_path': rel_thumb_path})
+-            if info[0] == 32 and info[1] == 32:
+-                has_miniature = True
+-        if len(parsed_matches) > 0 and not has_miniature:
+-            # find the largest thumb index
+-            largest_match = parsed_matches[0]
+-            for item in parsed_matches:
+-                if item['size'] > largest_match['size']:
+-                    largest_match = item
+-            # Create miniature thumbnail if one does not exist
+-            thumb_full_name = largest_match['relative_path'].split("/")[-1]
+-            thumb_path = os.path.join(thumb_dir, f"{thumb_full_name}")
+-            rel_path_small = os.path.join(".thumbs", f"{thumb_base}-32x32.png")
+-            thumb_path_small = os.path.join(
+-                thumb_dir, f"{thumb_base}-32x32.png")
+-            # read file
+-            try:
+-                with Image.open(thumb_path) as im:
+-                    # Create 32x32 thumbnail
+-                    im.thumbnail((32, 32))
+-                    im.save(thumb_path_small, format="PNG")
+-                    parsed_matches.insert(0, {
+-                        'width': im.width, 'height': im.height,
+-                        'size': os.path.getsize(thumb_path_small),
+-                        'relative_path': rel_path_small
+-                    })
+-            except Exception as e:
++        # find the smallest thumb index
++        smallest_match = parsed_matches[0]
++        max_size = min_size = smallest_match['size']
++        for item in parsed_matches:
++            if item['size'] < smallest_match['size']:
++                smallest_match = item
++            if item["size"] < min_size:
++                min_size = item["size"]
++            if item["size"] > max_size:
++                max_size = item["size"]
++        # Create thumbnail for screen
++        thumb_full_name = smallest_match['relative_path'].split("/")[-1]
++        thumb_path = os.path.join(thumb_dir, f"{thumb_full_name}")
++        thumb_QD_full_name = f"{thumb_base}-{smallest_match['width']}x{smallest_match['height']}_QD.jpg"
++        thumb_QD_path = os.path.join(thumb_dir, f"{thumb_QD_full_name}")
++        rel_path_QD = os.path.join(".thumbs", thumb_QD_full_name)
++        try:
++            with Image.open(thumb_path) as img:
++                if img.mode != "RGBA":
++                    img = img.convert("RGBA")
++                new_img = Image.new("RGB", size=(smallest_match['width'], smallest_match['height']), color=(255, 255, 255))
++                img = img.resize((smallest_match['width'], smallest_match['height']))
++                new_img.paste(img, (0, 0), mask=img)
++                new_img.save(thumb_QD_path, "JPEG", quality=90)
++        except Exception as e:
+                 logger.info(str(e))
++        parsed_matches.append({
++            'width': smallest_match['width'], 'height': smallest_match['height'],
++            'size': (max_size + min_size) // 2,
++            'relative_path': rel_path_QD})
+         return parsed_matches
+ 
+     def parse_layer_count(self) -> Optional[int]:
+@@ -300,12 +338,14 @@ class UnknownSlicer(BaseSlicer):
+     def parse_chamber_temp(self) -> Optional[float]:
+         return regex_find_float(r"M191 S(%F)", self.header_data)
+ 
+-    def parse_thumbnails(self) -> Optional[List[Dict[str, Any]]]:
++    def parse_thumbnails(self,filename) -> Optional[List[Dict[str, Any]]]:
+         return None
+ 
+ class PrusaSlicer(BaseSlicer):
+     def check_identity(self, data: str) -> Optional[Dict[str, str]]:
+         aliases = {
++            'QIDIStudio': r"QIDIStudio\s(.*)",
++            'QIDISlicer': r"QIDISlicer\s(.*)\son",
+             'PrusaSlicer': r"PrusaSlicer\s(.*)\son",
+             'SuperSlicer': r"SuperSlicer\s(.*)\son",
+             'OrcaSlicer': r"OrcaSlicer\s(.*)\son",
+@@ -421,6 +461,35 @@ class PrusaSlicer(BaseSlicer):
+     def parse_layer_count(self) -> Optional[int]:
+         return regex_find_int(r"; total layers count = (%D)", self.footer_data)
+ 
++    def parse_gimage(self) -> Optional[str]:
++        return regex_find_string(
++            r";gimage:(.*)", self.footer_data)
++
++    def parse_simage(self) -> Optional[str]:
++        return regex_find_string(
++            r";simage:(.*)", self.footer_data)
++    
++    def parse_preset_colours(self) -> Optional[List[str]]:
++        colour_data = regex_find_string(r";\sfilament_colour\s=\s(%S)", self.footer_data)
++        if colour_data:
++            colours = [c.strip() for c in colour_data.split(";") if c.strip()]
++            return colours
++        return None
++    def parse_used_extruders(self) -> Optional[List[str]]:
++        extruder_str = regex_find_string(r";\sused_extruders\s=\s(%S)", self.footer_data)
++        if extruder_str:
++            try:
++                
++                extruder_list = extruder_str.split(";")
++                extruders = []
++                for e in extruder_list:
++                    if e.strip():  
++                        extruders.append(int(e.strip()))
++                return extruders
++            except ValueError:
++                return None
++        return None
++    
+ class Slic3rPE(PrusaSlicer):
+     def check_identity(self, data: str) -> Optional[Dict[str, str]]:
+         match = re.search(r"Slic3r\sPrusa\sEdition\s(.*)\son", data)
+@@ -434,7 +503,7 @@ class Slic3rPE(PrusaSlicer):
+     def parse_filament_total(self) -> Optional[float]:
+         return regex_find_float(r"filament\sused\s=\s(%F)mm", self.footer_data)
+ 
+-    def parse_thumbnails(self) -> Optional[List[Dict[str, Any]]]:
++    def parse_thumbnails(self,filename) -> Optional[List[Dict[str, Any]]]:
+         return None
+ 
+ class Slic3r(Slic3rPE):
+@@ -519,9 +588,9 @@ class Cura(BaseSlicer):
+     def parse_nozzle_diameter(self) -> Optional[float]:
+         return regex_find_float(r";Nozzle\sdiameter\s=\s(%F)", self.header_data)
+ 
+-    def parse_thumbnails(self) -> Optional[List[Dict[str, Any]]]:
++    def parse_thumbnails(self,filename) -> Optional[List[Dict[str, Any]]]:
+         # Attempt to parse thumbnails from file metadata
+-        thumbs = super().parse_thumbnails()
++        thumbs = super().parse_thumbnails(filename)
+         if thumbs is not None:
+             return thumbs
+         # Check for thumbnails extracted from the ufp
+@@ -555,6 +624,14 @@ class Cura(BaseSlicer):
+             return None
+         return thumbs
+ 
++    def parse_gimage(self) -> Optional[str]:
++        return regex_find_string(
++            r";gimage:(.*)", self.header_data)
++
++    def parse_simage(self) -> Optional[str]:
++        return regex_find_string(
++            r";simage:(.*)", self.header_data)
++
+ class Simplify3D(BaseSlicer):
+     def check_identity(self, data: str) -> Optional[Dict[str, str]]:
+         match = re.search(r"Simplify3D\(R\)\sVersion\s(.*)", data)
+@@ -926,6 +1003,8 @@ SUPPORTED_SLICERS: List[Type[BaseSlicer]] = [
+     KISSlicer, IdeaMaker, IceSL, KiriMoto
+ ]
+ SUPPORTED_DATA = [
++    'gimage',
++    'simage',
+     'gcode_start_byte',
+     'gcode_end_byte',
+     'layer_count',
+@@ -941,6 +1020,8 @@ SUPPORTED_DATA = [
+     'filament_type',
+     'filament_total',
+     'filament_weight_total',
++    'preset_colours',
++    'used_extruders',
+     'thumbnails']
+ 
+ def process_objects(file_path: str, slicer: BaseSlicer, name: str) -> bool:
+@@ -1018,7 +1099,7 @@ def get_slicer(file_path: str) -> Tuple[BaseSlicer, Dict[str, str]]:
+     return slicer, ident
+ 
+ def extract_metadata(
+-    file_path: str, check_objects: bool
++    file_path: str, check_objects: bool , filename: str
+ ) -> Dict[str, Any]:
+     metadata: Dict[str, Any] = {}
+     slicer, ident = get_slicer(file_path)
+@@ -1032,7 +1113,10 @@ def extract_metadata(
+     metadata.update(ident)
+     for key in SUPPORTED_DATA:
+         func = getattr(slicer, "parse_" + key)
+-        result = func()
++        if key == "thumbnails":
++            result = func(filename)
++        else:
++            result = func()
+         if result is not None:
+             metadata[key] = result
+     return metadata
+@@ -1082,7 +1166,7 @@ def main(path: str,
+         logger.info(f"File Not Found: {file_path}")
+         sys.exit(-1)
+     try:
+-        metadata = extract_metadata(file_path, check_objects)
++        metadata = extract_metadata(file_path, check_objects, filename)
+     except Exception:
+         logger.info(traceback.format_exc())
+         sys.exit(-1)
+diff --git a/moonraker/components/history.py b/moonraker/components/history.py
+index 66a8ab4..683866a 100644
+--- a/moonraker/components/history.py
++++ b/moonraker/components/history.py
+@@ -200,6 +200,7 @@ class History:
+         self.totals_table = database.register_table(TotalsSqlDefinition())
+         self.job_totals: Totals = dict(BASE_TOTALS)
+         self.aux_totals: AuxTotals = []
++        self.mqtt_client = None
+ 
+         self.server.register_event_handler(
+             "server:klippy_disconnect", self._handle_disconnect)
+@@ -226,6 +227,11 @@ class History:
+             self._handle_job_total_reset
+         )
+ 
++        self.server.register_endpoint(
++            "/server/history/update/one_job_id", RequestType.POST,
++            self._handle_update_one_job_id
++        )
++
+         self.current_job: Optional[PrinterJob] = None
+         self.current_job_id: Optional[int] = None
+         self.job_user: str = "No User"
+@@ -369,6 +375,41 @@ class History:
+             "last_totals": last_totals,
+             "last_auxiliary_totals": last_aux_totals
+         }
++    
++    async def _handle_update_one_job_id(
++        self, web_request: WebRequest
++    ):
++        job_id_hex = web_request.get_str("job_id")
++        update_fields = web_request.get_str("update_fields")
++        update_value = web_request.get("update_value")
++        # 参数验证
++        if not job_id_hex:
++            return {"error": "job_id is empty!"}
++        
++        if not update_fields:
++            return {"error": "update's fields is empty!"}
++        
++        if update_value is None:
++            return {"error": "update's value is empty!"}
++        
++        # 检查字段名
++        ALLOWED_FIELDS = {
++            'user', 'filename', 'status', 'start_time', 
++            'end_time', 'print_duration', 'total_duration',
++            'filament_used', 'instance_id'
++        }
++        if update_fields not in ALLOWED_FIELDS:
++            return {"error": f"field '{update_fields}' is not allowed!"}
++        # 执行更新
++        job_id = int(job_id_hex, 16)
++        async with self.history_table as tx:
++            await tx.execute(
++                f"UPDATE {HIST_TABLE} SET {update_fields} = '{update_value}' "
++                f"WHERE job_id = {job_id}"
++            )
++        return {
++            "result": "success"
++        }
+ 
+     async def _on_job_state_changed(
+         self,
+@@ -377,20 +418,65 @@ class History:
+         new_stats: Dict[str, Any]
+     ) -> None:
+         self.job_paused = job_event == JobEvent.PAUSED
++        
++        # 发布MQTT消息
++        
+         if job_event == JobEvent.STARTED:
+             if self.current_job is not None:
+                 # Finish with the previous state
++                # await self._publish_job_state_mqtt("cancelled", prev_stats)
+                 await self.finish_job("cancelled", prev_stats)
++            # await self._publish_job_state_mqtt("started", new_stats)
+             await self.add_job(PrinterJob(new_stats))
+         elif job_event == JobEvent.COMPLETE:
++            # await self._publish_job_state_mqtt("completed", new_stats)
+             await self.finish_job("completed", new_stats)
++            kapis: KlippyAPI = self.server.lookup_component('klippy_apis')
++            script = f'SDCARD_RESET_FILE'
++            await kapis.run_gcode(script)
+         elif job_event == JobEvent.ERROR:
++            # await self._publish_job_state_mqtt("error", new_stats)
+             await self.finish_job("error", new_stats)
+         elif job_event in (JobEvent.CANCELLED, JobEvent.STANDBY):
+             # Cancel on "standby" for backward compatibility with
+             # `CLEAR_PAUSE/SDCARD_RESET_FILE` workflow
++            # await self._publish_job_state_mqtt("cancelled", prev_stats)
+             await self.finish_job("cancelled", prev_stats)
+ 
++    async def _publish_job_state_mqtt(
++        self,
++        job_event: str,
++        stats: Dict[str, Any],
++    ) -> None:
++        """发布任务状态变化到MQTT"""
++        try:
++            self.mqtt_client = self.server.lookup_component('mqtt')
++        except Exception:
++            self.mqtt_client = None
++
++        if self.mqtt_client is None or not self.mqtt_client.is_connected():
++            return
++        
++        try:
++            # 构建MQTT消息内容
++            mqtt_payload = {
++                "job_state": job_event,
++                "uid": stats.get("uid", "123456789"),
++                "timestamp": stats.get("print_duration", 0),
++                "filename": stats.get("filename", ""),
++                #"plateindex": stats.get("plateindex", "1"),
++                "user": getattr(self, 'job_user', 'No User')
++            }
++            
++            # 发布到MQTT主题
++            topic = f"{self.mqtt_client.instance_name}/job_state/changed"
++            await self.mqtt_client.publish_topic(topic, mqtt_payload)
++            
++            logging.debug(f"Published job state change to MQTT: {mqtt_payload}")
++            
++        except Exception as e:
++            logging.error(f"Failed to publish job state to MQTT: {e}")
++
+     def _on_job_requested(self, user: Optional[UserInfo]) -> None:
+         username = user.username if user is not None else "No User"
+         self.job_user = username
+diff --git a/moonraker/components/http_client.py b/moonraker/components/http_client.py
+index ef002bb..fc23f6b 100644
+--- a/moonraker/components/http_client.py
++++ b/moonraker/components/http_client.py
+@@ -80,7 +80,9 @@ class HttpClient:
+         retry_pause_time: float = .1,
+         enable_cache: bool = False,
+         send_etag: bool = True,
+-        send_if_modified_since: bool = True
++        send_if_modified_since: bool = True,
++        basic_auth_user: Optional[str] = None,
++        basic_auth_pass: Optional[str] = None
+     ) -> HttpResponse:
+         cache_key = url.split("?", 1)[0]
+         method = method.upper()
+@@ -103,9 +105,17 @@ class HttpClient:
+             headers = req_headers
+ 
+         timeout = 1 + connect_timeout + request_timeout
+-        request = HTTPRequest(url, method, headers, body=body,
+-                              request_timeout=request_timeout,
+-                              connect_timeout=connect_timeout)
++        req_args: Dict[str, Any] = dict(
++            body=body,
++            request_timeout=request_timeout,
++            connect_timeout=connect_timeout
++        )
++        if basic_auth_user is not None:
++            assert basic_auth_pass is not None
++            req_args["auth_username"] = basic_auth_user
++            req_args["auth_password"] = basic_auth_pass
++            req_args["auth_mode"] = "basic"
++        request = HTTPRequest(url, method, headers, **req_args)
+         err: Optional[BaseException] = None
+         for i in range(attempts):
+             if i:
+diff --git a/moonraker/components/job_queue.py b/moonraker/components/job_queue.py
+index b2304d1..41312f1 100644
+--- a/moonraker/components/job_queue.py
++++ b/moonraker/components/job_queue.py
+@@ -24,15 +24,17 @@ if TYPE_CHECKING:
+     from ..common import WebRequest, UserInfo
+     from .klippy_apis import KlippyAPI
+     from .file_manager.file_manager import FileManager
++    from .job_state import JobState
+ 
+ class JobQueue:
+     def __init__(self, config: ConfigHelper) -> None:
+         self.server = config.get_server()
+         self.queued_jobs: Dict[str, QueuedJob] = {}
+         self.lock = asyncio.Lock()
++        self.pause_requested: bool = False
+         self.load_on_start = config.getboolean("load_on_startup", False)
+         self.automatic = config.getboolean("automatic_transition", False)
+-        self.queue_state: str = "ready" if self.automatic else "paused"
++        self.queue_state: str = "paused"
+         self.job_delay = config.getfloat("job_transition_delay", 0.01)
+         if self.job_delay <= 0.:
+             raise config.error(
+@@ -52,8 +54,7 @@ class JobQueue:
+ 
+         self.server.register_notification("job_queue:job_queue_changed")
+         self.server.register_remote_method("pause_job_queue", self.pause_queue)
+-        self.server.register_remote_method("start_job_queue",
+-                                           self.start_queue)
++        self.server.register_remote_method("start_job_queue", self.start_queue)
+ 
+         self.server.register_endpoint(
+             "/server/job_queue/job", RequestType.POST | RequestType.DELETE,
+@@ -84,9 +85,9 @@ class JobQueue:
+                     1., self._pop_job, False)
+ 
+     async def _handle_shutdown(self) -> None:
++        has_requested_pause = self.pause_requested
+         await self.pause_queue()
+-        if not self.queued_jobs and self.automatic:
+-            self._set_queue_state("ready")
++        self.pause_requested = has_requested_pause
+ 
+     async def _on_job_state_changed(self, job_event: JobEvent, *args) -> None:
+         if job_event == JobEvent.COMPLETE:
+@@ -116,8 +117,7 @@ class JobQueue:
+             if self.queue_state == "paused":
+                 return
+             if not self.queued_jobs:
+-                qs = "ready" if self.automatic else "paused"
+-                self._set_queue_state(qs)
++                self._set_queue_state("paused")
+                 return
+             kapis: KlippyAPI = self.server.lookup_component('klippy_apis')
+             uid, job = list(self.queued_jobs.items())[0]
+@@ -132,6 +132,7 @@ class JobQueue:
+                     # Check to see if the queue was paused while running
+                     # the job transition gcode
+                     if self.queue_state != "loading":
++                        self._set_queue_state("paused")
+                         raise self.server.error(
+                             "Queue State Changed during Transition Gcode")
+                 self._set_queue_state("starting")
+@@ -144,8 +145,9 @@ class JobQueue:
+             else:
+                 self.queued_jobs.pop(uid, None)
+                 if self.queue_state == "starting":
+-                    # If the queue was not paused while starting the print,
+-                    set_ready = not self.queued_jobs or self.automatic
++                    # Set the queue to ready if items are in the queue
++                    # and auto transition is enabled
++                    set_ready = len(self.queued_jobs) > 0 and self.automatic
+                     self.queue_state = "ready" if set_ready else "paused"
+                 self._send_queue_event(action="job_loaded")
+ 
+@@ -184,6 +186,11 @@ class JobQueue:
+                 queued_job = QueuedJob(fname, user)
+                 self.queued_jobs[queued_job.job_id] = queued_job
+             self._send_queue_event(action="jobs_added")
++            if self.automatic and not self.pause_requested:
++                jstate: JobState = self.server.lookup_component("job_state")
++                last_evt = jstate.get_last_job_event()
++                if last_evt.is_printing or last_evt == JobEvent.PAUSED:
++                    self._set_queue_state("ready")
+ 
+     async def delete_job(self,
+                          job_ids: Union[str, List[str]],
+@@ -210,23 +217,24 @@ class JobQueue:
+         if self.pop_queue_handle is not None:
+             self.pop_queue_handle.cancel()
+             self.pop_queue_handle = None
+-        # Acquire the lock to wait for any pending operations to
+-        # complete
+-        await self.lock.acquire()
+-        self.lock.release()
++        # Acquire the lock to wait for any pending operations to complete
++        async with self.lock:
++            self.pause_requested = True
+ 
+     async def start_queue(self) -> None:
+         async with self.lock:
+-            if self.queue_state != "loading":
+-                if self.queued_jobs and await self._check_can_print():
++            self.pause_requested = False
++            if self.queue_state in ("ready", "paused"):
++                if not self.queued_jobs:
++                    self._set_queue_state("paused")
++                elif await self._check_can_print():
+                     self._set_queue_state("loading")
+                     event_loop = self.server.get_event_loop()
+                     self.pop_queue_handle = event_loop.delay_callback(
+                         0.01, self._pop_job, False
+                     )
+                 else:
+-                    qs = "ready" if self.automatic else "paused"
+-                    self._set_queue_state(qs)
++                    self._set_queue_state("ready" if self.automatic else "paused")
+ 
+     def _job_map_to_list(self) -> List[Dict[str, Any]]:
+         cur_time = time.time()
+diff --git a/moonraker/components/klippy_apis.py b/moonraker/components/klippy_apis.py
+index 26c96e3..2124563 100644
+--- a/moonraker/components/klippy_apis.py
++++ b/moonraker/components/klippy_apis.py
+@@ -9,6 +9,18 @@ import logging
+ from ..utils import Sentinel
+ from ..common import WebRequest, APITransport, RequestType
+ 
++# QIDI modified: Copy file to .cache when print start
++import os
++import shutil
++import json
++from .file_manager.file_manager import FileManager
++
++import logging
++import zipfile
++import traceback
++import aiohttp
++import time
++
+ # Annotation imports
+ from typing import (
+     TYPE_CHECKING,
+@@ -26,9 +38,12 @@ if TYPE_CHECKING:
+     from ..confighelper import ConfigHelper
+     from ..common import UserInfo
+     from .klippy_connection import KlippyConnection as Klippy
++    from .file_manager.file_manager import FileManager
+     Subscription = Dict[str, Optional[List[Any]]]
+     SubCallback = Callable[[Dict[str, Dict[str, Any]], float], Optional[Coroutine]]
+     _T = TypeVar("_T")
++    from . import database
++    MoonrakerDatabase = database.MoonrakerDatabase
+ 
+ INFO_ENDPOINT = "info"
+ ESTOP_ENDPOINT = "emergency_stop"
+@@ -44,6 +59,7 @@ class KlippyAPI(APITransport):
+     def __init__(self, config: ConfigHelper) -> None:
+         self.server = config.get_server()
+         self.klippy: Klippy = self.server.lookup_component("klippy_connection")
++        self.fm: FileManager = self.server.lookup_component("file_manager")
+         self.eventloop = self.server.get_event_loop()
+         app_args = self.server.get_app_args()
+         self.version = app_args.get('software_version')
+@@ -74,6 +90,15 @@ class KlippyAPI(APITransport):
+         self.server.register_event_handler(
+             "server:klippy_disconnect", self._on_klippy_disconnect
+         )
++        self.server.register_endpoint(
++            "/printer/list_endpoints", RequestType.GET, self.list_endpoints
++        )
++        self.server.register_endpoint(
++            "/printer/breakheater", RequestType.POST, self.breakheater
++        )
++        self.server.register_endpoint(
++            "/printer/breakmacro", RequestType.POST, self.breakmacro
++        )
+ 
+     def _on_klippy_disconnect(self) -> None:
+         self.host_subscription.clear()
+@@ -136,10 +161,30 @@ class KlippyAPI(APITransport):
+         # Doing so will result in "wait_started" blocking for the specifed
+         # timeout (default 20s) and returning False.
+         # XXX - validate that file is on disk
++        original_filename = filename
+         if filename[0] == '/':
+             filename = filename[1:]
+         # Escape existing double quotes in the file name
+         filename = filename.replace("\"", "\\\"")
++        homedir = os.path.expanduser("~")
++        if os.path.split(filename)[0].split(os.path.sep)[0] != ".cache":
++            base_path = os.path.join(homedir, "printer_data/gcodes")
++            target = os.path.join(".cache", os.path.basename(filename))
++            cache_path = os.path.join(base_path, ".cache")
++            if not os.path.exists(cache_path):
++                os.makedirs(cache_path)
++            shutil.rmtree(cache_path)
++            os.makedirs(cache_path)
++            metadata = self.fm.gcode_metadata.metadata.get(filename, None)
++            try:
++                self.copy_file_to_cache(os.path.join(base_path, filename), os.path.join(base_path, target))
++            except Exception as e:
++                logging.warning(f"Copy with filename failed: {e}, trying original_filename")
++                source_path = os.path.join(base_path, original_filename) if original_filename[0] != '/' else original_filename
++                self.copy_file_to_cache(source_path, os.path.join(base_path, target))
++            msg = "// metadata=" + json.dumps(metadata)
++            self.server.send_event("server:gcode_response", msg)
++            filename = target
+         script = f'SDCARD_PRINT_FILE FILENAME="{filename}"'
+         if wait_klippy_started:
+             await self.klippy.wait_started()
+@@ -169,8 +214,24 @@ class KlippyAPI(APITransport):
+     ) -> Union[_T, str]:
+         self.server.send_event("klippy_apis:cancel_requested")
+         logging.info("Requesting job cancel...")
++        await self._send_klippy_request(
++            "breakmacro", {}, default)
++        await self._send_klippy_request(
++            "breakheater", {}, default)
+         return await self._send_klippy_request(
+             "pause_resume/cancel", {}, default)
++    
++    async def breakheater(
++        self, default: Union[Sentinel, _T] = Sentinel.MISSING
++    ) -> Union[_T, str]:
++        return await self._send_klippy_request(
++            "breakheater", {}, default)
++    
++    async def breakmacro(
++        self, default: Union[Sentinel, _T] = Sentinel.MISSING
++    ) -> Union[_T, str]:
++        return await self._send_klippy_request(
++            "breakmacro", {}, default)
+ 
+     async def do_restart(
+         self, gc: str, wait_klippy_started: bool = False
+@@ -190,6 +251,96 @@ class KlippyAPI(APITransport):
+             else:
+                 raise
+         return result
++    
++    async def _async_download_and_start_print(
++        self, 
++        url: str, 
++        filename: str,
++        wait_klippy_started: bool = False,
++        user: Optional[UserInfo] = None,
++        #plateindex: str = "1",
++        uid: str = "123456789",
++        need_extract: bool = False,
++    ):
++        upload_dir = '/home/qidi/printer_data/.cache'
++
++        try:
++            if os.path.exists(upload_dir):
++                # 如果存在，直接递归删除整个文件夹及其内容
++                shutil.rmtree(upload_dir)
++                logging.info(f"已清理现有的目录: {upload_dir}")
++            
++            # 重新创建空目录
++            # exist_ok=True 配合前面的删除，确保万无一失
++            os.makedirs(upload_dir, mode=0o755, exist_ok=True)
++            logging.info(f"空目录已就绪: {upload_dir}")
++            
++        except Exception as e:
++            logging.error(f"操作目录 {upload_dir} 失败: {e}")
++            return
++
++        dest_path = os.path.join(upload_dir, filename)
++        tmp_path = dest_path + ".tmp"
++        # TODO:方案，在mqtt注册事件回调，触发回调会把传入回调的信息发送到指定主题，现在有问题的是，如何获取下载进度呢？
++        payload = {
++            'jobState': 'downloading',
++            'url': url,
++            'timestamp': int(time.time()),
++            'filename': filename,
++            #'plateIndex': plateindex,
++            'progress': 'downloading_0%'
++        }
++        self.server.send_event("cloud:slice_download_print", payload)
++        last_reported_progress = -1 # 用于控制上报频率
++        try:
++            # 1.开始下载
++            async with aiohttp.ClientSession() as session:
++                async with session.get(url, timeout=aiohttp.ClientTimeout(total=600)) as response:
++                    if response.status != 200:
++                        raise Exception(f"Download failed with status: {response.status}")
++
++                    total_size = int(response.headers.get('content-length', 0))
++                    downloaded_size = 0
++                    
++                    # 使用标准的同步写，但在线程池中运行以防阻塞主循环
++                    def save_chunk(chunk):
++                        with open(tmp_path, 'ab') as f: # 使用 'ab' 追加写入
++                            f.write(chunk)
++
++                    async for chunk in response.content.iter_chunked(64 * 1024):
++                        # 将阻塞的磁盘 IO 丢给线程池
++                        await self.eventloop.run_in_thread(save_chunk, chunk)
++                        downloaded_size += len(chunk)
++                        
++                        if total_size > 0:
++                            progress = int((downloaded_size / total_size) * 100)
++                            # 只有进度真的变化了，且是 5 的倍数时才上报
++                            if progress % 5 == 0 and progress != last_reported_progress: 
++                                payload["progress"] = f"downloading_{progress}%"
++                                payload["timestamp"] = int(time.time())
++                                self.server.send_event("cloud:slice_download_print", payload)
++                                last_reported_progress = progress
++
++            # 下载完成，准备打印
++            if os.path.exists(dest_path):
++                os.remove(dest_path)
++            os.rename(tmp_path, dest_path)
++
++            logging.info(f"Download completed: {dest_path}")
++            payload["progress"] = "downloading_100%"
++            payload["timestamp"] = int(time.time())
++            self.server.send_event("cloud:slice_download_print", payload)
++            # 2.开始打印
++            await self.start_print(filename,  wait_klippy_started=wait_klippy_started, user=user, uid = uid, need_extract = need_extract)
++            payload["jobState"] = f"started"
++            payload["timestamp"] = int(time.time())
++            self.server.send_event("cloud:slice_download_print", payload)
++            
++        except Exception as e:
++            logging.error("下载任务：%s, 报错：%s", url, e)
++            payload["failCause"] = str(e)
++            payload["timestamp"] = int(time.time())
++            self.server.send_event("cloud:slice_download_print", payload)
+ 
+     async def list_endpoints(self,
+                              default: Union[Sentinel, _T] = Sentinel.MISSING
+@@ -295,5 +446,16 @@ class KlippyAPI(APITransport):
+             self.eventloop.register_callback(cb, status, eventtime)
+         self.server.send_event("server:status_update", status)
+ 
++    def copy_file_to_cache(self, origin, target):
++        stat = os.statvfs("/")
++        free_space = stat.f_frsize * stat.f_bfree
++        filesize = os.path.getsize(os.path.join(origin))
++        if (filesize < free_space):
++            shutil.copy(origin, target)
++        else:
++            msg = "!! Insufficient disk space, unable to read the file."
++            self.server.send_event("server:gcode_response", msg)
++            raise self.server.error("Insufficient disk space, unable to read the file.", 500)
++
+ def load_component(config: ConfigHelper) -> KlippyAPI:
+     return KlippyAPI(config)
+diff --git a/moonraker/components/klippy_connection.py b/moonraker/components/klippy_connection.py
+index 31b1ef8..7ce06c4 100644
+--- a/moonraker/components/klippy_connection.py
++++ b/moonraker/components/klippy_connection.py
+@@ -60,6 +60,8 @@ LOG_ATTEMPT_INTERVAL = int(2. / INIT_TIME + .5)
+ MAX_LOG_ATTEMPTS = 10 * LOG_ATTEMPT_INTERVAL
+ UNIX_BUFFER_LIMIT = 20 * 1024 * 1024
+ SVC_INFO_KEY = "klippy_connection.service_info"
++SRC_PATH_KEY = "klippy_connection.path"
++PY_EXEC_KEY = "klippy_connection.executable"
+ 
+ class KlippyConnection:
+     def __init__(self, config: ConfigHelper) -> None:
+@@ -84,6 +86,8 @@ class KlippyConnection:
+         self._missing_reqs: Set[str] = set()
+         self._peer_cred: Dict[str, int] = {}
+         self._service_info: Dict[str, Any] = {}
++        self._path = pathlib.Path("~/klipper").expanduser()
++        self._executable = pathlib.Path("~/klippy-env/bin/python").expanduser()
+         self.init_attempts: int = 0
+         self._state: KlippyState = KlippyState.DISCONNECTED
+         self._state.set_message("Klippy Disconnected")
+@@ -138,10 +142,25 @@ class KlippyConnection:
+         unit_name = svc_info.get("unit_name", "klipper.service")
+         return unit_name.split(".", 1)[0]
+ 
++    @property
++    def path(self) -> pathlib.Path:
++        return self._path
++
++    @property
++    def executable(self) -> pathlib.Path:
++        return self._executable
++
++    def load_saved_state(self) -> None:
++        db: Database = self.server.lookup_component("database")
++        sync_provider = db.get_provider_wrapper()
++        kc_info: Dict[str, Any]
++        kc_info = sync_provider.get_item("moonraker", "klippy_connection", {})
++        self._path = pathlib.Path(kc_info.get("path", str(self._path)))
++        self._executable = pathlib.Path(kc_info.get("executable", str(self.executable)))
++        self._service_info = kc_info.get("service_info", {})
++
+     async def component_init(self) -> None:
+-        db: Database = self.server.lookup_component('database')
+         machine: Machine = self.server.lookup_component("machine")
+-        self._service_info = await db.get_item("moonraker", SVC_INFO_KEY, {})
+         if self._service_info:
+             machine.log_service_info(self._service_info)
+ 
+@@ -266,7 +285,7 @@ class KlippyConnection:
+             fut.set_result(self.is_connected())
+             return fut
+         self.connection_task = self.event_loop.create_task(self._do_connect())
+-        return self.connection_task
++        return self.connection_task  # type: ignore
+ 
+     async def _do_connect(self) -> bool:
+         async with self.connection_mutex:
+@@ -296,7 +315,7 @@ class KlippyConnection:
+                 self.writer = writer
+                 if self._get_peer_credentials(writer):
+                     await self._get_service_info(self._peer_cred["process_id"])
+-            self.event_loop.create_task(self._read_stream(reader))
++                self.event_loop.create_task(self._read_stream(reader))
+             return await self._init_klippy_connection()
+ 
+     async def open_klippy_connection(
+@@ -330,6 +349,19 @@ class KlippyConnection:
+             self._service_info = svc_info
+             machine.log_service_info(svc_info)
+ 
++    def _save_path_info(self) -> None:
++        kpath = pathlib.Path(self._klippy_info["klipper_path"])
++        kexec = pathlib.Path(self._klippy_info["python_path"])
++        db: Database = self.server.lookup_component("database")
++        if kpath != self.path:
++            self._path = kpath
++            db.insert_item("moonraker", SRC_PATH_KEY, str(kpath))
++            logging.info(f"Updated Stored Klipper Source Path: {kpath}")
++        if kexec != self.executable:
++            self._executable = kexec
++            db.insert_item("moonraker", PY_EXEC_KEY, str(kexec))
++            logging.info(f"Updated Stored Klipper Python Path: {kexec}")
++
+     async def _init_klippy_connection(self) -> bool:
+         self._klippy_identified = False
+         self._klippy_started = False
+@@ -417,6 +449,7 @@ class KlippyConnection:
+             return
+         if send_id:
+             self._klippy_identified = True
++            self._save_path_info()
+             await self.server.send_event("server:klippy_identified")
+             # Request initial endpoints to register info, emergency stop APIs
+             await self._request_endpoints()
+@@ -558,15 +591,35 @@ class KlippyConnection:
+                     logging.info("Klippy has shutdown")
+                     self.server.send_event("server:klippy_shutdown")
+                 self._state = new_state
++        self.server.send_event("cloud:slice_print_progress", status)
+         for conn, sub in self.subscriptions.items():
+             conn_status: Dict[str, Any] = {}
+-            for name, fields in sub.items():
+-                if name in status:
+-                    val: Dict[str, Any] = dict(status[name])
+-                    if fields is not None:
+-                        val = {k: v for k, v in val.items() if k in fields}
+-                    if val:
+-                        conn_status[name] = val
++
++            # --- 新增：识别 MQTT 并检查 30s 定时 ---
++            is_mqtt = getattr(conn, "is_mqtt", False)
++            # 假设你在 MQTT 连接类里维护了 last_full_push_time
++            should_push_full = is_mqtt and (eventtime - conn.last_full_push_time >= 30.0)
++            if should_push_full:
++                # 【核心逻辑】：从权威账本中提取该 MQTT 订阅的所有字段
++                for name, fields in sub.items():
++                    # 从 authoritative cache 拿数据，而不是从增量 status 拿
++                    if name in self.subscription_cache:
++                        val = dict(self.subscription_cache[name])
++                        if fields is not None:
++                            val = {k: v for k, v in val.items() if k in fields}
++                        if val:
++                            conn_status[name] = val
++                
++                conn.last_full_push_time = eventtime
++                logging.info("MQTT: Periodic full sync from authoritative cache")
++            else:
++                for name, fields in sub.items():
++                    if name in status:
++                        val: Dict[str, Any] = dict(status[name])
++                        if fields is not None:
++                            val = {k: v for k, v in val.items() if k in fields}
++                        if val:
++                            conn_status[name] = val
+             conn.send_status(conn_status, eventtime)
+ 
+     async def request(self, web_request: WebRequest) -> Any:
+diff --git a/moonraker/components/machine.py b/moonraker/components/machine.py
+index 5bd2603..4556b4d 100644
+--- a/moonraker/components/machine.py
++++ b/moonraker/components/machine.py
+@@ -357,6 +357,16 @@ class Machine:
+             "moonraker": self.unit_name,
+             "klipper": kconn.unit_name
+         }
++        # Used for Qidi Slicer searching device
++        dev_name = web_request.get_str('dev_name',default=None)
++        if dev_name !=None:
++            Note=open('/dev_info.txt',mode='w')   
++            Note.write(dev_name)   
++            Note.close()
++        with open('/dev_info.txt', 'r') as f:         
++            content = f.read() 
++            f.close()
++        self.system_info["machine_name"] =  content          
+         return {"system_info": sys_info}
+ 
+     async def _set_sudo_password(
+diff --git a/moonraker/components/mqtt.py b/moonraker/components/mqtt.py
+deleted file mode 100644
+index 07aa79e..0000000
+--- a/moonraker/components/mqtt.py
++++ /dev/null
+@@ -1,862 +0,0 @@
+-# MQTT client implementation for Moonraker
+-#
+-# Copyright (C) 2021  Eric Callahan <arksine.code@gmail.com>
+-#
+-# This file may be distributed under the terms of the GNU GPLv3 license.
+-
+-from __future__ import annotations
+-import socket
+-import asyncio
+-import logging
+-import pathlib
+-import ssl
+-from collections import deque
+-import paho.mqtt.client as paho_mqtt
+-import paho.mqtt
+-from ..common import (
+-    TransportType,
+-    RequestType,
+-    WebRequest,
+-    APITransport,
+-    KlippyState
+-)
+-from ..utils import json_wrapper as jsonw
+-
+-# Annotation imports
+-from typing import (
+-    List,
+-    Optional,
+-    TYPE_CHECKING,
+-    Any,
+-    Callable,
+-    Coroutine,
+-    Dict,
+-    Union,
+-    Tuple,
+-    Awaitable,
+-    Deque,
+-)
+-if TYPE_CHECKING:
+-    from ..confighelper import ConfigHelper
+-    from ..common import JsonRPC, APIDefinition
+-    from ..eventloop import FlexTimer
+-    from .klippy_apis import KlippyAPI
+-    FlexCallback = Callable[[bytes], Optional[Coroutine]]
+-    RPCCallback = Callable[..., Coroutine]
+-
+-PAHO_MQTT_VERSION = tuple([int(p) for p in paho.mqtt.__version__.split(".")])
+-DUP_API_REQ_CODE = -10000
+-MQTT_PROTOCOLS = {
+-    'v3.1': paho_mqtt.MQTTv31,
+-    'v3.1.1': paho_mqtt.MQTTv311,
+-    'v5': paho_mqtt.MQTTv5
+-}
+-
+-class ExtPahoClient(paho_mqtt.Client):
+-    # Override reconnection to take a connected socket.  This allows Moonraker
+-    # create the socket connection asynchronously
+-    def reconnect(self, sock: Optional[socket.socket] = None):
+-        """Reconnect the client after a disconnect. Can only be called after
+-        connect()/connect_async()."""
+-        if len(self._host) == 0:
+-            raise ValueError('Invalid host.')
+-        if self._port <= 0:
+-            raise ValueError('Invalid port number.')
+-
+-        if PAHO_MQTT_VERSION >= (2, 0):
+-            return self._v2_reconnect(sock)
+-        if PAHO_MQTT_VERSION < (1, 6):
+-            # Paho Mqtt Version < 1.6.x
+-            self._in_packet = {
+-                "command": 0,
+-                "have_remaining": 0,
+-                "remaining_count": [],
+-                "remaining_mult": 1,
+-                "remaining_length": 0,
+-                "packet": b"",
+-                "to_process": 0,
+-                "pos": 0
+-            }
+-            with self._out_packet_mutex:
+-                self._out_packet = deque()  # type: ignore
+-
+-            with self._current_out_packet_mutex:
+-                self._current_out_packet = None
+-        else:
+-            self._in_packet = {
+-                "command": 0,
+-                "have_remaining": 0,
+-                "remaining_count": [],
+-                "remaining_mult": 1,
+-                "remaining_length": 0,
+-                "packet": bytearray(b""),
+-                "to_process": 0,
+-                "pos": 0
+-            }
+-            self._out_packet = deque()  # type: ignore
+-
+-        with self._msgtime_mutex:
+-            self._last_msg_in = paho_mqtt.time_func()
+-            self._last_msg_out = paho_mqtt.time_func()
+-
+-        self._ping_t = 0
+-        self._state = paho_mqtt.mqtt_cs_new
+-
+-        self._sock_close()
+-
+-        # Put messages in progress in a valid state.
+-        self._messages_reconnect_reset()
+-
+-        if sock is None:
+-            sock = self._create_socket_connection()
+-
+-        if self._ssl:
+-            # SSL is only supported when SSLContext is available
+-            # (implies Python >= 2.7.9 or >= 3.2)
+-
+-            verify_host = not self._tls_insecure
+-            try:
+-                # Try with server_hostname, even it's not supported in
+-                # certain scenarios
+-                sock = self._ssl_context.wrap_socket(
+-                    sock,
+-                    server_hostname=self._host,
+-                    do_handshake_on_connect=False,
+-                )
+-            except ssl.CertificateError:
+-                # CertificateError is derived from ValueError
+-                raise
+-            except ValueError:
+-                # Python version requires SNI in order to handle
+-                # server_hostname, but SNI is not available
+-                sock = self._ssl_context.wrap_socket(
+-                    sock,
+-                    do_handshake_on_connect=False,
+-                )
+-            else:
+-                # If SSL context has already checked hostname, then don't need
+-                #  to do it again
+-                if (hasattr(self._ssl_context, 'check_hostname') and
+-                        self._ssl_context.check_hostname):
+-                    verify_host = False
+-
+-            assert isinstance(sock, ssl.SSLSocket)
+-            sock.settimeout(self._keepalive)
+-            sock.do_handshake()
+-
+-            if verify_host:
+-                ssl.match_hostname(sock.getpeercert(), self._host)  # type: ignore
+-
+-        if self._transport == "websockets":
+-            sock.settimeout(self._keepalive)
+-            sock = paho_mqtt.WebsocketWrapper(
+-                sock, self._host, self._port, self._ssl,
+-                self._websocket_path, self._websocket_extra_headers
+-            )
+-
+-        self._sock = sock
+-        assert self._sock is not None
+-        self._sock.setblocking(False)
+-        self._registered_write = False
+-        self._call_socket_open()
+-
+-        return self._send_connect(self._keepalive)
+-
+-    def _v2_reconnect(self, sock: Optional[socket.socket] = None):
+-        self._in_packet = {
+-            "command": 0,
+-            "have_remaining": 0,
+-            "remaining_count": [],
+-            "remaining_mult": 1,
+-            "remaining_length": 0,
+-            "packet": bytearray(b""),
+-            "to_process": 0,
+-            "pos": 0,
+-        }
+-
+-        self._ping_t = 0.0  # type: ignore
+-        self._state = paho_mqtt._ConnectionState.MQTT_CS_CONNECTING
+-
+-        self._sock_close()
+-
+-        # Mark all currently outgoing QoS = 0 packets as lost,
+-        # or `wait_for_publish()` could hang forever
+-        for pkt in self._out_packet:
+-            if (
+-                pkt["command"] & 0xF0 == paho_mqtt.PUBLISH and
+-                pkt["qos"] == 0 and pkt["info"] is not None
+-            ):
+-                pkt["info"].rc = paho_mqtt.MQTT_ERR_CONN_LOST
+-                pkt["info"]._set_as_published()
+-
+-        self._out_packet.clear()
+-
+-        with self._msgtime_mutex:
+-            self._last_msg_in = paho_mqtt.time_func()
+-            self._last_msg_out = paho_mqtt.time_func()
+-
+-        # Put messages in progress in a valid state.
+-        self._messages_reconnect_reset()
+-
+-        with self._callback_mutex:
+-            on_pre_connect = self.on_pre_connect
+-
+-        if on_pre_connect:
+-            try:
+-                on_pre_connect(self, self._userdata)
+-            except Exception as err:
+-                self._easy_log(
+-                    paho_mqtt.MQTT_LOG_ERR,
+-                    'Caught exception in on_pre_connect: %s', err
+-                )
+-                if not self.suppress_exceptions:
+-                    raise
+-
+-        self._sock = sock or self._create_socket()
+-
+-        self._sock.setblocking(False)  # type: ignore[attr-defined]
+-        self._registered_write = False
+-        self._call_socket_open(self._sock)
+-
+-        return self._send_connect(self._keepalive)
+-
+-
+-class SubscriptionHandle:
+-    def __init__(self, topic: str, callback: FlexCallback) -> None:
+-        self.callback = callback
+-        self.topic = topic
+-
+-class BrokerAckLogger:
+-    def __init__(self, topics: List[str], action: str) -> None:
+-        self.topics = topics
+-        self.action = action
+-
+-    def __call__(self, fut: asyncio.Future) -> None:
+-        if self.action == "subscribe":
+-            res: Union[List[int], List[paho_mqtt.ReasonCodes]]
+-            res = fut.result()
+-            log_msg = "MQTT Subscriptions Acknowledged"
+-            if len(res) != len(self.topics):
+-                log_msg += "\nTopic / QOS count mismatch, " \
+-                    f"\nTopics: {self.topics} " \
+-                    f"\nQoS responses: {res}"
+-            else:
+-                for topic, qos in zip(self.topics, res):
+-                    log_msg += f"\n Topic: {topic} | "
+-                    if isinstance(qos, paho_mqtt.ReasonCodes):
+-                        log_msg += qos.getName()
+-                    else:
+-                        log_msg += f"Granted QoS {qos}"
+-        elif self.action == "unsubscribe":
+-            log_msg = "MQTT Unsubscribe Acknowledged"
+-            for topic in self.topics:
+-                log_msg += f"\n Topic: {topic}"
+-        else:
+-            log_msg = f"Unknown action: {self.action}"
+-        logging.debug(log_msg)
+-
+-
+-SubscribedDict = Dict[str, Tuple[int, List[SubscriptionHandle]]]
+-
+-class AIOHelper:
+-    def __init__(self, client: paho_mqtt.Client) -> None:
+-        self.loop = asyncio.get_running_loop()
+-        self.client = client
+-        self.client.on_socket_open = self._on_socket_open
+-        self.client.on_socket_close = self._on_socket_close
+-        self.client._on_socket_register_write = self._on_socket_register_write
+-        self.client._on_socket_unregister_write = \
+-            self._on_socket_unregister_write
+-        self.misc_task: Optional[asyncio.Task] = None
+-
+-    def _on_socket_open(self,
+-                        client: paho_mqtt.Client,
+-                        userdata: Any,
+-                        sock: socket.socket
+-                        ) -> None:
+-        logging.info("MQTT Socket Opened")
+-        self.loop.add_reader(sock, client.loop_read)
+-        self.misc_task = self.loop.create_task(self.misc_loop())
+-
+-    def _on_socket_close(self,
+-                         client: paho_mqtt.Client,
+-                         userdata: Any,
+-                         sock: socket.socket
+-                         ) -> None:
+-        logging.info("MQTT Socket Closed")
+-        self.loop.remove_reader(sock)
+-        if self.misc_task is not None:
+-            self.misc_task.cancel()
+-
+-    def _on_socket_register_write(self,
+-                                  client: paho_mqtt.Client,
+-                                  userdata: Any,
+-                                  sock: socket.socket
+-                                  ) -> None:
+-        self.loop.add_writer(sock, client.loop_write)
+-
+-    def _on_socket_unregister_write(self,
+-                                    client: paho_mqtt.Client,
+-                                    userdata: Any,
+-                                    sock: socket.socket
+-                                    ) -> None:
+-        self.loop.remove_writer(sock)
+-
+-    async def misc_loop(self) -> None:
+-        while self.client.loop_misc() == paho_mqtt.MQTT_ERR_SUCCESS:
+-            try:
+-                await asyncio.sleep(1)
+-            except asyncio.CancelledError:
+-                break
+-        logging.info("MQTT Misc Loop Complete")
+-
+-
+-class MQTTClient(APITransport):
+-    def __init__(self, config: ConfigHelper) -> None:
+-        self.server = config.get_server()
+-        self.eventloop = self.server.get_event_loop()
+-        self.address: str = config.get('address')
+-        self.port: int = config.getint('port', 1883)
+-        self.tls_enabled: bool = config.getboolean("enable_tls", False)
+-        user = config.gettemplate('username', None)
+-        self.user_name: Optional[str] = None
+-        if user:
+-            self.user_name = user.render()
+-        pw_file_path = config.get('password_file', None, deprecate=True)
+-        pw_template = config.gettemplate('password', None)
+-        self.password: Optional[str] = None
+-        if pw_file_path is not None:
+-            pw_file = pathlib.Path(pw_file_path).expanduser().absolute()
+-            if not pw_file.exists():
+-                raise config.error(
+-                    f"Password file '{pw_file}' does not exist")
+-            self.password = pw_file.read_text().strip()
+-        if pw_template is not None:
+-            self.password = pw_template.render()
+-        protocol = config.get('mqtt_protocol', "v3.1.1")
+-        self.protocol = MQTT_PROTOCOLS.get(protocol, None)
+-        if self.protocol is None:
+-            raise config.error(
+-                f"Invalid value '{protocol}' for option 'mqtt_protocol' "
+-                "in section [mqtt]. Must be one of "
+-                f"{MQTT_PROTOCOLS.values()}")
+-        self.instance_name = config.get('instance_name', socket.gethostname())
+-        if '+' in self.instance_name or '#' in self.instance_name:
+-            raise config.error(
+-                "Option 'instance_name' in section [mqtt] cannot "
+-                "contain a wildcard.")
+-        self.qos = config.getint("default_qos", 0)
+-        if self.qos > 2 or self.qos < 0:
+-            raise config.error(
+-                "Option 'default_qos' in section [mqtt] must be "
+-                "between 0 and 2")
+-        self.publish_split_status = \
+-            config.getboolean("publish_split_status", False)
+-        if PAHO_MQTT_VERSION < (2, 0):
+-            self.client = ExtPahoClient(protocol=self.protocol)
+-        else:
+-            self.client = ExtPahoClient(
+-                paho_mqtt.CallbackAPIVersion.VERSION1, protocol=self.protocol
+-            )
+-        self.client.on_connect = self._on_connect
+-        self.client.on_message = self._on_message
+-        self.client.on_disconnect = self._on_disconnect
+-        self.client.on_publish = self._on_publish
+-        self.client.on_subscribe = self._on_subscribe
+-        self.client.on_unsubscribe = self._on_unsubscribe
+-        self.connect_evt: asyncio.Event = asyncio.Event()
+-        self.disconnect_evt: Optional[asyncio.Event] = None
+-        self.connect_task: Optional[asyncio.Task] = None
+-        self.subscribed_topics: SubscribedDict = {}
+-        self.pending_responses: List[asyncio.Future] = []
+-        self.pending_acks: Dict[int, asyncio.Future] = {}
+-
+-        # We don't need to register these endpoints over the MQTT transport as they
+-        # are redundant.  MQTT clients can already publish and subscribe.
+-        ep_transports = TransportType.all() & ~TransportType.MQTT
+-        self.server.register_endpoint(
+-            "/server/mqtt/publish", RequestType.POST, self._handle_publish_request,
+-            transports=ep_transports
+-        )
+-        self.server.register_endpoint(
+-            "/server/mqtt/subscribe", RequestType.POST,
+-            self._handle_subscription_request,
+-            transports=ep_transports
+-        )
+-
+-        # Subscribe to API requests
+-        self.api_request_topic = f"{self.instance_name}/moonraker/api/request"
+-        self.api_resp_topic = f"{self.instance_name}/moonraker/api/response"
+-        self.klipper_status_topic = f"{self.instance_name}/klipper/status"
+-        self.klipper_state_prefix = f"{self.instance_name}/klipper/state"
+-        self.moonraker_status_topic = f"{self.instance_name}/moonraker/status"
+-        status_cfg: Dict[str, str] = config.getdict(
+-            "status_objects", {}, allow_empty_fields=True
+-        )
+-        self.status_interval = config.getfloat("status_interval", 0, above=.25)
+-        self.status_cache: Dict[str, Dict[str, Any]] = {}
+-        self.status_update_timer: Optional[FlexTimer] = None
+-        self.last_status_time = 0.
+-        self.status_objs: Dict[str, Optional[List[str]]] = {}
+-        for key, val in status_cfg.items():
+-            if val is not None:
+-                self.status_objs[key] = [v.strip() for v in val.split(',') if v.strip()]
+-            else:
+-                self.status_objs[key] = None
+-        if status_cfg:
+-            logging.debug(f"MQTT: Status Objects Set: {self.status_objs}")
+-            self.server.register_event_handler(
+-                "server:klippy_started", self._handle_klippy_started
+-            )
+-            self.server.register_event_handler(
+-                "server:klippy_disconnect", self._handle_klippy_disconnect
+-            )
+-            if self.status_interval:
+-                self.status_update_timer = self.eventloop.register_timer(
+-                    self._handle_timed_status_update
+-                )
+-
+-        self.timestamp_deque: Deque = deque(maxlen=20)
+-        self.api_qos = config.getint('api_qos', self.qos)
+-        if config.getboolean("enable_moonraker_api", True):
+-            self.subscribe_topic(self.api_request_topic,
+-                                 self._process_api_request,
+-                                 self.api_qos)
+-
+-        self.server.register_remote_method("publish_mqtt_topic",
+-                                           self._publish_from_klipper)
+-        logging.info(
+-            f"\nReserved MQTT topics:\n"
+-            f"API Request: {self.api_request_topic}\n"
+-            f"API Response: {self.api_resp_topic}\n"
+-            f"Moonraker Status: {self.moonraker_status_topic}\n"
+-            f"Klipper Status: {self.klipper_status_topic}")
+-
+-    async def component_init(self) -> None:
+-        # We must wait for the IOLoop (asyncio event loop) to start
+-        # prior to retrieving it
+-        self.helper = AIOHelper(self.client)
+-        if self.user_name is not None:
+-            self.client.username_pw_set(self.user_name, self.password)
+-        self.client.will_set(self.moonraker_status_topic,
+-                             payload=jsonw.dumps({'server': 'offline'}),
+-                             qos=self.qos, retain=True)
+-        if self.tls_enabled:
+-            self.client.tls_set()
+-        self.client.connect_async(self.address, self.port)
+-        self.connect_task = self.eventloop.create_task(
+-            self._do_reconnect(first=True)
+-        )
+-
+-    async def _handle_klippy_started(self, state: KlippyState) -> None:
+-        if self.status_objs:
+-            kapi: KlippyAPI = self.server.lookup_component("klippy_apis")
+-            await kapi.subscribe_from_transport(
+-                self.status_objs, self, default=None,
+-            )
+-            if self.status_update_timer is not None:
+-                self.status_update_timer.start(delay=self.status_interval)
+-
+-    def _handle_klippy_disconnect(self):
+-        if self.status_update_timer is not None:
+-            self.status_update_timer.stop()
+-        if self.status_cache:
+-            payload = self.status_cache
+-            self.status_cache = {}
+-            self._publish_status_update(payload, self.last_status_time)
+-
+-    def _on_message(self,
+-                    client: str,
+-                    user_data: Any,
+-                    message: paho_mqtt.MQTTMessage
+-                    ) -> None:
+-        topic = message.topic
+-        if topic in self.subscribed_topics:
+-            cb_hdls = self.subscribed_topics[topic][1]
+-            for hdl in cb_hdls:
+-                self.eventloop.register_callback(
+-                    hdl.callback, message.payload)
+-        else:
+-            logging.debug(
+-                f"Unregistered MQTT Topic Received: {topic}, "
+-                f"payload: {message.payload.decode()}")
+-
+-    def _on_connect(self,
+-                    client: paho_mqtt.Client,
+-                    user_data: Any,
+-                    flags: Dict[str, Any],
+-                    reason_code: Union[int, paho_mqtt.ReasonCodes],
+-                    properties: Optional[paho_mqtt.Properties] = None
+-                    ) -> None:
+-        logging.info("MQTT Client Connected")
+-        if reason_code == 0:
+-            self.publish_topic(self.moonraker_status_topic,
+-                               {'server': 'online'}, retain=True)
+-            subs = [(k, v[0]) for k, v in self.subscribed_topics.items()]
+-            if subs:
+-                res, msg_id = client.subscribe(subs)
+-                if msg_id is not None:
+-                    sub_fut: asyncio.Future = self.eventloop.create_future()
+-                    topics = list(self.subscribed_topics.keys())
+-                    sub_fut.add_done_callback(
+-                        BrokerAckLogger(topics, "subscribe"))
+-                    self.pending_acks[msg_id] = sub_fut
+-            self.connect_evt.set()
+-            self.server.send_event("mqtt:connected")
+-        else:
+-            if isinstance(reason_code, int):
+-                err_str = paho_mqtt.connack_string(reason_code)
+-            else:
+-                err_str = reason_code.getName()
+-            self.server.set_failed_component("mqtt")
+-            self.server.add_warning(f"MQTT Connection Failed: {err_str}")
+-
+-    def _on_disconnect(self,
+-                       client: paho_mqtt.Client,
+-                       user_data: Any,
+-                       reason_code: int,
+-                       properties: Optional[paho_mqtt.Properties] = None
+-                       ) -> None:
+-        if self.disconnect_evt is not None:
+-            self.disconnect_evt.set()
+-        elif self.is_connected():
+-            # The server connection was dropped, attempt to reconnect
+-            logging.info("MQTT Server Disconnected, reason: "
+-                         f"{paho_mqtt.error_string(reason_code)}")
+-            if self.connect_task is None:
+-                self.connect_task = asyncio.create_task(self._do_reconnect())
+-            self.server.send_event("mqtt:disconnected")
+-        self.connect_evt.clear()
+-
+-    def _on_publish(self,
+-                    client: paho_mqtt.Client,
+-                    user_data: Any,
+-                    msg_id: int
+-                    ) -> None:
+-        pub_fut = self.pending_acks.pop(msg_id, None)
+-        if pub_fut is not None and not pub_fut.done():
+-            pub_fut.set_result(None)
+-
+-    def _on_subscribe(self,
+-                      client: paho_mqtt.Client,
+-                      user_data: Any,
+-                      msg_id: int,
+-                      flex: Union[List[int], List[paho_mqtt.ReasonCodes]],
+-                      properties: Optional[paho_mqtt.Properties] = None
+-                      ) -> None:
+-        sub_fut = self.pending_acks.pop(msg_id, None)
+-        if sub_fut is not None and not sub_fut.done():
+-            sub_fut.set_result(flex)
+-
+-    def _on_unsubscribe(self,
+-                        client: paho_mqtt.Client,
+-                        user_data: Any,
+-                        msg_id: int,
+-                        properties: Optional[paho_mqtt.Properties] = None,
+-                        reasoncodes: Optional[paho_mqtt.ReasonCodes] = None
+-                        ) -> None:
+-        unsub_fut = self.pending_acks.pop(msg_id, None)
+-        if unsub_fut is not None and not unsub_fut.done():
+-            unsub_fut.set_result(None)
+-
+-    async def _do_reconnect(self, first: bool = False) -> None:
+-        logging.info("Attempting MQTT Connect/Reconnect")
+-        last_err: Exception = Exception()
+-        while True:
+-            if not first:
+-                try:
+-                    await asyncio.sleep(2.)
+-                except asyncio.CancelledError:
+-                    raise
+-            first = False
+-            try:
+-                sock = await self.eventloop.create_socket_connection(
+-                    (self.address, self.port), timeout=10
+-                )
+-                self.client.reconnect(sock)
+-            except asyncio.CancelledError:
+-                raise
+-            except Exception as e:
+-                if type(last_err) is not type(e) or last_err.args != e.args:
+-                    logging.exception("MQTT Connection Error")
+-                    last_err = e
+-                continue
+-            self.client.socket().setsockopt(
+-                socket.SOL_SOCKET, socket.SO_SNDBUF, 2048)
+-            break
+-        self.connect_task = None
+-
+-    async def wait_connection(self, timeout: Optional[float] = None) -> bool:
+-        try:
+-            await asyncio.wait_for(self.connect_evt.wait(), timeout)
+-        except asyncio.TimeoutError:
+-            return False
+-        return True
+-
+-    def is_connected(self) -> bool:
+-        return self.connect_evt.is_set()
+-
+-    def subscribe_topic(self,
+-                        topic: str,
+-                        callback: FlexCallback,
+-                        qos: Optional[int] = None
+-                        ) -> SubscriptionHandle:
+-        if '#' in topic or '+' in topic:
+-            raise self.server.error("Wildcards may not be used")
+-        qos = qos or self.qos
+-        if qos > 2 or qos < 0:
+-            raise self.server.error("QOS must be between 0 and 2")
+-        hdl = SubscriptionHandle(topic, callback)
+-        sub_handles = [hdl]
+-        need_sub = True
+-        if topic in self.subscribed_topics:
+-            prev_qos, sub_handles = self.subscribed_topics[topic]
+-            qos = max(qos, prev_qos)
+-            sub_handles.append(hdl)
+-            need_sub = qos != prev_qos
+-        self.subscribed_topics[topic] = (qos, sub_handles)
+-        if self.is_connected() and need_sub:
+-            res, msg_id = self.client.subscribe(topic, qos)
+-            if msg_id is not None:
+-                sub_fut: asyncio.Future = self.eventloop.create_future()
+-                sub_fut.add_done_callback(
+-                    BrokerAckLogger([topic], "subscribe"))
+-                self.pending_acks[msg_id] = sub_fut
+-        return hdl
+-
+-    def unsubscribe(self, hdl: SubscriptionHandle) -> None:
+-        topic = hdl.topic
+-        if topic in self.subscribed_topics:
+-            sub_hdls = self.subscribed_topics[topic][1]
+-            try:
+-                sub_hdls.remove(hdl)
+-            except Exception:
+-                pass
+-            if not sub_hdls:
+-                del self.subscribed_topics[topic]
+-                res, msg_id = self.client.unsubscribe(topic)
+-                if msg_id is not None:
+-                    unsub_fut: asyncio.Future = self.eventloop.create_future()
+-                    unsub_fut.add_done_callback(
+-                        BrokerAckLogger([topic], "unsubscribe"))
+-                    self.pending_acks[msg_id] = unsub_fut
+-
+-    def publish_topic(self,
+-                      topic: str,
+-                      payload: Any = None,
+-                      qos: Optional[int] = None,
+-                      retain: bool = False
+-                      ) -> Awaitable[None]:
+-        qos = qos or self.qos
+-        if qos > 2 or qos < 0:
+-            raise self.server.error("QOS must be between 0 and 2")
+-        pub_fut: asyncio.Future = self.eventloop.create_future()
+-        if isinstance(payload, (dict, list)):
+-            try:
+-                payload = jsonw.dumps(payload)
+-            except jsonw.JSONDecodeError:
+-                raise self.server.error(
+-                    "Dict or List is not json encodable") from None
+-        elif isinstance(payload, bool):
+-            payload = str(payload).lower()
+-        try:
+-            msg_info = self.client.publish(topic, payload, qos, retain)
+-            if msg_info.is_published():
+-                pub_fut.set_result(None)
+-            else:
+-                if qos == 0:
+-                    # There is no delivery guarantee for qos == 0, so
+-                    # it is possible that the on_publish event will
+-                    # not be called if paho mqtt encounters an error
+-                    # during publication.  Return immediately as
+-                    # a workaround.
+-                    if msg_info.rc != paho_mqtt.MQTT_ERR_SUCCESS:
+-                        err_str = paho_mqtt.error_string(msg_info.rc)
+-                        pub_fut.set_exception(self.server.error(
+-                            f"MQTT Publish Error: {err_str}", 503))
+-                    else:
+-                        pub_fut.set_result(None)
+-                    return pub_fut
+-                self.pending_acks[msg_info.mid] = pub_fut
+-        except ValueError:
+-            pub_fut.set_exception(self.server.error(
+-                "MQTT Message Queue Full", 529))
+-        except Exception as e:
+-            pub_fut.set_exception(self.server.error(
+-                f"MQTT Publish Error: {e}", 503))
+-        return pub_fut
+-
+-    async def publish_topic_with_response(self,
+-                                          topic: str,
+-                                          response_topic: str,
+-                                          payload: Any = None,
+-                                          qos: Optional[int] = None,
+-                                          retain: bool = False,
+-                                          timeout: Optional[float] = None
+-                                          ) -> bytes:
+-        qos = qos or self.qos
+-        if qos > 2 or qos < 0:
+-            raise self.server.error("QOS must be between 0 and 2")
+-        resp_fut: asyncio.Future = self.eventloop.create_future()
+-        resp_hdl = self.subscribe_topic(
+-            response_topic, resp_fut.set_result, qos)
+-        self.pending_responses.append(resp_fut)
+-        try:
+-            await asyncio.wait_for(self.publish_topic(
+-                topic, payload, qos, retain), timeout)
+-            await asyncio.wait_for(resp_fut, timeout)
+-        except asyncio.TimeoutError:
+-            logging.info(f"Response to request {topic} timed out")
+-            raise self.server.error("MQTT Request Timed Out", 504)
+-        finally:
+-            try:
+-                self.pending_responses.remove(resp_fut)
+-            except Exception:
+-                pass
+-            self.unsubscribe(resp_hdl)
+-        return resp_fut.result()
+-
+-    async def _handle_publish_request(self,
+-                                      web_request: WebRequest
+-                                      ) -> Dict[str, Any]:
+-        topic: str = web_request.get_str("topic")
+-        payload: Any = web_request.get("payload", None)
+-        qos: int = web_request.get_int("qos", self.qos)
+-        retain: bool = web_request.get_boolean("retain", False)
+-        timeout: Optional[float] = web_request.get_float('timeout', None)
+-        try:
+-            await asyncio.wait_for(self.publish_topic(
+-                topic, payload, qos, retain), timeout)
+-        except asyncio.TimeoutError:
+-            raise self.server.error("MQTT Publish Timed Out", 504)
+-        return {
+-            "topic": topic
+-        }
+-
+-    async def _handle_subscription_request(self,
+-                                           web_request: WebRequest
+-                                           ) -> Dict[str, Any]:
+-        topic: str = web_request.get_str("topic")
+-        qos: int = web_request.get_int("qos", self.qos)
+-        timeout: Optional[float] = web_request.get_float('timeout', None)
+-        resp: asyncio.Future = self.eventloop.create_future()
+-        hdl: Optional[SubscriptionHandle] = None
+-        try:
+-            hdl = self.subscribe_topic(topic, resp.set_result, qos)
+-            self.pending_responses.append(resp)
+-            await asyncio.wait_for(resp, timeout)
+-            ret: bytes = resp.result()
+-        except asyncio.TimeoutError:
+-            raise self.server.error("MQTT Subscribe Timed Out", 504)
+-        finally:
+-            try:
+-                self.pending_responses.remove(resp)
+-            except Exception:
+-                pass
+-            if hdl is not None:
+-                self.unsubscribe(hdl)
+-        try:
+-            payload = jsonw.loads(ret)
+-        except jsonw.JSONDecodeError:
+-            payload = ret.decode()
+-        return {
+-            'topic': topic,
+-            'payload': payload
+-        }
+-
+-    async def _process_api_request(self, payload: bytes) -> None:
+-        rpc: JsonRPC = self.server.lookup_component("jsonrpc")
+-        response = await rpc.dispatch(payload, self)
+-        if response is not None:
+-            await self.publish_topic(self.api_resp_topic, response,
+-                                     self.api_qos)
+-
+-    @property
+-    def transport_type(self) -> TransportType:
+-        return TransportType.MQTT
+-
+-    def screen_rpc_request(
+-        self, api_def: APIDefinition, req_type: RequestType, args: Dict[str, Any]
+-    ) -> None:
+-        ts = args.pop("mqtt_timestamp", None)
+-        if ts is not None:
+-            if ts in self.timestamp_deque:
+-                logging.debug("Duplicate MQTT API request received")
+-                raise self.server.error(
+-                    "Duplicate MQTT Request", DUP_API_REQ_CODE)
+-            else:
+-                self.timestamp_deque.append(ts)
+-
+-    def send_status(self, status: Dict[str, Any], eventtime: float) -> None:
+-        if not status or not self.is_connected():
+-            return
+-        if not self.status_interval:
+-            self._publish_status_update(status, eventtime)
+-        else:
+-            for key, val in status.items():
+-                self.status_cache.setdefault(key, {}).update(val)
+-            self.last_status_time = eventtime
+-
+-    def _handle_timed_status_update(self, eventtime: float) -> float:
+-        if self.status_cache:
+-            payload = self.status_cache
+-            self.status_cache = {}
+-            self._publish_status_update(payload, self.last_status_time)
+-        return eventtime + self.status_interval
+-
+-    def _publish_status_update(self, status: Dict[str, Any], eventtime: float) -> None:
+-        if self.publish_split_status:
+-            for objkey in status:
+-                objval = status[objkey]
+-                for statekey in objval:
+-                    payload = {'eventtime': eventtime, 'value': objval[statekey]}
+-                    self.publish_topic(
+-                        f"{self.klipper_state_prefix}/{objkey}/{statekey}",
+-                        payload, retain=True)
+-        else:
+-            payload = {'eventtime': eventtime, 'status': status}
+-            self.publish_topic(self.klipper_status_topic, payload)
+-
+-
+-    def get_instance_name(self) -> str:
+-        return self.instance_name
+-
+-    async def close(self) -> None:
+-        if self.status_update_timer is not None:
+-            self.status_update_timer.stop()
+-        if self.connect_task is not None:
+-            self.connect_task.cancel()
+-            self.connect_task = None
+-        if not self.is_connected():
+-            return
+-        await self.publish_topic(self.moonraker_status_topic,
+-                                 {'server': 'offline'},
+-                                 retain=True)
+-        self.disconnect_evt = asyncio.Event()
+-        self.client.disconnect()
+-        try:
+-            await asyncio.wait_for(self.disconnect_evt.wait(), 2.)
+-        except asyncio.TimeoutError:
+-            logging.info("MQTT Disconnect Timeout")
+-        futs = list(self.pending_acks.values())
+-        futs.extend(self.pending_responses)
+-        for fut in futs:
+-            if fut.done():
+-                continue
+-            fut.set_exception(
+-                self.server.error("Moonraker Shutdown", 503))
+-
+-    async def _publish_from_klipper(self,
+-                                    topic: str,
+-                                    payload: Any = None,
+-                                    qos: Optional[int] = None,
+-                                    retain: bool = False,
+-                                    use_prefix: bool = False
+-                                    ) -> None:
+-        if use_prefix:
+-            topic = f"{self.instance_name}/{topic.lstrip('/')}"
+-        await self.publish_topic(topic, payload, qos, retain)
+-
+-
+-def load_component(config: ConfigHelper) -> MQTTClient:
+-    return MQTTClient(config)
+diff --git a/moonraker/components/octoprint_compat.py b/moonraker/components/octoprint_compat.py
+index bd68e0a..8ddd49b 100644
+--- a/moonraker/components/octoprint_compat.py
++++ b/moonraker/components/octoprint_compat.py
+@@ -373,6 +373,9 @@ class OctoPrintCompat:
+         fmgr: FileManager = self.server.lookup_component('file_manager')
+         if command == "select":
+             start_print: bool = web_request.get_boolean('print', False)
++            #plateindex: str = web_request.get_str('plateindex', '1')
++            uid: str = web_request.get_str('uid', "native")
++            need_extract: bool = web_request.get_boolean('need_extract', True)
+             if not start_print:
+                 # No-op, selecting a file has no meaning in Moonraker
+                 return
+@@ -391,7 +394,7 @@ class OctoPrintCompat:
+             user = web_request.get_current_user()
+             if pstate not in ["printing", "paused", "not_avail"]:
+                 try:
+-                    await self.klippy_apis.start_print(filename, user=user)
++                    await self.klippy_apis.start_print(filename, user=user, uid=uid, need_extract=need_extract)
+                 except self.server.error:
+                     started = False
+                 else:
+diff --git a/moonraker/components/power.py b/moonraker/components/power.py
+index b55edb0..936f4f9 100644
+--- a/moonraker/components/power.py
++++ b/moonraker/components/power.py
+@@ -446,17 +446,22 @@ class HTTPDevice(PowerDevice):
+     ) -> None:
+         super().__init__(config)
+         self.client: HttpClient = self.server.lookup_component("http_client")
++        self.user = config.load_template("user", default_user).render()
++        self.password = config.load_template("password", default_password).render()
++        self.has_basic_auth: bool = False
+         if is_generic:
+             return
+-        self.addr: str = config.get("address")
++        addr_parts = config.get("address").strip("/").split("/")
++        self.addr: str = "/".join([quote(part) for part in addr_parts])
+         self.port = config.getint("port", default_port)
+-        self.user = config.load_template("user", default_user).render()
+-        self.password = config.load_template(
+-            "password", default_password).render()
+         self.protocol = config.get("protocol", default_protocol)
+         if self.port == -1:
+             self.port = 443 if self.protocol.lower() == "https" else 80
+ 
++    def enable_basic_authentication(self) -> None:
++        if self.user and self.password:
++            self.has_basic_auth = True
++
+     async def init_state(self) -> None:
+         async with self.request_lock:
+             last_err: Exception = Exception()
+@@ -492,9 +497,15 @@ class HTTPDevice(PowerDevice):
+     async def _send_http_command(
+         self, url: str, command: str, retries: int = 3
+     ) -> Dict[str, Any]:
++        ba_user: Optional[str] = None
++        ba_pass: Optional[str] = None
++        if self.has_basic_auth:
++            ba_user = self.user
++            ba_pass = self.password
+         response = await self.client.get(
+-            url, request_timeout=20., attempts=retries,
+-            retry_pause_time=1., enable_cache=False)
++            url, request_timeout=20., attempts=retries, retry_pause_time=1.,
++            enable_cache=False, basic_auth_user=ba_user, basic_auth_pass=ba_pass
++        )
+         response.raise_for_status(
+             f"Error sending '{self.type}' command: {command}")
+         data = cast(dict, response.json())
+@@ -632,7 +643,7 @@ class KlipperDevice(PowerDevice):
+         sub: Dict[str, Optional[List[str]]] = {self.object_name: None}
+         data = await kapis.subscribe_objects(sub, self._status_update, None)
+         if not self._validate_data(data):
+-            self.state == "error"
++            self.state = "error"
+         else:
+             assert data is not None
+             self._set_state_from_data(data)
+@@ -980,7 +991,7 @@ class Tasmota(HTTPDevice):
+             "password": self.password,
+             "cmnd": out_cmd
+         })
+-        url = f"{self.protocol}://{quote(self.addr)}/cm?{query}"
++        url = f"{self.protocol}://{self.addr}/cm?{query}"
+         return await self._send_http_command(url, command)
+ 
+     async def _send_status_request(self) -> str:
+@@ -1012,6 +1023,7 @@ class Shelly(HTTPDevice):
+         super().__init__(config, default_user="admin", default_password="")
+         self.output_id = config.getint("output_id", 0)
+         self.timer = config.get("timer", "")
++        self.enable_basic_authentication()
+ 
+     async def _send_shelly_command(self, command: str) -> Dict[str, Any]:
+         query_args: Dict[str, Any] = {}
+@@ -1023,12 +1035,8 @@ class Shelly(HTTPDevice):
+                 query_args["timer"] = self.timer
+         elif command != "info":
+             raise self.server.error(f"Invalid shelly command: {command}")
+-        if self.password != "":
+-            out_pwd = f"{quote(self.user)}:{quote(self.password)}@"
+-        else:
+-            out_pwd = ""
+         query = urlencode(query_args)
+-        url = f"{self.protocol}://{out_pwd}{quote(self.addr)}/{out_cmd}?{query}"
++        url = f"{self.protocol}://{self.addr}/{out_cmd}?{query}"
+         return await self._send_http_command(url, command)
+ 
+     async def _send_status_request(self) -> str:
+@@ -1055,7 +1063,7 @@ class SmartThings(HTTPDevice):
+         if (command == "on" or command == "off"):
+             method = "POST"
+             url = (
+-                f"{self.protocol}://{quote(self.addr)}"
++                f"{self.protocol}://{self.addr}"
+                 f"/v1/devices/{quote(self.device)}/commands"
+             )
+             body = [
+@@ -1068,7 +1076,7 @@ class SmartThings(HTTPDevice):
+         elif command == "info":
+             method = "GET"
+             url = (
+-                f"{self.protocol}://{quote(self.addr)}/v1/devices/"
++                f"{self.protocol}://{self.addr}/v1/devices/"
+                 f"{quote(self.device)}/components/main/capabilities/"
+                 "switch/status"
+             )
+@@ -1102,6 +1110,7 @@ class HomeSeer(HTTPDevice):
+     def __init__(self, config: ConfigHelper) -> None:
+         super().__init__(config, default_user="admin", default_password="")
+         self.device = config.getint("device")
++        self.enable_basic_authentication()
+ 
+     async def _send_homeseer(
+         self, request: str, state: str = ""
+@@ -1116,8 +1125,7 @@ class HomeSeer(HTTPDevice):
+             query_args["label"] = state
+         query = urlencode(query_args)
+         url = (
+-            f"{self.protocol}://{quote(self.user)}:{quote(self.password)}@"
+-            f"{quote(self.addr)}:{self.port}/JSON?{query}"
++            f"{self.protocol}://{self.addr}:{self.port}/JSON?{query}"
+         )
+         return await self._send_http_command(url, request)
+ 
+@@ -1152,7 +1160,7 @@ class HomeAssistant(HTTPDevice):
+         else:
+             raise self.server.error(
+                 f"Invalid homeassistant command: {command}")
+-        url = f"{self.protocol}://{quote(self.addr)}:{self.port}/{out_cmd}"
++        url = f"{self.protocol}://{self.addr}:{self.port}/{out_cmd}"
+         headers = {
+             'Authorization': f'Bearer {self.token}'
+         }
+@@ -1182,6 +1190,7 @@ class Loxonev1(HTTPDevice):
+         super().__init__(config, default_user="admin",
+                          default_password="admin")
+         self.output_id = config.get("output_id", "")
++        self.enable_basic_authentication()
+ 
+     async def _send_loxonev1_command(self, command: str) -> Dict[str, Any]:
+         if command in ["on", "off"]:
+@@ -1190,11 +1199,7 @@ class Loxonev1(HTTPDevice):
+             out_cmd = f"jdev/sps/io/{quote(self.output_id)}"
+         else:
+             raise self.server.error(f"Invalid loxonev1 command: {command}")
+-        if self.password != "":
+-            out_pwd = f"{quote(self.user)}:{quote(self.password)}@"
+-        else:
+-            out_pwd = ""
+-        url = f"http://{out_pwd}{quote(self.addr)}/{out_cmd}"
++        url = f"http://{self.addr}/{out_cmd}"
+         return await self._send_http_command(url, command)
+ 
+     async def _send_status_request(self) -> str:
+@@ -1242,6 +1247,7 @@ class MQTTDevice(PowerDevice):
+         context = {
+             'payload': payload.decode()
+         }
++        response: str = ""
+         try:
+             response = self.state_response.render(context)
+         except Exception as e:
+@@ -1404,7 +1410,7 @@ class HueDevice(HTTPDevice):
+     async def _send_power_request(self, state: str) -> str:
+         new_state = True if state == "on" else False
+         url = (
+-            f"{self.protocol}://{quote(self.addr)}:{self.port}/api/{quote(self.user)}"
++            f"{self.protocol}://{self.addr}:{self.port}/api/{quote(self.user)}"
+             f"/{self.device_type}s/{quote(self.device_id)}"
+             f"/{quote(self.state_key)}"
+         )
+@@ -1420,7 +1426,7 @@ class HueDevice(HTTPDevice):
+ 
+     async def _send_status_request(self) -> str:
+         url = (
+-            f"{self.protocol}://{quote(self.addr)}:{self.port}/api/{quote(self.user)}"
++            f"{self.protocol}://{self.addr}:{self.port}/api/{quote(self.user)}"
+             f"/{self.device_type}s/{quote(self.device_id)}"
+         )
+         ret = await self.client.request("GET", url)
+@@ -1428,7 +1434,7 @@ class HueDevice(HTTPDevice):
+         return "on" if resp["state"][self.on_state] else "off"
+ 
+ class GenericHTTP(HTTPDevice):
+-    def __init__(self, config: ConfigHelper,) -> None:
++    def __init__(self, config: ConfigHelper) -> None:
+         super().__init__(config, is_generic=True)
+         self.urls: Dict[str, str] = {
+             "on": config.gettemplate("on_url").render(),
+@@ -1439,10 +1445,17 @@ class GenericHTTP(HTTPDevice):
+             "request_template", None, is_async=True
+         )
+         self.response_template = config.gettemplate("response_template", is_async=True)
++        self.enable_basic_authentication()
+ 
+     async def _send_generic_request(self, command: str) -> str:
++        ba_user: Optional[str] = None
++        ba_pass: Optional[str] = None
++        if self.has_basic_auth:
++            ba_user = self.user
++            ba_pass = self.password
+         request = self.client.wrap_request(
+-            self.urls[command], request_timeout=20., attempts=3, retry_pause_time=1.
++            self.urls[command], request_timeout=20., attempts=3, retry_pause_time=1.,
++            basic_auth_user=ba_user, basic_auth_pass=ba_pass
+         )
+         context: Dict[str, Any] = {
+             "command": command,
+@@ -1475,7 +1488,7 @@ HUB_STATE_PATTERN = r"""
+     (?:Port\s(?P<port>[0-9]+):)
+     (?:\s(?P<bits>[0-9a-f]{4}))
+     (?:\s(?P<pstate>power|off))
+-    (?P<flags>(?:\s[0-9a-z]+)+)?
++    (?P<flags>(?:\s[0-9a-z.]+)+)?
+     (?:\s\[(?P<desc>.+)\])?
+ """
+ 
+@@ -1488,7 +1501,7 @@ class UHubCtl(PowerDevice):
+         super().__init__(config)
+         self.scmd: ShellCommand = self.server.load_component(config, "shell_command")
+         self.location = config.get("location")
+-        self.port = config.getint("port")
++        self.port = config.getint("port", None)
+         ret = shutil.which("uhubctl")
+         if ret is None:
+             raise config.error(
+@@ -1531,11 +1544,13 @@ class UHubCtl(PowerDevice):
+         self.state = result["state"]
+ 
+     async def _run_uhubctl(self, action: str) -> Dict[str, Any]:
+-        cmd = f"uhubctl -l {self.location} -p {self.port}"
+-        search_prefix = "Current status"
++        cmd = f"uhubctl -l {self.location}"
++        if self.port is not None:
++            cmd += f" -p {self.port}"
++        search_prefix = f"Current status for hub {self.location}"
+         if action in ["on", "off"]:
+             cmd += f" -a {action}"
+-            search_prefix = "New status"
++            search_prefix = f"New status for hub {self.location}"
+         resp: str = await self.scmd.exec_cmd(cmd, log_complete=False)
+         for line in resp.splitlines():
+             if search_prefix:
+@@ -1551,7 +1566,7 @@ class UHubCtl(PowerDevice):
+                 status_bits = int(result["bits"], 16)
+             except (TypeError, ValueError):
+                 continue
+-            if port != self.port:
++            if self.port is not None and port != self.port:
+                 continue
+             if result["pstate"] is None:
+                 continue
+diff --git a/moonraker/components/proc_stats.py b/moonraker/components/proc_stats.py
+index fd4ee88..c952a1b 100644
+--- a/moonraker/components/proc_stats.py
++++ b/moonraker/components/proc_stats.py
+@@ -59,6 +59,12 @@ THROTTLED_FLAGS = {
+     1 << 19: "Previously Temperature Limited"
+ }
+ 
++STATUS_MAP = {
++    "mqtt": "mqtt_state",
++    "database": "config_items",
++    "timelapse": "timelapse"
++}
++
+ class ProcStats:
+     def __init__(self, config: ConfigHelper) -> None:
+         self.server = config.get_server()
+@@ -166,14 +172,23 @@ class ProcStats:
+         self.proc_stat_queue.append(result)
+         wsm: WebsocketManager = self.server.lookup_component("websockets")
+         websocket_count = wsm.get_count()
+-        self.server.send_event("proc_stats:proc_stat_update", {
++        event_data = {
+             'moonraker_stats': result,
+             'cpu_temp': cpu_temp,
+             'network': net,
+             'system_cpu_usage': self.cpu_usage,
+             'system_memory': self.memory_usage,
+-            'websocket_connections': websocket_count
+-        })
++            'websocket_connections': websocket_count,
++        }
++
++        # 3. 遍历映射并动态添加状态
++        for component_name, attr_name in STATUS_MAP.items():
++            try:
++                component = self.server.lookup_component(component_name)
++                event_data[attr_name] = component.get_status(eventtime)
++            except Exception as e:
++                event_data[attr_name] = None 
++        self.server.send_event("proc_stats:proc_stat_update", event_data)
+         if (
+             not self.update_sequence % THROTTLE_CHECK_INTERVAL
+             and self.vcgencmd is not None
+diff --git a/moonraker/components/websockets.py b/moonraker/components/websockets.py
+index 7d0c85b..3e85690 100644
+--- a/moonraker/components/websockets.py
++++ b/moonraker/components/websockets.py
+@@ -16,6 +16,7 @@ from ..common import (
+     TransportType,
+ )
+ from ..utils import ServerError, parse_ip_address
++import traceback
+ 
+ # Annotation imports
+ from typing import (
+@@ -113,6 +114,7 @@ class WebsocketManager:
+             extensions: ExtensionManager
+             extensions = self.server.lookup_component("extensions")
+             try:
++                logging.info(''.join(traceback.format_stack()))
+                 extensions.register_agent(sc)
+             except ServerError:
+                 sc.client_data["type"] = ""
+diff --git a/moonraker/confighelper.py b/moonraker/confighelper.py
+index aa802d6..a68a0c1 100644
+--- a/moonraker/confighelper.py
++++ b/moonraker/confighelper.py
+@@ -249,6 +249,31 @@ class ConfigHelper:
+             self.config.getfloat, option, default,
+             above, below, minval, maxval, deprecate)
+ 
++    def getchoice(
++        self,
++        option: str,
++        choices: Union[Dict[str, _T], List[_T]],
++        default_key: Union[Sentinel, str] = Sentinel.MISSING,
++        force_lowercase: bool = False,
++        deprecate: bool = False
++    ) -> _T:
++        result: str = self._get_option(
++            self.config.get, option, default_key, deprecate=deprecate
++        )
++        if force_lowercase:
++            result = result.lower()
++        if result not in choices:
++            items = list(choices.keys()) if isinstance(choices, dict) else choices
++            raise ConfigError(
++                f"Section [{self.section}], Option '{option}: Value "
++                f"{result} is not a vailid choice.  Must be one of the "
++                f"following {items}"
++            )
++        if isinstance(choices, dict):
++            return choices[result]
++        else:
++            return result  # type: ignore
++
+     def getlists(self,
+                  option: str,
+                  default: Union[Sentinel, _T] = Sentinel.MISSING,
+@@ -506,7 +531,7 @@ class ConfigHelper:
+ 
+     def create_backup(self) -> None:
+         cfg_path = self.server.get_app_args()["config_file"]
+-        cfg = pathlib.Path(cfg_path).expanduser().resolve()
++        cfg = pathlib.Path(cfg_path).expanduser()
+         backup = cfg.parent.joinpath(f".{cfg.name}.bkp")
+         backup_fp: Optional[TextIO] = None
+         try:
+@@ -1083,7 +1108,10 @@ class FileSourceWrapper(ConfigSourceWrapper):
+ def get_configuration(
+     server: Server, app_args: Dict[str, Any]
+ ) -> ConfigHelper:
+-    start_path = pathlib.Path(app_args['config_file']).expanduser().resolve()
++    cfg_file = app_args["config_file"]
++    if app_args["is_backup_config"]:
++        cfg_file = app_args["backup_config"]
++    start_path = pathlib.Path(cfg_file).expanduser().absolute()
+     source = FileSourceWrapper(server)
+     source.read_file(start_path)
+     if not source.config.has_section('server'):
+@@ -1091,7 +1119,7 @@ def get_configuration(
+     return ConfigHelper(server, source, 'server', {})
+ 
+ def find_config_backup(cfg_path: str) -> Optional[str]:
+-    cfg = pathlib.Path(cfg_path).expanduser().resolve()
++    cfg = pathlib.Path(cfg_path).expanduser()
+     backup = cfg.parent.joinpath(f".{cfg.name}.bkp")
+     if backup.is_file():
+         return str(backup)
+diff --git a/moonraker/eventloop.py b/moonraker/eventloop.py
+index 6ee83b9..51745a4 100644
+--- a/moonraker/eventloop.py
++++ b/moonraker/eventloop.py
+@@ -48,7 +48,7 @@ class EventLoop:
+         return self.aioloop
+ 
+     def reset(self) -> None:
+-        self.aioloop = self._create_new_loop()
++        self.aioloop = asyncio.get_running_loop()
+         self.add_signal_handler = self.aioloop.add_signal_handler
+         self.remove_signal_handler = self.aioloop.remove_signal_handler
+         self.add_reader = self.aioloop.add_reader
+@@ -126,7 +126,7 @@ class EventLoop:
+             host, port, family=0, type=socket.SOCK_STREAM
+         )
+         for res in ainfo:
+-            af, socktype, proto, canonname, sa = res
++            af, socktype, proto, _cannon_name, _sa = res
+             sock = None
+             try:
+                 sock = socket.socket(af, socktype, proto)
+@@ -152,12 +152,6 @@ class EventLoop:
+         else:
+             raise socket.error("getaddrinfo returns an empty list")
+ 
+-    def start(self):
+-        self.aioloop.run_forever()
+-
+-    def stop(self):
+-        self.aioloop.stop()
+-
+     def close(self):
+         self.aioloop.close()
+ 
+diff --git a/moonraker/loghelper.py b/moonraker/loghelper.py
+index 8245fb7..640e651 100644
+--- a/moonraker/loghelper.py
++++ b/moonraker/loghelper.py
+@@ -130,7 +130,8 @@ class LogManager:
+         return eventloop.run_in_thread(self.file_hdlr.doRollover)
+ 
+     def stop_logging(self):
+-        self.listener.stop()
++        if self.listener is not None:
++            self.listener.stop()
+ 
+     async def _handle_log_rollover(
+         self, web_request: WebRequest
+diff --git a/moonraker/moonraker.py b/moonraker/moonraker.py
+index 0948717..3cf3172 100755
+--- a/moonraker/moonraker.py
++++ b/moonraker/moonraker.py
+@@ -4,6 +4,7 @@
+ # Copyright (C) 2022 Eric Callahan <arksine.code@gmail.com>
+ #
+ # This file may be distributed under the terms of the GNU GPLv3 license
++import logging
+ 
+ 
+ if __name__ == "__main__":
+@@ -13,5 +14,8 @@ if __name__ == "__main__":
+     pkg_parent = pathlib.Path(__file__).parent.parent
+     sys.path.pop(0)
+     sys.path.insert(0, str(pkg_parent))
++    
+     svr = importlib.import_module(".server", "moonraker")
++    
+     svr.main(False)  # type: ignore
++    
+\ No newline at end of file
+diff --git a/moonraker/server.py b/moonraker/server.py
+index ccd1c39..ca4f014 100755
+--- a/moonraker/server.py
++++ b/moonraker/server.py
+@@ -89,6 +89,7 @@ class Server:
+         self.ssl_port: int = config.getint('ssl_port', 7130)
+         self.exit_reason: str = ""
+         self.server_running: bool = False
++        self.app_running_evt = asyncio.Event()
+         self.pip_recovery_attempted: bool = False
+ 
+         # Configure Debug Logging
+@@ -198,10 +199,8 @@ class Server:
+             await self.event_loop.run_in_thread(self.config.create_backup)
+ 
+         machine: Machine = self.lookup_component("machine")
+-        if await machine.validate_installation():
+-            return
+-
+-        if start_server:
++        restarting = await machine.validate_installation()
++        if not restarting and start_server:
+             await self.start_server()
+ 
+     async def start_server(self, connect_to_klippy: bool = True) -> None:
+@@ -218,6 +217,9 @@ class Server:
+         if connect_to_klippy:
+             self.klippy_connection.connect()
+ 
++    async def run_until_exit(self) -> None:
++        await self.app_running_evt.wait()
++
+     def add_log_rollover_item(
+         self, name: str, item: str, log: bool = True
+     ) -> None:
+@@ -226,13 +228,17 @@ class Server:
+             logging.info(item)
+ 
+     def add_warning(
+-        self, warning: str, warn_id: Optional[str] = None, log: bool = True
++        self,
++        warning: str,
++        warn_id: Optional[str] = None,
++        log: bool = True,
++        exc_info: Optional[BaseException] = None
+     ) -> str:
+         if warn_id is None:
+             warn_id = str(id(warning))
+         self.warnings[warn_id] = warning
+         if log:
+-            logging.warning(warning)
++            logging.warning(warning, exc_info=exc_info)
+         return warn_id
+ 
+     def remove_warning(self, warn_id: str) -> None:
+@@ -246,9 +252,9 @@ class Server:
+             if ret is not None:
+                 await ret
+         except Exception as e:
+-            logging.exception(f"Component [{name}] failed post init")
+-            self.add_warning(f"Component '{name}' failed to load with "
+-                             f"error: {e}")
++            self.add_warning(
++                f"Component '{name}' failed to load with error: {e}", exc_info=e
++            )
+             self.set_failed_component(name)
+ 
+     def load_components(self) -> None:
+@@ -256,13 +262,21 @@ class Server:
+         cfg_sections = set([s.split()[0] for s in config.sections()])
+         cfg_sections.remove('server')
+ 
++        # load database to initialize saved state
++        self.load_component(config, "database")
++        self.klippy_connection.load_saved_state()
++
+         # load core components
+         for component in CORE_COMPONENTS:
+             self.load_component(config, component)
+             if component in cfg_sections:
+                 cfg_sections.remove(component)
+ 
++        cfg_sections.discard('mqtt')
++        cfg_sections.add('mqtt')
+         # load remaining optional components
++        cfg_sections.discard('frp_manager')
++        cfg_sections.add('frp_manager')
+         for section in cfg_sections:
+             self.load_component(config, section, None)
+ 
+@@ -353,6 +367,10 @@ class Server:
+         if component_name not in self.failed_components:
+             self.failed_components.append(component_name)
+ 
++    def remove_failed_component(self, component_name: str) -> None:
++        if component_name in self.failed_components:
++            self.failed_components.remove(component_name)
++
+     def register_component(self, component_name: str, component: Any) -> None:
+         if component_name in self.components:
+             raise self.error(
+@@ -480,7 +498,7 @@ class Server:
+ 
+         self.exit_reason = exit_reason
+         self.event_loop.remove_signal_handler(signal.SIGTERM)
+-        self.event_loop.stop()
++        self.app_running_evt.set()
+ 
+     async def _handle_server_restart(self, web_request: WebRequest) -> str:
+         self.event_loop.register_callback(self._stop_server)
+@@ -532,6 +550,45 @@ class Server:
+             'files': cfg_file_list
+         }
+ 
++async def launch_server(
++    log_manager: LogManager, app_args: Dict[str, Any]
++) -> Optional[int]:
++    eventloop = EventLoop()
++    startup_warnings: List[str] = app_args["startup_warnings"]
++    try:
++        server = Server(app_args, log_manager, eventloop)
++        server.load_components()
++    except confighelper.ConfigError as e:
++        logging.exception("Server Config Error")
++        backup_cfg: Optional[str] = app_args["backup_config"]
++        if app_args["is_backup_config"] or backup_cfg is None:
++            return 1
++        app_args["is_backup_config"] = True
++        startup_warnings.append(
++            f"Server configuration error: {e}\n"
++            f"Loading most recent working configuration: '{backup_cfg}'\n"
++            f"Please fix the issue in moonraker.conf and restart the server."
++        )
++        return True
++    except Exception:
++        logging.exception("Moonraker Error")
++        return 1
++    try:
++        await server.server_init()
++        await server.run_until_exit()
++    except Exception:
++        logging.exception("Server Running Error")
++        return 1
++    if server.exit_reason == "terminate":
++        return 0
++    # Restore the original config and clear the warning
++    # before the server restarts
++    if app_args["is_backup_config"]:
++        startup_warnings.pop()
++        app_args["is_backup_config"] = False
++    del server
++    return None
++
+ def main(from_package: bool = True) -> None:
+     def get_env_bool(key: str) -> bool:
+         return os.getenv(key, "").lower() in ["y", "yes", "true"]
+@@ -627,6 +684,7 @@ def main(from_package: bool = True) -> None:
+         "data_path": str(data_path),
+         "is_default_data_path": cmd_line_args.datapath is None,
+         "config_file": cfg_file,
++        "backup_config": confighelper.find_config_backup(cfg_file),
+         "startup_warnings": startup_warnings,
+         "verbose": cmd_line_args.verbose,
+         "debug": cmd_line_args.debug,
+@@ -653,60 +711,14 @@ def main(from_package: bool = True) -> None:
+     log_manager = LogManager(app_args, startup_warnings)
+ 
+     # Start asyncio event loop and server
+-    event_loop = EventLoop()
+-    alt_config_loaded = False
+-    estatus = 0
+     while True:
+-        try:
+-            server = Server(app_args, log_manager, event_loop)
+-            server.load_components()
+-        except confighelper.ConfigError as e:
+-            backup_cfg = confighelper.find_config_backup(cfg_file)
+-            logging.exception("Server Config Error")
+-            if alt_config_loaded or backup_cfg is None:
+-                estatus = 1
+-                break
+-            app_args["config_file"] = backup_cfg
+-            app_args["is_backup_config"] = True
+-            warn_list = list(startup_warnings)
+-            app_args["startup_warnings"] = warn_list
+-            warn_list.append(
+-                f"Server configuration error: {e}\n"
+-                f"Loaded server from most recent working configuration:"
+-                f" '{app_args['config_file']}'\n"
+-                f"Please fix the issue in moonraker.conf and restart "
+-                f"the server."
+-            )
+-            alt_config_loaded = True
+-            continue
+-        except Exception:
+-            logging.exception("Moonraker Error")
+-            estatus = 1
+-            break
+-        try:
+-            event_loop.register_callback(server.server_init)
+-            event_loop.start()
+-        except Exception:
+-            logging.exception("Server Running Error")
+-            estatus = 1
+-            break
+-        if server.exit_reason == "terminate":
++        estatus = asyncio.run(launch_server(log_manager, app_args))
++        if estatus is not None:
+             break
+-        # Restore the original config and clear the warning
+-        # before the server restarts
+-        if alt_config_loaded:
+-            app_args["config_file"] = cfg_file
+-            app_args["startup_warnings"] = startup_warnings
+-            app_args["is_backup_config"] = False
+-            alt_config_loaded = False
+-        event_loop.close()
+         # Since we are running outside of the the server
+         # it is ok to use a blocking sleep here
+         time.sleep(.5)
+         logging.info("Attempting Server Restart...")
+-        del server
+-        event_loop.reset()
+-    event_loop.close()
+     logging.info("Server Shutdown")
+     log_manager.stop_logging()
+     exit(estatus)
+diff --git a/moonraker/utils/__init__.py b/moonraker/utils/__init__.py
+index 5a216a3..0a9c21f 100644
+--- a/moonraker/utils/__init__.py
++++ b/moonraker/utils/__init__.py
+@@ -21,6 +21,7 @@ import socket
+ import enum
+ import ipaddress
+ import platform
++from .exceptions import ServerError
+ from . import source_info
+ from . import json_wrapper
+ 
+@@ -49,11 +50,6 @@ try:
+ except Exception:
+     KERNEL_VERSION = (0, 0)
+ 
+-class ServerError(Exception):
+-    def __init__(self, message: str, status_code: int = 400) -> None:
+-        Exception.__init__(self, message)
+-        self.status_code = status_code
+-
+ 
+ class Sentinel(enum.Enum):
+     MISSING = object()
+diff --git a/moonraker/utils/source_info.py b/moonraker/utils/source_info.py
+index d845199..a9c75a3 100644
+--- a/moonraker/utils/source_info.py
++++ b/moonraker/utils/source_info.py
+@@ -9,10 +9,18 @@ import importlib.resources as ilr
+ import pathlib
+ import sys
+ import site
++import re
++import json
++import logging
++from dataclasses import dataclass
++from importlib_metadata import Distribution, PathDistribution, PackageMetadata
++from .exceptions import ServerError
+ 
+ # Annotation imports
+ from typing import (
+     Optional,
++    Dict,
++    Any
+ )
+ 
+ def package_path() -> pathlib.Path:
+@@ -36,19 +44,33 @@ def find_git_repo(src_path: Optional[pathlib.Path] = None) -> Optional[pathlib.P
+             return parent
+     return None
+ 
+-def is_dist_package(src_path: Optional[pathlib.Path] = None) -> bool:
+-    if src_path is None:
+-        # Check Moonraker's source path
+-        src_path = source_path()
++def is_dist_package(item_path: Optional[pathlib.Path] = None) -> bool:
++    """
++    Check if the supplied path exists within a python dist installation or
++    site installation.
++    """
++    if item_path is None:
++        # Check Moonraker's package path
++        item_path = package_path()
+         if hasattr(site, "getsitepackages"):
+             # The site module is present, get site packages for Moonraker's venv.
+             # This is more "correct" than the fallback method.
+-            site_dirs = site.getsitepackages()
+-            return str(src_path) in site_dirs
+-    # Make an assumption based on the source path.  If its name is
+-    # site-packages or dist-packages then presumably it is an
++            for site_dir in site.getsitepackages():
++                site_path = pathlib.Path(site_dir)
++                try:
++                    if site_path.samefile(item_path.parent):
++                        return True
++                except Exception:
++                    pass
++    # Make an assumption based on the item and/or its parents.  If a folder
++    # is named site-packages or dist-packages then presumably it is an
+     # installed package
+-    return src_path.name in ["dist-packages", "site-packages"]
++    if item_path.name in ("dist-packages", "site-packages"):
++        return True
++    for parent in item_path.parents:
++        if parent.name in ("dist-packages", "site-packages"):
++            return True
++    return False
+ 
+ def package_version() -> Optional[str]:
+     try:
+@@ -86,3 +108,86 @@ def get_asset_path() -> Optional[pathlib.Path]:
+         # Somehow running in a zipapp.  This is an error.
+         return None
+     return asset_path
++
++def _load_release_info_json(dist_info: Distribution) -> Optional[Dict[str, Any]]:
++    files = dist_info.files
++    if files is None:
++        return None
++    for dist_file in files:
++        if dist_file.parts[0] in ["..", "/"]:
++            continue
++        if dist_file.name == "release_info":
++            pkg = dist_file.parts[0]
++            logging.info(f"Package {pkg}: Detected release_info json file")
++            try:
++                return json.loads(dist_file.read_text())
++            except Exception:
++                logging.exception(f"Failed to load release_info from {dist_file}")
++    return None
++
++def _load_direct_url_json(dist_info: Distribution) -> Optional[Dict[str, Any]]:
++    ret: Optional[str] = dist_info.read_text("direct_url.json")
++    if ret is None:
++        return None
++    try:
++        direct_url: Dict[str, Any] = json.loads(ret)
++    except json.JSONDecodeError:
++        return None
++    return direct_url
++
++def normalize_project_name(name: str) -> str:
++    return re.sub(r"[-_.]+", "-", name).lower().replace('-', '_')
++
++def load_distribution_info(
++    venv_path: pathlib.Path, project_name: str
++) -> PackageInfo:
++    proj_name_normalized = normalize_project_name(project_name)
++    site_items = venv_path.joinpath("lib").glob("python*/site-packages/")
++    lib_paths = [str(p) for p in site_items if p.is_dir()]
++    for dist_info in Distribution.discover(name=project_name, path=lib_paths):
++        metadata = dist_info.metadata
++        if metadata is None:
++            continue
++        if not isinstance(dist_info, PathDistribution):
++            logging.info(f"Project {dist_info.name} not a PathDistribution")
++            continue
++        metaname = normalize_project_name(metadata["Name"] or "")
++        if metaname != proj_name_normalized:
++            continue
++        release_info = _load_release_info_json(dist_info)
++        install_info = _load_direct_url_json(dist_info)
++        return PackageInfo(
++            dist_info, metadata, release_info, install_info
++        )
++    raise ServerError(f"Failed to find distribution info for project {project_name}")
++
++def is_vitualenv_project(
++    venv_path: Optional[pathlib.Path] = None,
++    pkg_path: Optional[pathlib.Path] = None,
++    project_name: str = "moonraker"
++) -> bool:
++    if venv_path is None:
++        venv_path = pathlib.Path(sys.exec_prefix)
++    if pkg_path is None:
++        pkg_path = package_path()
++    if not pkg_path.exists():
++        return False
++    try:
++        pkg_info = load_distribution_info(venv_path, project_name)
++    except Exception:
++        return False
++    site_path = pathlib.Path(str(pkg_info.dist_info.locate_file("")))
++    for parent in pkg_path.parents:
++        try:
++            if site_path.samefile(parent):
++                return True
++        except Exception:
++            pass
++    return True
++
++@dataclass(frozen=True)
++class PackageInfo:
++    dist_info: Distribution
++    metadata: PackageMetadata
++    release_info: Optional[Dict[str, Any]]
++    direct_url_data: Optional[Dict[str, Any]]

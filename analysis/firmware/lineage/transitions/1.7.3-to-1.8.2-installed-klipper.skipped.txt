@@ -1,0 +1,3 @@
+klippy/extras/box_extras.so
+klippy/extras/box_stepper.so
+klippy/extras/multi_color_controller.so

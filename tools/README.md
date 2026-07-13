@@ -2,6 +2,8 @@
 
 - `Backup-QidiPlus4.ps1` streams printer filesystem backups over SSH and SCP.
 - `Analyze-QidiFirmware.py` compares extracted 1.7.3 and 1.8.2 filesystems.
+- `Analyze-QidiFirmwareLineage.py` produces an ordered multi-release file,
+  source-patch, native-component and `xindi` lineage.
 - `Export-QidiComponentReference.ps1` extracts native component metadata and
   drives the digest-pinned Ghidra container.
 - `Generate-QidiEstimatedSource.py` creates API-oriented Python outlines from

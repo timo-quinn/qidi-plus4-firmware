@@ -1,0 +1,7 @@
+moonraker/common.py
+moonraker/components/extensions.so
+moonraker/components/frp_manager.so
+moonraker/components/mqtt.so
+moonraker/components/power.py
+moonraker/components/websockets.py
+moonraker/websockets.py

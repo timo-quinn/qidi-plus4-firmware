@@ -1,0 +1,19 @@
+!token_string.empty()
+.qidi3dprinter.com:8443/downloads/QD_Plus4
+.qidi3dprinter.com:8443/downloads/servers.json
+/root/QIDI_Plus4/makerbase-client/src/../include/json.hpp
+_Z13unbind_devicev
+_ZN8nlohmann16json_abi_v3_11_36detail10lexer_baseINS0_10basic_jsonISt3mapSt6vectorNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEblmdSaNS0_14adl_serializerES5_IhSaIhEEvEEE15token_type_nameENSG_10token_typeE
+_ZNSt6vectorIN9qrcodegen9QrSegmentESaIS1_EE12emplace_backIJS1_EEEvDpOT_
+cp -fp /root/etc/saved_variables.cfg /home/mks/printer_data/config/saved_variables.cfg
+cp /home/mks/gcode_files/sda1/QD_Update/QD_gcode/*.gcode /home/mks/gcode_files; chmod 777 /home/mks/gcode_files/*.gcode; sync
+ebox
+FRpg
+https://api.qidi3dprinter.com/qidi/admin/deviceUnBind
+https://api.qidi3dprinter.com/qidi/common/updateDevice
+https://www.
+rm /home/mks/printer_data/gcodes/*
+rm /home/mks/printer_data/gcodes/.thumbs/*
+Sending unbind device request to server
+update_info
+Version Check status code: %d

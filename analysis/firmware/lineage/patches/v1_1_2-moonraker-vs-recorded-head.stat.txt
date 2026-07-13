@@ -1,0 +1,5 @@
+ moonraker/components/authorization.py         | 46 +++++++++++---
+ moonraker/components/file_manager/metadata.py | 86 ++++++++++++++++++---------
+ moonraker/components/klippy_apis.py           | 55 +++++++++++++++++
+ moonraker/components/machine.py               | 10 ++++
+ 4 files changed, 163 insertions(+), 34 deletions(-)

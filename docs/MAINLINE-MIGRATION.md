@@ -1,12 +1,12 @@
 # QIDI Plus4 mainline Klipper migration
 
-This guide combines current community work with measurements from the two
-printers used for this repository. It minimizes disassembly, avoids appliance
-firmware dependencies, and keeps a straightforward stock recovery path.
+This guide combines current community work with measurements from representative
+QIDI Plus4 systems. It minimizes disassembly, avoids appliance firmware
+dependencies, and keeps a straightforward stock recovery path.
 
 > **Status:** audit, build, download, and validation paths are non-destructive.
 > The SSH mainboard flash remains experimental until it has been completed and
-> recovered on one of these printers. Flash commands require exact confirmation
+> recovery-tested on representative hardware. Flash commands require exact confirmation
 > phrases and validate their inputs before touching an MCU.
 
 ## Recommended route
@@ -26,31 +26,37 @@ This removes the mainboard microSD step and avoids soldering or removing the
 toolhead board. It is not physically hands-off: the stock toolhead has no
 bootloader, and safely changing the host OS still means swapping the eMMC.
 
-## Live verification
+## Validated reference baseline
 
 Read-only SSH checks were run on 2026-07-13.
 
-| Property | `qidi1` | `qidi2` |
-|---|---|---|
-| QIDI release | 1.8.2, QIDI Box | 1.7.3 |
-| Host | Debian 10, kernel 5.16.20-rockchip64 | same |
-| Python | 3.7.3 | 3.7.3 |
-| Mainboard UART | `/dev/ttyS0`, 500000 baud | same |
-| Toolhead UART | `/dev/ttyS2`, 500000 baud | same |
-| MCU restart | Klipper `command` | same |
-| Serial gettys | disabled | disabled |
-| Passwordless sudo | available | available |
-| `/root/hid-flash` SHA-256 | `22a3b082...3a2519` | identical |
-| Mainboard and toolhead flash | identical across releases | identical |
+The extended hardware, USB, boot, screen, and runtime comparison is recorded in
+[LIVE-HARDWARE-INVENTORY.md](LIVE-HARDWARE-INVENTORY.md).
+
+| Property | Verified reference finding |
+|---|---|
+| QIDI releases sampled | 1.7.3 without QIDI Box; 1.8.2 with QIDI Box |
+| Controller PCB | X-7 V1.0 on both systems |
+| Host | Debian 10, kernel 5.16.20-rockchip64 |
+| Python | 3.7.3 |
+| Mainboard UART | `/dev/ttyS0`, 500000 baud |
+| Toolhead UART | `/dev/ttyS2`, 500000 baud |
+| MCU restart | Klipper `command` |
+| Serial gettys | disabled |
+| Passwordless sudo | available |
+| `/root/hid-flash` SHA-256 | `22a3b082...3a2519`, identical on both systems |
+| Mainboard and toolhead flash | identical across sampled releases |
 
 The installed Klipper and Moonraker Git commits are also identical. QIDI's
 release differences primarily live in untracked/compiled components and update
 payloads. Debian 10 and Python 3.7 are not a sensible foundation for a current
 Moonraker installation, so this guide does not attempt an in-place OS upgrade.
 
-The official Armbian Qidi X-6 image has not yet been boot-tested on `qidi1` or
-`qidi2`. Its upstream board definition explicitly lists the Plus4, but the
-new-host UART and network checks remain a mandatory gate before MCU work.
+The official Armbian Qidi X-6 image has not yet been boot-tested on the
+reference hardware used for this guide. Its upstream board definition explicitly
+lists the Plus4, but the new-host UART and network checks remain a mandatory
+gate before MCU work. Audit every target printer rather than assuming it matches
+this baseline.
 
 ## Compatibility boundaries
 
@@ -58,9 +64,10 @@ new-host UART and network checks remain a mandatory gate before MCU work.
 
 Leave the QIDI Box MCU on stock firmware. Its host integration depends on
 QIDI's compiled Klipper extensions, which cannot be copied into mainline.
-`qidi1` will therefore lose Box functionality until the open backend described
-in [HAPPY-HARE-INTEGRATION.md](HAPPY-HARE-INTEGRATION.md) is ready. Do not flash
-a generic Klipper image to the Box; its stock application includes RFID and
+A printer currently using a QIDI Box will therefore lose Box functionality
+until the open backend described in
+[HAPPY-HARE-INTEGRATION.md](HAPPY-HARE-INTEGRATION.md) is ready. Do not flash a
+generic Klipper image to the Box; its stock application includes RFID and
 protocol behavior that mainline does not provide.
 
 ### MCU names change
@@ -100,20 +107,34 @@ display firmware. An independent, non-critical-path replacement for QIDI's
 
 Keeping the original eMMC untouched is the simplest host rollback.
 
+## Command variables
+
+The PowerShell examples below use variables so the same instructions work with
+any printer. Set `$Printer` to a resolvable hostname or IP address and choose a
+unique, filesystem-safe label for `$BackupName`:
+
+```powershell
+$Printer = 'plus4.local'
+$BackupName = 'my-plus4'
+```
+
+The migration tool defaults to the `mks` SSH user. Add `--user <username>` to
+commands if your printer uses a different account. If the hostname or address
+changes after replacing the host OS, update `$Printer` before continuing.
+
 ## 1. Back up and audit
 
 Use the cross-platform Python backup and audit commands:
 
 ```powershell
-python .\tools\migration\qidi_plus4.py backup --printer qidi1 --name qidi1
-python .\tools\migration\qidi_plus4.py backup --printer qidi2 --name qidi2
-python .\tools\migration\qidi_plus4.py audit --printer qidi1
-python .\tools\migration\qidi_plus4.py audit --printer qidi2
+python .\tools\migration\qidi_plus4.py backup --printer $Printer --name $BackupName
+python .\tools\migration\qidi_plus4.py audit --printer $Printer
 ```
 
 Compare flasher hashes, UARTs, baud rates, and sudo results with the table above.
 Stop if they differ. A filesystem backup does not replace the retained MCU dumps
-under `data/printer-backups/*/mcu-dumps/`.
+under `data/printer-backups/<backup-name>/mcu-dumps/`. Repeat the backup and audit
+with distinct variable values for each additional printer.
 
 ## 2. Prepare official Armbian
 
@@ -168,11 +189,11 @@ Validate the images against a stock printer before any flash:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py validate-mainboard `
-  --printer qidi1 --image .\artifacts\mainline-firmware\plus4-mainboard-klipper.bin
+  --printer $Printer --image .\artifacts\mainline-firmware\plus4-mainboard-klipper.bin
 python .\tools\migration\qidi_plus4.py validate-toolhead-katapult `
-  --printer qidi1 --image .\artifacts\mainline-firmware\plus4-toolhead-katapult.bin
+  --printer $Printer --image .\artifacts\mainline-firmware\plus4-toolhead-katapult.bin
 python .\tools\migration\qidi_plus4.py validate-toolhead `
-  --printer qidi1 --image .\artifacts\mainline-firmware\plus4-toolhead-klipper.bin
+  --printer $Printer --image .\artifacts\mainline-firmware\plus4-toolhead-klipper.bin
 ```
 
 ## 4. Experimental SSH mainboard flash
@@ -181,7 +202,7 @@ Run this while the stock host is healthy:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py flash-mainboard `
-  --printer qidi1 `
+  --printer $Printer `
   --image .\artifacts\mainline-firmware\plus4-mainboard-klipper.bin `
   --confirm FLASH-MAINBOARD
 ```
@@ -191,8 +212,8 @@ flasher, requests `FIRMWARE_RESTART`, stops Klipper, and invokes the verified
 flasher on `ttyS0`. It preserves QIDI's resident 32 KiB bootloader and leaves
 the old Klipper host stopped after success.
 
-The evidence is strong—the same flasher exists on both printers, and the
-recovered QIDI/FreeDi flows use the same restart-plus-flasher sequence—but this
+The evidence is strong: the same flasher exists on both reference systems, and
+the recovered QIDI/FreeDi flows use the same restart-plus-flasher sequence. This
 specific migration path remains experimental until recovery-tested here. The
 established FAT32 `qd_mcu.bin` route remains the conservative fallback.
 
@@ -209,7 +230,7 @@ Bootstrap the upstream host stack without KIAUH or FreeDi:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py bootstrap-host `
-  --printer qidi1 --confirm BOOTSTRAP-HOST
+  --printer $Printer --confirm BOOTSTRAP-HOST
 ```
 
 The checked-in bootstrap installs Debian packages, clones official Klipper,
@@ -250,7 +271,7 @@ plug the ST-Link into the top USB port.
 
 ```powershell
 python .\tools\migration\qidi_plus4.py flash-toolhead-katapult `
-  --printer qidi1 `
+  --printer $Printer `
   --image .\artifacts\mainline-firmware\plus4-toolhead-katapult.bin `
   --confirm ERASE-TOOLHEAD
 ```
@@ -265,7 +286,7 @@ Boot again:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py flash-toolhead `
-  --printer qidi1 `
+  --printer $Printer `
   --image .\artifacts\mainline-firmware\plus4-toolhead-klipper.bin `
   --confirm FLASH-TOOLHEAD
 ```
@@ -289,7 +310,7 @@ Before enabling heaters or normal-speed movement:
 7. Home one axis at a time at reduced speed, with access to the power switch.
 8. Calibrate PID, Z offset, mesh, and input shaping before printing.
 
-Do not enable QIDI Box includes on `qidi1` until a mainline backend exists.
+Do not enable QIDI Box includes until a reviewed mainline backend exists.
 
 ## Rollback
 

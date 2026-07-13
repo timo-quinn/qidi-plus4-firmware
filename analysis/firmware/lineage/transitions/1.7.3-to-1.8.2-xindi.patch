@@ -1,0 +1,9 @@
+--- a/1.7.3/xindi/version
++++ b/1.8.2/xindi/version
+@@ -1,4 +1,4 @@
+ [version]
+ mcu             = V0.12.0
+-ui              = V173
+-soc             = V1.7.3
++ui              = V182
++soc             = V1.8.2

@@ -1,0 +1,35 @@
+ klippy/configfile.py                           |   67 +-
+ klippy/extras/bed_mesh.py                      | 2736 ++++++++++++------------
+ klippy/extras/filament_motion_sensor.py        |   54 +-
+ klippy/extras/gcode_arcs.py                    |    3 +-
+ klippy/extras/gcode_move.py                    |  565 ++---
+ klippy/extras/hall_filament_width_sensor.py    |   42 +-
+ klippy/extras/heater_bed.py                    |    6 +
+ klippy/extras/heaters.py                       |   69 +-
+ klippy/extras/homing.py                        |    4 +-
+ klippy/extras/probe.py                         |  966 +++++----
+ klippy/extras/save_variables.py                |  187 +-
+ klippy/extras/smart_effector.py                |    2 +-
+ klippy/extras/temperature_sensor.py            |    2 +
+ klippy/extras/temperature_sensors.cfg          |    3 +
+ klippy/extras/tmc.py                           |    2 +
+ klippy/extras/tmc2209.py                       |    1 +
+ klippy/extras/tmc2240.py                       |    1 +
+ klippy/extras/verify_heater.py                 |   30 +-
+ klippy/extras/virtual_sdcard.py                |   40 +-
+ klippy/gcode.py                                |  992 +++++----
+ klippy/klippy.py                               |    9 +-
+ klippy/mcu.py                                  | 2077 +++++++++---------
+ klippy/stepper.py                              |  918 ++++----
+ klippy/toolhead.py                             |   15 +
+ klippy/webhooks.py                             |    3 +
+ lib/hc32f460/driver/inc/hc32f460_timer4_sevt.h |   65 +-
+ lib/pru_rpmsg/include/ReadMe.txt               |  Bin 772 -> 772 bytes
+ lib/sam4s/include/instance/rstc.h              |  Bin 3181 -> 3181 bytes
+ lib/samc21/samc21/include/instance/sercom5.h   |  Bin 10181 -> 10181 bytes
+ lib/stm32f0/include/stm32f072xb.h              |  498 ++---
+ lib/stm32f0/include/stm32f078xx.h              |  556 ++---
+ lib/stm32f4/include/stm32f401xc.h              |  506 ++---
+ lib/stm32h7/include/stm32h7b3xx.h              |  199 +-
+ lib/stm32l4/include/stm32l432xx.h              |  547 +++--
+ 34 files changed, 5828 insertions(+), 5337 deletions(-)

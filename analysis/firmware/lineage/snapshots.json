@@ -1,0 +1,47 @@
+{
+  "1.1.2": {
+    "klipper": {
+      "commit": "96ab906946ed558b961a7d8e0e56fb6aebf15316",
+      "describe": "v0.12.0-65-g96ab9069-dirty"
+    },
+    "moonraker": {
+      "commit": "346a3d7c9dca6499bdef2957ca39a23c702b0268",
+      "describe": "v0.8.0-379-g346a3d7-dirty"
+    },
+    "version": {
+      "mcu": "V0.12.0",
+      "soc": "V1.1.2",
+      "ui": "V112"
+    }
+  },
+  "1.7.3": {
+    "klipper": {
+      "commit": "96ab906946ed558b961a7d8e0e56fb6aebf15316",
+      "describe": "v0.12.0-65-g96ab9069-dirty"
+    },
+    "moonraker": {
+      "commit": "346a3d7c9dca6499bdef2957ca39a23c702b0268",
+      "describe": "v0.8.0-379-g346a3d7-dirty"
+    },
+    "version": {
+      "mcu": "V0.12.0",
+      "soc": "V1.7.3",
+      "ui": "V173"
+    }
+  },
+  "1.8.2": {
+    "klipper": {
+      "commit": "96ab906946ed558b961a7d8e0e56fb6aebf15316",
+      "describe": "v0.12.0-65-g96ab9069-dirty"
+    },
+    "moonraker": {
+      "commit": "346a3d7c9dca6499bdef2957ca39a23c702b0268",
+      "describe": "v0.8.0-379-g346a3d7-dirty"
+    },
+    "version": {
+      "mcu": "V0.12.0",
+      "soc": "V1.8.2",
+      "ui": "V182"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+--- a/1.1.2/xindi/build/start.sh
++++ b/1.7.3/xindi/build/start.sh
+@@ -7,5 +7,5 @@
+ echo "NTP service enabled through systemd-timesyncd."
+ 
+ echo "Start makerbase-client"
+-/root/QIDILink-client/udp_server &
++#/root/QIDILink-client/udp_server &
+ /root/xindi/build/xindi localhost 
+--- a/1.1.2/xindi/version
++++ b/1.7.3/xindi/version
+@@ -1,4 +1,4 @@
+ [version]
+ mcu             = V0.12.0
+-ui              = V112
+-soc             = V1.1.2
++ui              = V173
++soc             = V1.7.3

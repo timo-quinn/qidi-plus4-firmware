@@ -1,0 +1,381 @@
+--- /dev/null
++++ b/klippy/extras/box_heater_fan.py
+@@ -0,0 +1,70 @@
++from . import fan
++
++PIN_MIN_TIME = 0.100
++
++class BoxHeaterFan:
++    def __init__(self, config):
++        self.printer = config.get_printer()
++        self.printer.register_event_handler("klippy:ready", self.handle_ready)
++        self.printer.register_event_handler("klippy:connect",
++                                            self.handle_connect)
++        self.stepper_names = config.getlist("stepper", None)
++        self.stepper_enable = self.printer.load_object(config, 'stepper_enable')
++        self.printer.load_object(config, 'heaters')
++        self.heater_temp = config.getfloat("heater_temp", 50.0)
++        self.heaters = []
++        self.fan = fan.Fan(config)
++        self.fan_speed = config.getfloat('fan_speed', default=1.,
++                                         minval=0., maxval=1.)
++        self.idle_speed = config.getfloat(
++            'idle_speed', default=self.fan_speed, minval=0., maxval=1.)
++        self.idle_timeout = config.getint("idle_timeout", default=30, minval=0)
++        self.heater_names = config.getlist("heater", ("extruder",))
++        self.last_on = self.idle_timeout
++        self.last_speed = 0.
++    def handle_connect(self):
++        # Heater lookup
++        pheaters = self.printer.lookup_object('heaters')
++        self.heaters = [pheaters.lookup_heater(n) for n in self.heater_names]
++        # Stepper lookup
++        all_steppers = self.stepper_enable.get_steppers()
++        if self.stepper_names is None:
++            self.stepper_names = all_steppers
++            return
++        if not all(x in all_steppers for x in self.stepper_names):
++            raise self.printer.config_error(
++                "One or more of these steppers are unknown: "
++                 "%s (valid steppers are: %s)"
++                % (self.stepper_names, ", ".join(all_steppers)))
++    def handle_ready(self):
++        reactor = self.printer.get_reactor()
++        reactor.register_timer(self.callback, reactor.monotonic()+PIN_MIN_TIME)
++    def get_status(self, eventtime):
++        return self.fan.get_status(eventtime)
++    def callback(self, eventtime):
++        speed = 0.
++        active = False
++        for name in self.stepper_names:
++            active |= self.stepper_enable.lookup_enable(name).is_motor_enabled()
++        for heater in self.heaters:
++            current_temp, target_temp = heater.get_temp(eventtime)
++            if target_temp or current_temp > self.heater_temp:
++                active = True
++        
++
++
++        if active:
++            self.last_on = 0
++            speed = self.fan_speed
++        elif self.last_on < self.idle_timeout:
++            speed = self.idle_speed
++            self.last_on += 1
++        if speed != self.last_speed:
++            self.last_speed = speed
++            curtime = self.printer.get_reactor().monotonic()
++            print_time = self.fan.get_mcu().estimated_print_time(curtime)
++            self.fan.set_speed(print_time + PIN_MIN_TIME, speed)
++        return eventtime + 1.
++
++def load_config_prefix(config):
++    return BoxHeaterFan(config)
+--- /dev/null
++++ b/klippy/extras/chamber_fan.py
+@@ -0,0 +1,59 @@
++from . import fan
++
++PIN_MIN_TIME = 0.100
++
++class ChamberFan:
++    def __init__(self, config):
++        self.printer = config.get_printer()
++        self.printer.register_event_handler("klippy:ready", self.handle_ready)
++        self.printer.register_event_handler("klippy:connect",
++                                            self.handle_connect)
++        self.printer.load_object(config, 'heaters')
++        self.heaters = []
++        self.fan = fan.Fan(config)
++        self.fan_speed = config.getfloat('fan_speed', default=1.,
++                                         minval=0., maxval=1.)
++        self.idle_speed = config.getfloat(
++            'idle_speed', default=self.fan_speed, minval=0., maxval=1.)
++        self.idle_timeout = config.getint("idle_timeout", default=30, minval=0)
++        self.heater_names = config.getlist("heater", ())
++        self.fan_on = True
++        self.last_on = self.idle_timeout
++        self.last_speed = 0.
++    def handle_connect(self):
++        # Heater lookup
++        pheaters = self.printer.lookup_object('heaters')
++        self.heaters = [pheaters.lookup_heater(n) for n in self.heater_names]
++    def handle_ready(self):
++        reactor = self.printer.get_reactor()
++        reactor.register_timer(self.callback, reactor.monotonic()+PIN_MIN_TIME)
++        gcode = self.printer.lookup_object("gcode")
++        gcode.register_command("TOGGLE_CHAMBER_FAN", self.cmd_toggle_chamber_fan)
++    def cmd_toggle_chamber_fan(self, gcmd):
++        self.fan_on = not self.fan_on
++    def get_status(self, eventtime):
++        return self.fan.get_status(eventtime)
++    def callback(self, eventtime):
++        speed = 0.
++        active = False
++        for heater in self.heaters:
++            _, target_temp = heater.get_temp(eventtime)
++            if target_temp:
++                active = True
++        if active:
++            self.last_on = 0
++            speed = self.fan_speed
++        elif self.last_on < self.idle_timeout:
++            speed = self.idle_speed
++            self.last_on += 1
++        if not self.fan_on:
++            speed = 0.
++        if speed != self.last_speed:
++            self.last_speed = speed
++            curtime = self.printer.get_reactor().monotonic()
++            print_time = self.fan.get_mcu().estimated_print_time(curtime)
++            self.fan.set_speed(print_time + PIN_MIN_TIME, speed)
++        return eventtime + 1.
++
++def load_config_prefix(config):
++    return ChamberFan(config)
+--- /dev/null
++++ b/klippy/extras/gcode_macro_break.py
+@@ -0,0 +1,15 @@
++class GCodeMacroBreaker:
++    def __init__(self, config):
++        # Gcode macro interupt
++        self.printer = config.get_printer()
++        webhooks = self.printer.lookup_object('webhooks')
++        webhooks.register_endpoint("breakmacro", self._handle_breakmacro)
++        webhooks.register_endpoint("resumemacro", self._handle_resumemacro)
++        self.gcode = self.printer.lookup_object('gcode')
++    def _handle_breakmacro(self, web_request):
++        self.gcode.break_flag = True
++    def _handle_resumemacro(self, web_request):
++        self.gcode.break_flag = False
++
++def load_config(config):
++    return GCodeMacroBreaker(config)
+--- /dev/null
++++ b/klippy/extras/gcode_shell_command.py
+@@ -0,0 +1,87 @@
++# Run a shell command via gcode
++#
++# Copyright (C) 2019  Eric Callahan <arksine.code@gmail.com>
++#
++# This file may be distributed under the terms of the GNU GPLv3 license.
++import os
++import shlex
++import subprocess
++import logging
++
++class ShellCommand:
++    def __init__(self, config):
++        self.name = config.get_name().split()[-1]
++        self.printer = config.get_printer()
++        self.gcode = self.printer.lookup_object('gcode')
++        cmd = config.get('command')
++        cmd = os.path.expanduser(cmd)
++        self.command = shlex.split(cmd)
++        self.timeout = config.getfloat('timeout', 2., above=0.)
++        self.verbose = config.getboolean('verbose', True)
++        self.proc_fd = None
++        self.partial_output = ""
++        self.gcode.register_mux_command(
++            "RUN_SHELL_COMMAND", "CMD", self.name,
++            self.cmd_RUN_SHELL_COMMAND,
++            desc=self.cmd_RUN_SHELL_COMMAND_help)
++
++    def _process_output(self, eventime):
++        if self.proc_fd is None:
++            return
++        try:
++            data = os.read(self.proc_fd, 4096)
++        except Exception:
++            pass
++        data = self.partial_output + data.decode()
++        if '\n' not in data:
++            self.partial_output = data
++            return
++        elif data[-1] != '\n':
++            split = data.rfind('\n') + 1
++            self.partial_output = data[split:]
++            data = data[:split]
++        else:
++            self.partial_output = ""
++        self.gcode.respond_info(data)
++
++    cmd_RUN_SHELL_COMMAND_help = "Run a linux shell command"
++    def cmd_RUN_SHELL_COMMAND(self, params):
++        gcode_params = params.get('PARAMS','')
++        gcode_params = shlex.split(gcode_params)
++        reactor = self.printer.get_reactor()
++        try:
++            proc = subprocess.Popen(
++                self.command + gcode_params, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
++        except Exception:
++            logging.exception(
++                "shell_command: Command {%s} failed" % (self.name))
++            raise self.gcode.error("Error running command {%s}" % (self.name))
++        if self.verbose:
++            self.proc_fd = proc.stdout.fileno()
++            self.gcode.respond_info("Running Command {%s}...:" % (self.name))
++            hdl = reactor.register_fd(self.proc_fd, self._process_output)
++        eventtime = reactor.monotonic()
++        endtime = eventtime + self.timeout
++        complete = False
++        while eventtime < endtime:
++            eventtime = reactor.pause(eventtime + .05)
++            if proc.poll() is not None:
++                complete = True
++                break
++        if not complete:
++            proc.terminate()
++        if self.verbose:
++            if self.partial_output:
++                self.gcode.respond_info(self.partial_output)
++                self.partial_output = ""
++            if complete:
++                msg = "Command {%s} finished\n" % (self.name)
++            else:
++                msg = "Command {%s} timed out" % (self.name)
++            self.gcode.respond_info(msg)
++            reactor.unregister_fd(hdl)
++            self.proc_fd = None
++
++
++def load_config_prefix(config):
++    return ShellCommand(config)
+--- /dev/null
++++ b/klippy/extras/qdprobe.py
+@@ -0,0 +1,135 @@
++# -*- coding: utf-8 -*-
++
++import logging
++from . import probe
++
++# Makerbase Endstop wrapper 
++class MakerbaseProbeEndstopWrapper:
++    def __init__(self, config):
++        self.printer = config.get_printer()
++        self.position_endstop = config.getfloat('z_offset')
++        self.stow_on_each_sample = config.getboolean(
++            'deactivate_on_each_sample', True)
++        gcode_macro = self.printer.load_object(config, 'gcode_macro')
++        self.activate_gcode = gcode_macro.load_template(
++            config, 'activate_gcode', '')
++        self.deactivate_gcode = gcode_macro.load_template(
++            config, 'deactivate_gcode', '')
++        ppins = self.printer.lookup_object('pins')
++        pin = config.get('pin')
++        pin_params = ppins.lookup_pin(pin, can_invert=True, can_pullup=True)
++        mcu = pin_params['chip']
++        self.mcu_endstop = mcu.setup_pin('endstop', pin_params)
++        self.printer.register_event_handler('klippy:mcu_identify',
++                                            self._handle_mcu_identify)
++        # Wrappers
++        self.get_mcu = self.mcu_endstop.get_mcu
++        self.add_stepper = self.mcu_endstop.add_stepper
++        self.get_steppers = self.mcu_endstop.get_steppers
++        self.home_start = self.mcu_endstop.home_start
++        self.home_wait = self.mcu_endstop.home_wait
++        self.query_endstop = self.mcu_endstop.query_endstop
++        # multi probes state
++        self.multi = 'OFF'
++    def _handle_mcu_identify(self):
++        kin = self.printer.lookup_object('toolhead').get_kinematics()
++        for stepper in kin.get_steppers():
++            if stepper.is_active_axis('z'):
++                self.add_stepper(stepper)
++    def raise_probe(self):
++        toolhead = self.printer.lookup_object('toolhead')
++        start_pos = toolhead.get_position()
++        self.deactivate_gcode.run_gcode_from_command()
++        if toolhead.get_position()[:3] != start_pos[:3]:
++            raise self.printer.command_error(
++                "Toolhead moved during probe activate_gcode script")
++    def lower_probe(self):
++        toolhead = self.printer.lookup_object('toolhead')
++        start_pos = toolhead.get_position()
++        self.activate_gcode.run_gcode_from_command()
++        if toolhead.get_position()[:3] != start_pos[:3]:
++            raise self.printer.command_error(
++                "Toolhead moved during probe deactivate_gcode script")
++    def multi_probe_begin(self):
++        if self.stow_on_each_sample:
++            return
++        self.multi = 'FIRST'
++    def multi_probe_end(self):
++        if self.stow_on_each_sample:
++            return
++        self.raise_probe()
++        self.multi = 'OFF'
++    def probe_prepare(self, hmove):
++        if self.multi == 'OFF' or self.multi == 'FIRST':
++            self.lower_probe()
++            if self.multi == 'FIRST':
++                self.multi = 'ON'
++    def probe_finish(self, hmove):
++        if self.multi == 'OFF':
++            self.raise_probe()
++    def get_position_endstop(self):
++        return self.position_endstop
++
++class MakerBase:
++    def __init__(self, config):
++        self.printer = config.get_printer()
++        self.gcode = self.printer.lookup_object('gcode')
++        # self.speed = config.getfloat('speed', 5.0, above=0.)
++        # self.lift_speed = config.getfloat('lift_speed', self.speed, above=0.)
++        # self.x_offset = config.getfloat('x_offset', 0.)
++        # self.y_offset = config.getfloat('y_offset', 0.)
++        # self.z_offset = config.getfloat('z_offset')
++        self.probe = self.printer.lookup_object('probe')
++        self.endstop_wrapper = probe.ProbeEndstopWrapper(config)
++        # self.probe_accel = config.getfloat('probe_accel', 0., minval=0.)
++        # self.recovery_time = config.getfloat('recovery_time', 0.4, minval=0.)
++        # Register MakerBase commands
++        self.gcode.register_command('MKS_PROBE_PIN_1', self.cmd_MKS_PROBE_PIN_1,
++                                    desc=self.cmd_MKS_PROBE_PIN_1_help)
++        self.gcode.register_command('MKS_PROBE_PIN_2', self.cmd_MKS_PROBE_PIN_2,
++                                    desc=self.cmd_MKS_PROBE_PIN_2_help)
++        self.gcode.register_command('QIDI_PROBE_PIN_1', self.cmd_MKS_PROBE_PIN_1,
++                                    desc=self.cmd_MKS_PROBE_PIN_1_help)
++        self.gcode.register_command('QIDI_PROBE_PIN_2', self.cmd_MKS_PROBE_PIN_2,
++                                    desc=self.cmd_MKS_PROBE_PIN_2_help)
++        self.gcode.register_command('MKS_REMOVE', self.cmd_MKS_REMOVE,
++                                    desc=self.cmd_MKS_REMOVE_help)
++    cmd_MKS_PROBE_PIN_2_help = 'ENABLE_PROBE_PIN_2'
++    def cmd_MKS_PROBE_PIN_2(self, gcmd):
++        self.probe.mcu_probe.probe_wrapper = self.endstop_wrapper
++        # Wrappers
++        self.probe.mcu_probe.get_mcu = self.endstop_wrapper.get_mcu
++        self.probe.mcu_probe.add_stepper = self.endstop_wrapper.add_stepper
++        self.probe.mcu_probe.get_steppers = self.endstop_wrapper.get_steppers
++        self.probe.mcu_probe.home_start = self.endstop_wrapper.home_start
++        self.probe.mcu_probe.home_wait = self.endstop_wrapper.home_wait
++        self.probe.mcu_probe.query_endstop = self.endstop_wrapper.query_endstop
++        self.probe.mcu_probe.multi_probe_begin = self.endstop_wrapper.multi_probe_begin
++        self.probe.mcu_probe.multi_probe_end = self.endstop_wrapper.multi_probe_end
++        # gcmd.respond_raw("%s" % (self.cmd_MKS_PROBE_PIN_2_help, ))
++    cmd_MKS_REMOVE_help = 'MKS_REMOVE'
++    def cmd_MKS_REMOVE(self, gcmd):
++        self.printer.remove_object('probe')
++        self.printer.lookup_object('gcode').remove_command('PROBE')
++        self.printer.lookup_object('gcode').remove_command('QUERY_PROBE')
++        self.printer.lookup_object('gcode').remove_command('PROBE_CALIBRATE')
++        self.printer.lookup_object('gcode').remove_command('PROBE_ACCURACY')
++        self.printer.lookup_object('gcode').remove_command('Z_OFFSET_APPLY_PROBE')
++        self.printer.lookup_object('gcode').remove_command('MKS_SHOW_Z_OFFSET')
++        self.printer.lookup_object('pins').remove_chip('probe')
++    cmd_MKS_PROBE_PIN_1_help = 'ENABLE_PROBE_PIN_1'
++    def cmd_MKS_PROBE_PIN_1(self, gcmd):
++        self.probe.mcu_probe.probe_wrapper = self.probe.mcu_probe.probe_wrapper_2
++        # Wrappers
++        self.probe.mcu_probe.get_mcu = self.probe.mcu_probe.probe_wrapper_2.get_mcu
++        self.probe.mcu_probe.add_stepper = self.probe.mcu_probe.probe_wrapper_2.add_stepper
++        self.probe.mcu_probe.get_steppers = self.probe.mcu_probe.probe_wrapper_2.get_steppers
++        self.probe.mcu_probe.home_start = self.probe.mcu_probe.probe_wrapper_2.home_start
++        self.probe.mcu_probe.home_wait = self.probe.mcu_probe.probe_wrapper_2.home_wait
++        self.probe.mcu_probe.query_endstop = self.probe.mcu_probe.probe_wrapper_2.query_endstop
++        self.probe.mcu_probe.multi_probe_begin = self.probe.mcu_probe.probe_wrapper_2.multi_probe_begin
++        self.probe.mcu_probe.multi_probe_end = self.probe.mcu_probe.probe_wrapper_2.multi_probe_end
++        # gcmd.respond_raw("%s" % (self.cmd_MKS_PROBE_PIN_1_help, ))
++
++def load_config(config):
++    return MakerBase(config)

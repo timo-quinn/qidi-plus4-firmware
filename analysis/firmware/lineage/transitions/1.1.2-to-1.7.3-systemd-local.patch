@@ -1,0 +1,34 @@
+--- a/1.1.2/systemd-local/QIDILink-client.service
++++ /dev/null
+@@ -1,14 +0,0 @@
+-[Unit]
+-Description=QIDILink Client Service
+-After=network.target
+-StartLimitIntervalSec=0
+-
+-[Service]
+-Type=simple
+-ExecStart=/root/QIDILink-client/frpc -c /root/QIDILink-client/frpc.json
+-Restart=on-failure
+-RestartSec=30
+-StartLimitBurst=0
+-
+-[Install]
+-WantedBy=multi-user.target
+--- /dev/null
++++ b/1.7.3/systemd-local/QIDILink-client.service.masked
+@@ -0,0 +1,14 @@
++[Unit]
++Description=QIDILink Client Service
++After=network.target
++StartLimitIntervalSec=0
++
++[Service]
++Type=simple
++ExecStart=/root/QIDILink-client/frpc -c /root/QIDILink-client/frpc.json
++Restart=on-failure
++RestartSec=30
++StartLimitBurst=0
++
++[Install]
++WantedBy=multi-user.target

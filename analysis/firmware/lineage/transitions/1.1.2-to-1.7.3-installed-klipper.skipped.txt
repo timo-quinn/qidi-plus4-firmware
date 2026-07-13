@@ -1,0 +1,6 @@
+klippy/extras/aht20_f.so
+klippy/extras/box_detect.so
+klippy/extras/box_extras.so
+klippy/extras/box_rfid.so
+klippy/extras/box_stepper.so
+klippy/extras/buttons_irq.so
