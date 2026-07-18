@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-known_mainboard_flasher='22a3b082954567f9ab3168333afbeb14fb8503c11ecedad6263d2db70a3a2519'
+# Directory this script was staged into, used to find the shared MCU layout
+# table (mcu-layouts.json) that the orchestrator copies in alongside it.
+script_dir="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)"
+export QIDI_LAYOUTS_FILE="${script_dir:+$script_dir/mcu-layouts.json}"
 
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null || die "Missing command: $1"; }
@@ -18,15 +21,23 @@ validate_image() {
     local kind="$1" image="$2"
     [[ -f "$image" ]] || die "Image not found: $image"
     python3 - "$kind" "$image" <<'PY'
-import pathlib, struct, sys
+import json, os, pathlib, struct, sys
 
 kind, filename = sys.argv[1:]
 data = pathlib.Path(filename).read_bytes()
-layouts = {
-    "mainboard": (0x08008000, 0x08040000, 0x20000000, 0x20020000),
-    "toolhead-app": (0x08002000, 0x08010000, 0x20000000, 0x20010000),
-    "toolhead-katapult": (0x08000000, 0x08002000, 0x20000000, 0x20010000),
-}
+# Canonical layouts come from mcu-layouts.json (staged beside this script and
+# shared with qidi_plus4.py). The inline table is a standalone fallback and must
+# be kept identical to that file.
+layouts_file = os.environ.get("QIDI_LAYOUTS_FILE", "")
+if layouts_file and pathlib.Path(layouts_file).exists():
+    layouts = {name: tuple(int(value, 16) for value in bounds)
+               for name, bounds in json.loads(pathlib.Path(layouts_file).read_text()).items()}
+else:
+    layouts = {
+        "mainboard": (0x08008000, 0x08040000, 0x20000000, 0x20020000),
+        "toolhead-app": (0x08002000, 0x08010000, 0x20000000, 0x20010000),
+        "toolhead-katapult": (0x08000000, 0x08002000, 0x20000000, 0x20010000),
+    }
 if kind not in layouts:
     raise SystemExit("Unknown image kind: " + kind)
 base, limit, ram_start, ram_limit = layouts[kind]
@@ -40,6 +51,57 @@ if not base <= reset_address < limit or not reset & 1:
     raise SystemExit("Reset vector outside expected Thumb image: 0x%08x" % reset)
 print("validated kind=%s size=%d stack=0x%08x reset=0x%08x" %
       (kind, len(data), stack, reset))
+PY
+}
+
+request_serial_bootloader() {
+    local device="$1" baud="$2"
+    sudo -n python3 - "$device" "$baud" <<'PY'
+import os
+import sys
+import termios
+import time
+import tty
+
+device, baud_text = sys.argv[1:]
+baud = int(baud_text)
+speed = getattr(termios, "B%d" % baud, None)
+if speed is None:
+    raise SystemExit("Unsupported serial bootloader-request baud: %d" % baud)
+
+request = b" \x1c Request Serial Bootloader!! ~"
+if len(request) != 32:
+    raise SystemExit("Internal serial bootloader request has an invalid length")
+
+def write_all(fd, data):
+    view = memoryview(data)
+    while view:
+        written = os.write(fd, view)
+        if written <= 0:
+            raise SystemExit("Failed to write the serial bootloader request")
+        view = view[written:]
+
+fd = os.open(device, os.O_RDWR | os.O_NOCTTY)
+try:
+    tty.setraw(fd, termios.TCSANOW)
+    attrs = termios.tcgetattr(fd)
+    attrs[4] = speed
+    attrs[5] = speed
+    termios.tcsetattr(fd, termios.TCSANOW, attrs)
+    termios.tcflush(fd, termios.TCIOFLUSH)
+    # End and discard any partial Klipper protocol frame left when the host
+    # process closed. The bootloader request must begin at an empty frame and
+    # be exactly 32 bytes long to pass the MCU's special request check.
+    write_all(fd, b"\x7e")
+    termios.tcdrain(fd)
+    time.sleep(0.1)
+    write_all(fd, request)
+    termios.tcdrain(fd)
+    time.sleep(0.1)
+finally:
+    os.close(fd)
+
+print("Sent the 32-byte Klipper serial bootloader request at %d baud" % baud)
 PY
 }
 
@@ -72,32 +134,16 @@ audit() {
 }
 
 flash_mainboard() {
-    local image="$1" expected_sha="$2" confirmation="$3" flasher='/root/hid-flash'
-    [[ "$confirmation" == 'FLASH-MAINBOARD' ]] || die 'Explicit FLASH-MAINBOARD confirmation missing.'
-    need_sudo
-    validate_image mainboard "$image"
-    assert_hash "$image" "$expected_sha"
-    sudo -n test -x "$flasher" || die "$flasher is unavailable; run this phase on the stock host."
-    [[ "$(sudo -n sha256sum "$flasher" | awk '{print $1}')" == "$known_mainboard_flasher" ]] || \
-        die 'The installed QIDI mainboard flasher does not match either verified printer.'
-    [[ -c /dev/ttyS0 ]] || die '/dev/ttyS0 is missing.'
-    systemctl is-active --quiet klipper || die 'The stock Klipper service is not active.'
-    [[ -p /home/mks/printer_data/comms/klippy.serial ]] || \
-        die 'Klipper command FIFO is missing; the stock Klipper service must be healthy.'
-
-    printf 'Requesting the verified stock mainboard bootloader...\n'
-    printf 'FIRMWARE_RESTART\n' | timeout 5 sudo -n tee /home/mks/printer_data/comms/klippy.serial >/dev/null
-    sleep 3
-    sudo -n systemctl stop klipper
-    if sudo -n "$flasher" "$image" ttyS0; then
-        printf 'Mainboard application flash completed. Klipper remains stopped.\n'
-        printf 'Power down and continue with the replacement host installation.\n'
-    else
-        status=$?
-        printf 'Mainboard flasher failed; attempting to restart the stock Klipper service.\n' >&2
-        sudo -n systemctl start klipper || true
-        exit "$status"
-    fi
+    # Disabled: repeated live tests on the stock Plus4 showed QIDI's UART loader
+    # never acknowledged the serial bootloader request, and the flasher returned
+    # a false-success status without transferring a firmware page. The supported
+    # mainboard route is the resident microSD bootloader. See
+    # docs/MAINLINE-MIGRATION.md and docs/FIRMWARE-FLASHING.md; the historical
+    # implementation is preserved in Git history.
+    die 'Direct SSH mainboard flashing is disabled: the stock Plus4 UART loader did
+not enter the bootloader in live testing and no firmware pages transferred. Stage
+plus4-mainboard-klipper.bin as qd_mcu.bin (qidi_plus4.py stage-mainboard-sdcard)
+and flash it through the resident microSD bootloader per docs/MAINLINE-MIGRATION.md.'
 }
 
 flash_toolhead_katapult() {
@@ -108,19 +154,36 @@ flash_toolhead_katapult() {
     assert_hash "$image" "$expected_sha"
     probe="$(st-info --probe 2>&1)"
     printf '%s\n' "$probe"
-    grep -Eqi 'F1|chipid:[[:space:]]+0x0?414' <<<"$probe" || \
+    # The toolhead is an STM32F103xE (device/chip id 0x414). Match the chip id or
+    # an explicit STM32F1 descriptor, not a bare "F1" that can occur elsewhere.
+    grep -Eqi 'chipid:[[:space:]]*0x0?414|STM32F1' <<<"$probe" || \
         die 'ST-Link did not report an STM32F1-class target; check wiring and board identity.'
     mkdir -p "$backup_dir"
     backup="$backup_dir/toolhead-pre-katapult-$(date -u +%Y%m%dT%H%M%SZ).bin"
     sudo -n systemctl stop klipper || true
     st-flash read "$backup" 0x08000000 0x10000
     sha256sum "$backup"
+    # Stock QIDI Klipper is linked at 0x08000000. Merely overwriting its first
+    # pages leaves non-blank data at Katapult's 0x08002000 application vector.
+    # Katapult then jumps into stale stock code instead of waiting on UART.
+    # Preserve the read-back above, then erase the target before installing it.
+    st-flash erase
     st-flash write "$image" 0x08000000
     verify="$backup_dir/toolhead-katapult-verify.bin"
     st-flash read "$verify" 0x08000000 "$(stat -c %s "$image")"
     cmp -n "$(stat -c %s "$image")" "$image" "$verify" || die 'Katapult read-back differs.'
     rm -f "$verify"
-    printf 'Katapult verified. Disconnect ST-Link and restore the toolhead wiring before flashing Klipper.\n'
+    app_vector="$backup_dir/toolhead-app-vector-verify.bin"
+    st-flash read "$app_vector" 0x08002000 8
+    python3 - "$app_vector" <<'PY'
+import pathlib, sys
+
+data = pathlib.Path(sys.argv[1]).read_bytes()
+if data != b"\xff" * 8:
+    raise SystemExit("Katapult application vector is not blank after erase")
+PY
+    rm -f "$app_vector"
+    printf 'Katapult and blank application vector verified. Disconnect ST-Link and restore the toolhead wiring before flashing Klipper.\n'
 }
 
 flash_toolhead_app() {

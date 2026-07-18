@@ -21,7 +21,7 @@ katapult_ref="${KATAPULT_REF:-master}"
 
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    git python3 python3-venv python3-dev python3-pip python3-serial \
+    git python3 python-is-python3 python3-venv python3-dev python3-pip python3-serial \
     build-essential libffi-dev libncurses-dev libusb-dev libusb-1.0-0-dev \
     pkg-config gcc-arm-none-eabi binutils-arm-none-eabi \
     libnewlib-arm-none-eabi stm32flash stlink-tools curl
@@ -85,6 +85,21 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable klipper.service
 sudo systemctl stop klipper.service 2>/dev/null || true
+
+moonraker_config="$data/config/moonraker.conf"
+if [[ ! -s "$moonraker_config" ]]; then
+    cat >"$moonraker_config" <<EOF
+[server]
+host: 0.0.0.0
+port: 7125
+klippy_uds_address: $data/comms/klippy.sock
+
+[authorization]
+trusted_clients:
+    127.0.0.0/8
+    ::1/128
+EOF
+fi
 
 MOONRAKER_DATA_PATH="$data" MOONRAKER_FORCE_SYSTEM_INSTALL=y \
     "$moonraker/scripts/install-moonraker.sh" -f

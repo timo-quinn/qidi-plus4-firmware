@@ -303,6 +303,19 @@ lifecycle control. The binary contains a hard-coded symmetric-looking security
 constant. Its exact value is omitted from this report; coordinate responsible
 disclosure before publishing a security-focused write-up.
 
+The `mqtt.so` credential path does not decrypt the stored password itself. Its
+`_qidiclient_decrypt_hex` helper calls the remote method
+`qidiclient.crypto.aes_decrypt_hex`, which is provided by a separate closed
+`qidiclient` extension agent registered through `extensions.so`; when no such
+agent is present it fails with `Decrypt failed: No extension agents found`.
+Device identity is keyed on the SoC serial read from
+`/proc/device-tree/serial-number`. The migration-relevant consequence is that
+removing the cloud stack means omitting not only `mqtt.so`, `frp_manager.so`
+and `extensions.so` but also the `qidiclient` agent binary that holds the AES
+key. The hard-coded constant noted above was not located inside `mqtt.so` in
+this review, so it may live in `xindi` or in that agent rather than in the
+MQTT component.
+
 FRP/QIDILink provides a remote tunnel. This is separate from Klipper and is a
 meaningful new external trust boundary.
 
@@ -403,7 +416,10 @@ These are static-review findings, not claims of an exploitable vulnerability:
    dynamic testing.
 3. MQTT credential encryption uses a compiled-in symmetric-looking constant;
    this is obfuscation/key management, not protection against an attacker who
-   possesses the firmware.
+   possesses the firmware. Decryption is delegated to a separate closed
+   `qidiclient` agent (`qidiclient.crypto.aes_decrypt_hex`) rather than
+   performed in `mqtt.so`, so the key material is held in that agent; a
+   review of the agent binary is required to assess it.
 4. FRP/QIDILink intentionally creates a remote-access path and should be
    disabled or firewalled when cloud features are unwanted.
 5. Suppressing unknown G-code and demoting a pre-triggered probe error can hide

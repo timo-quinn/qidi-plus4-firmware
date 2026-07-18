@@ -286,15 +286,19 @@ The community-tested Plus4 mainline configurations use:
 A conservative conversion path is:
 
 1. Retain the original QIDI eMMC and all captured binaries as recovery media.
-2. On the mainboard, use its existing microSD bootloader to install a Katapult
-   deployer as `qd_mcu.bin`; a successful update renames it to `qd_mcu.CUR`.
-   Then flash the 32 KiB-offset mainline application through Katapult over
-   `/dev/ttyS0`. This replaces the opaque QIDI update transport with a
-   documented, repeatable bootloader path.
+2. On the mainboard, use its existing microSD bootloader to install the
+   32 KiB-offset mainline application as `qd_mcu.bin`; a successful update
+   renames it to `qd_mcu.CUR`. This retains QIDI's resident bootloader and
+   requires the card again for future mainboard updates. Installing a Katapult
+   deployer through the same microSD route remains an optional alternative for
+   users who prefer subsequent UART updates.
 3. On the toolhead, perform a one-time SWD/ST-Link installation of Katapult.
-   No verified stock-QIDI updater for `/dev/ttyS2` was found. Once Katapult is
-   installed, subsequent 8 KiB-offset Klipper images can be sent over
-   `/dev/ttyS2` without using SWD again.
+   No verified stock-QIDI updater for `/dev/ttyS2` was found. The SWD install
+   must erase the old offset-zero QIDI application before writing Katapult;
+   otherwise stale bytes at Katapult's `0x08002000` application vector are
+   mistaken for a valid application. Once Katapult is installed on the erased
+   target, subsequent 8 KiB-offset Klipper images can be sent over `/dev/ttyS2`
+   without using SWD again.
 4. Initially leave the QIDI Box MCU on its stock firmware. Port or adapt the
    host-side Box/Happy Hare integration to its self-described Klipper protocol.
    Only replace its MCU image after the RFID and interrupt-button MCU support
@@ -309,32 +313,38 @@ A conservative conversion path is:
    host APIs and configuration. The independent bridge research is documented
    in [SCREEN-BRIDGE.md](SCREEN-BRIDGE.md).
 
-It may be possible to send a correctly linked mainboard image through
-`/root/hid-flash ... ttyS0`, because the recovered flasher does not validate
-the payload. Katapult is preferable for the migration because its layout and
-recovery workflow are documented. Running the same QIDI flasher against
-`ttyS2` will not work merely because both boards use UART: the stock toolhead
-image begins at `0x08000000` and has no resident bootloader.
+Live testing shows that a correctly linked mainboard image cannot reliably be
+sent through `/root/hid-flash ... ttyS0` from the stock SSH host. Three loader
+entry sequences failed before transferring a firmware page, and the flasher
+returned status zero despite its protocol timeout. The migration tool disables
+this action and uses the resident microSD updater instead. Running the same
+QIDI flasher against `ttyS2` also cannot work merely because both boards use
+UART: the stock toolhead image begins at `0x08000000` and has no resident
+bootloader.
 
-### Potentially simpler conversion workflow
+### Tested simplification boundary
 
 The existing Plus4 mainline guides install the Katapult deployer on the
 mainboard using a FAT32 microSD card named `qd_mcu.bin`, then use Katapult to
 install Klipper. QIDI's stock UI already sends an arbitrary application image
 to the same mainboard application area using `USB/QD_MCU/MCU`. The live dump
 confirms that both update paths target the application vector at `0x08008000`.
-This creates a layout-validated simplification candidate: while still running
-the stock QIDI host, supply the correctly built Katapult `deployer.bin` as
-`QD_MCU/MCU` and
-let the normal QIDI updater install it. If validated on a recoverable printer,
-that would remove the microSD formatting, rear-panel access and reset-button
-steps while retaining Katapult for all subsequent updates.
+The direct SSH variant was tested on the recoverable 1.7.3 reference printer
+with an ordinary firmware restart, Klipper's exact 32-byte serial bootloader
+request, and an aligned request after clearing partial protocol data. None
+entered QIDI's UART loader. Each attempt failed before the flasher's
+`> Flashing firmware...` marker and the stock application recovered intact.
+The microSD step therefore cannot currently be removed from the supported
+workflow.
 
-A still shorter option would send the 32 KiB-offset mainline Klipper image
-directly through QIDI's flasher and retain the QIDI bootloader. That should be
-treated as a recovery-oriented alternative rather than the preferred public
-workflow because the bootloader is opaque and the flasher does not verify the
-written image.
+The replacement microSD route was then completed successfully on the same
+printer. Its resident loader accepted the 32 KiB-offset mainline Klipper image
+and renamed `qd_mcu.bin` to `qd_mcu.CUR`, validating the supported path.
+
+The stock UI's `USB/QD_MCU/MCU` route remains analysis evidence rather than a
+migration recommendation. Its coordinator calls an unregistered
+`CLOSE_MCU_PORT` command, then trusts the same flasher that returned false
+success during live testing.
 
 The stock toolhead dump rules out an equivalent no-hardware path: its Klipper
 application is linked directly at `0x08000000`, not `0x08002000`, and there is

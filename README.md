@@ -2,8 +2,10 @@
 
 Technical reference material for QIDI Plus4 firmware versions 1.7.3 and 1.8.2,
 including printer backups, static analysis, decompilation output, reconstructed
-source, and MCU flashing research. The companion configuration profiles live in
-[qidi-plus4-configs](https://github.com/timo-quinn/qidi-plus4-configs).
+source, and MCU flashing research. Stock-fork profiles live in the companion
+[qidi-plus4-configs](https://github.com/timo-quinn/qidi-plus4-configs)
+repository; the new upstream-Klipper commissioning and operating profiles live
+here.
 
 ## Repository layout
 
@@ -17,6 +19,8 @@ source, and MCU flashing research. The companion configuration profiles live in
   utilities. Ghidra helper scripts are grouped under [`tools/ghidra/`](tools/ghidra/).
 - [`firmware-configs/`](firmware-configs/) contains reproducible Klipper and
   Katapult build fragments for the verified Plus4 controller boards.
+- [`mainline-configs/`](mainline-configs/) contains conservative, per-printer
+  renderable upstream-Klipper commissioning and operating profiles.
 - [`mainline-addons/`](mainline-addons/) contains opt-in, safe-default Klipper
   macro scaffolds and separate Beacon/Happy Hare integration templates.
 - [`screen-bridge/`](screen-bridge/) scaffolds an independent Python bridge for
@@ -28,6 +32,7 @@ source, and MCU flashing research. The companion configuration profiles live in
 - [Firmware changes from 1.7.3 to 1.8.2](docs/FIRMWARE-CHANGES.md)
 - [Firmware lineage from factory 1.1.2 through 1.8.2](docs/FIRMWARE-LINEAGE.md)
 - [Mainline Klipper migration](docs/MAINLINE-MIGRATION.md)
+- [Mainline printer configurations](mainline-configs/README.md)
 - [Optional mainline add-ons](mainline-addons/README.md)
 - [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
 - [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
