@@ -111,3 +111,15 @@ binaries are GPLv3 (qidibox-modules/LICENSE is the GPLv3). The corresponding
 source is available both upstream and in this repository at the path above, and
 the build recipe is in qidibox-modules/build-recipe/, satisfying the GPL's
 source-availability requirement for distributed binaries.
+
+
+Community configuration from the Plus4 Wiki (third party)
+--------------------------------------------------------
+
+qidibox-modules/box_macros.cfg is included verbatim from the qidi-community
+Plus4 Wiki (https://github.com/qidi-community/Plus4-Wiki,
+content/customisable_qidibox_firmware/box_macros.cfg). It is community-authored
+Klipper macro configuration, not original to this repository and not part of the
+compiled modules. The Plus4 Wiki is published under the MIT license; that
+attribution and license apply to this file. docs/DISABLE-QIDI-CLOUD.md is
+original writing that documents a procedure from the same wiki, with credit.

@@ -41,6 +41,7 @@ here.
 - [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
 - [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
 - [QIDI Box vs. Cartographer compiled-Python conflict](docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md)
+- [Disabling QIDI cloud / QIDILink on stock firmware](docs/DISABLE-QIDI-CLOUD.md)
 - [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)
 - [Install Happy Hare after mainline migration](docs/HAPPY-HARE-INSTALLATION.md)
 - [Stock touchscreen bridge research](docs/SCREEN-BRIDGE.md)
@@ -65,6 +66,23 @@ Backups are written under `data/printer-backups/` and intentionally ignored by G
 They may contain credentials, API keys, databases, and SSH material. These are
 filesystem/source backups; MCU flash readbacks require the separately documented
 procedures.
+
+## Community resources
+
+This repository focuses on firmware analysis and mainline migration. For
+day-to-day mods, tuning, and how-to guides, the community
+[qidi-community/Plus4-Wiki](https://github.com/qidi-community/Plus4-Wiki) is the
+canonical reference. Directly relevant entries there include:
+
+- [Customisable QIDI Box firmware](https://github.com/qidi-community/Plus4-Wiki/tree/main/content/customisable_qidibox_firmware)
+  — the pure-Python Box modules and `box_macros.cfg` (a copy of the latter is
+  included under [`qidibox-modules/`](qidibox-modules/)).
+- [Cartographer3D install guide](https://github.com/qidi-community/Plus4-Wiki/tree/main/content/bed-scanning-probes/cartographer3d)
+  — companion to [docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md](docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md).
+- [Disabling the QIDILink client](https://github.com/qidi-community/Plus4-Wiki/tree/main/content/disable%20QIDILink-client)
+  — the procedure behind [docs/DISABLE-QIDI-CLOUD.md](docs/DISABLE-QIDI-CLOUD.md).
+- Hardware mods, maintenance, and slicer profiles — out of scope here; see the
+  wiki.
 
 ## Publication boundary
 

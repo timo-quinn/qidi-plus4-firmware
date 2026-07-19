@@ -52,15 +52,30 @@ Full provenance, per-target build environments, and input/output hashes are in
 `buttons_irq` is not included; the community procedure only replaces it on
 firmware 1.7.2. Build it from the same source with the recipe below if needed.
 
-## Caveat: three commands are missing
+## Caveat: three commands are missing (and the macros that cover them)
 
 The 1.7.0 source predates the shipped firmware by three `BoxExtras`
 commands — `cmd_TRY_RESUME_PRINT`, `cmd_BOX_PRINT_START`, and
 `cmd_INIT_MAPPING_VALUE` (see
 [`../analysis/components/LINEAGE-ANALYSIS.md`](../analysis/components/LINEAGE-ANALYSIS.md)).
-Neither build provides those commands. The community procedure restores the
-equivalent print-start/resume behaviour with a `box_macros.cfg` macro set. Full
-Box parity is not guaranteed.
+Neither build provides those commands. The equivalent print-start / resume /
+filament-change behaviour is restored by the companion macro set
+[`box_macros.cfg`](box_macros.cfg), included here. Full Box parity is not
+guaranteed.
+
+### `box_macros.cfg` (companion, not built by us)
+
+`box_macros.cfg` is a Klipper macro configuration (14 `[gcode_macro]` blocks:
+`TRY_RESUME_PRINT`, `BOX_PRINT_START`, `BOX_CHANGE_FILAMENT`, flush/cut/reload,
+etc.) that re-creates the Box behaviour the compiled-only commands provided.
+
+- Source: qidi-community Plus4 Wiki,
+  `content/customisable_qidibox_firmware/box_macros.cfg`
+  (<https://github.com/qidi-community/Plus4-Wiki>), included verbatim.
+- Upstream SHA-256: `6f83ac0a5ef3c2538dce8ba0662a100cf4f01902ea8d3b40940487aab7e54b88`.
+- It is community-authored configuration, not part of the compiled modules and
+  not produced by the build recipe. Attribution and licensing follow the Plus4
+  Wiki; see the repository [NOTICE](../NOTICE).
 
 ## Install (stock QIDI host)
 
@@ -71,8 +86,10 @@ Box parity is not guaranteed.
    directory that matches your `klippy-env` Python version.
 4. Install the runtime dependency if missing:
    `~/klippy-env/bin/pip install pyudev`.
-5. For the Cartographer case, also add the community `box_macros.cfg` and the
-   Cartographer-compatible `probe.py` as described in the Plus4 Wiki.
+5. Include the companion [`box_macros.cfg`](box_macros.cfg) from this directory
+   in your printer config to restore the Box macro behaviour. For the
+   Cartographer case, also apply the Cartographer-compatible `probe.py` as
+   described in the Plus4 Wiki.
 6. Start Klipper and confirm the Box objects load without a
    "compile time Python version" error.
 
