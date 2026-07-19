@@ -14,8 +14,14 @@ Published baseline:
 The analysis used Plus4-Wiki tree revision
 `9716c01355aa76f061f7dad35a719cbed91b22ee`. The five files were originally
 added on 29 July 2025 in commits `82a938b`, `de93d12`, `11177e0`, `62a1c31`
-and `a1a0270`. The repository is MIT licensed; the required license text is
-retained with the generated lineage source.
+and `a1a0270`, published there under an MIT license.
+
+That MIT label, however, does not govern this source. The five files are
+byte-identical to QIDI's own Box source in its GPLv3 Klipper fork at firmware
+1.7.0 (see [`../github-releases/qidi-klipper-1.7.0-box-source/`](../github-releases/qidi-klipper-1.7.0-box-source/)),
+so the material is GPLv3; a third party cannot relicense it to MIT. The MIT text
+is retained only as a record of how the snapshot was published. Treat the
+lineage source below as GPLv3.
 
 ## Exact API relationship
 
@@ -92,13 +98,14 @@ helper state.
 ## Generated lineage source
 
 `lineage-source/1.7.3/klipper` and `lineage-source/1.8.2/klipper` contain the
-MIT baseline with:
+published baseline (GPLv3; see the licensing note above) with:
 
 * provenance and deployment warnings;
 * inline warnings on known version-sensitive published methods;
 * explicit non-runnable stubs for the three binary-only public commands;
 * `api-comparison.csv`, recording every published/binary API relationship;
-* `LICENSE.published-baseline`, preserving the upstream MIT license.
+* `LICENSE.published-baseline`, retaining the snapshot's MIT text as a record of
+  how it was published (not the operative license — the source is GPLv3).
 
 These files are the best readable starting point for a clean-room mainline
 implementation, but they are deliberately not asserted to be deployable QIDI

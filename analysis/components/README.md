@@ -9,7 +9,8 @@ useful starting points for QIDI Box/Happy Hare interoperability work.
 See `FUNCTION-COMPARISON.md` for a method-level 1.7.3-to-1.8.2 navigation guide
 covering the changed Box modules.
 See `LINEAGE-ANALYSIS.md` for the comparison with QIDI's earlier published,
-MIT-licensed Box Python source and the higher-readability derived sources.
+published Box Python source (GPLv3 — see LINEAGE-ANALYSIS.md) and the
+higher-readability derived sources.
 Generated Python-shaped, non-runnable source outlines are under
 `estimated-source/`; regenerate them with
 `tools/Generate-QidiEstimatedSource.py`.

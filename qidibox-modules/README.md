@@ -1,7 +1,7 @@
-# QIDI Box Klipper modules, rebuilt from community MIT source
+# QIDI Box Klipper modules, rebuilt from QIDI's GPLv3 source
 
-Prebuilt QIDI Box Klipper extension modules compiled from the community-
-published, MIT-licensed source, for two Python targets:
+Prebuilt QIDI Box Klipper extension modules compiled from QIDI's own Box source
+(GPLv3; see Licensing below), for two Python targets:
 
 | Directory | Target | Use for |
 |---|---|---|
@@ -40,11 +40,11 @@ If either constraint applies, use the pure-Python source from the
 
 ## What these are (and are not)
 
-- **Are:** a clean compile of the community-published, MIT-licensed Box source
-  (Copyright (c) 2024 stew675) using Cython 3.0.12, the same Cython version
-  stamped in QIDI's own binaries.
+- **Are:** a clean compile of QIDI's own Box source, using Cython 3.0.12 (the
+  same Cython version stamped in QIDI's binaries). The source is GPLv3 — see
+  Licensing below.
 - **Are not:** QIDI's proprietary firmware binaries. Nothing from QIDI's
-  compiled `.so` files is redistributed here.
+  compiled `.so` files is redistributed here; these are built from source.
 
 Full provenance, per-target build environments, and input/output hashes are in
 [`build-recipe/SOURCE-MANIFEST.txt`](build-recipe/SOURCE-MANIFEST.txt).
@@ -54,7 +54,7 @@ firmware 1.7.2. Build it from the same source with the recipe below if needed.
 
 ## Caveat: three commands are missing
 
-The MIT source snapshot predates the shipped firmware by three `BoxExtras`
+The 1.7.0 source predates the shipped firmware by three `BoxExtras`
 commands — `cmd_TRY_RESUME_PRINT`, `cmd_BOX_PRINT_START`, and
 `cmd_INIT_MAPPING_VALUE` (see
 [`../analysis/components/LINEAGE-ANALYSIS.md`](../analysis/components/LINEAGE-ANALYSIS.md)).
@@ -105,6 +105,19 @@ bit-for-bit reproducible, so verify behaviour, not the artifact hash.
 
 ## License
 
-The modules are derived from stew675's MIT-licensed source; the [LICENSE](LICENSE)
-in this directory is that MIT license, preserved. See the repository
-[NOTICE](../NOTICE) for how this fits the rest of the project.
+**GPLv3.** These modules are compiled from QIDI's own Box source, which is part
+of QIDI's GPLv3 fork of Klipper (https://github.com/QIDITECH/klipper, branch
+`PLUS4`, as shipped at tag `Plus4_v1.7.0`). The [LICENSE](LICENSE) in this
+directory is the GPLv3.
+
+The build source is byte-identical to the community snapshot often cited as
+"MIT" (Copyright (c) 2024 stew675); because that snapshot is QIDI's GPLv3 code,
+the MIT label does not govern it — GPLv3 code cannot be relicensed to MIT by a
+third party. The authoritative GPLv3 source, its provenance, and the identity
+proof are preserved at
+[`../analysis/github-releases/qidi-klipper-1.7.0-box-source/`](../analysis/github-releases/qidi-klipper-1.7.0-box-source/).
+
+Because these are GPLv3 binaries, the corresponding source must be available to
+recipients: it is, both upstream (QIDI's fork) and in this repository at the
+path above, and the exact build recipe is in `build-recipe/`. See the
+repository [NOTICE](../NOTICE) for how this fits the rest of the project.

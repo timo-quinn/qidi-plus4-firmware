@@ -26,14 +26,15 @@ here.
 - [`screen-bridge/`](screen-bridge/) scaffolds an independent Python bridge for
   retaining the stock serial touchscreen with mainline Moonraker.
 - [`qidibox-modules/`](qidibox-modules/) contains QIDI Box Klipper modules
-  recompiled from community MIT source for CPython 3.12 and 3.7 (aarch64), for
-  keeping the Box working alongside a Cartographer probe.
+  recompiled from QIDI's own GPLv3 source for CPython 3.12 and 3.7 (aarch64),
+  for keeping the Box working alongside a Cartographer probe.
 - `data/printer-backups/` contains sensitive local inputs and is ignored by Git.
 
 ## Start here
 
 - [Firmware changes from 1.7.3 to 1.8.2](docs/FIRMWARE-CHANGES.md)
 - [Firmware lineage from factory 1.1.2 through 1.8.2](docs/FIRMWARE-LINEAGE.md)
+- [GitHub-published source releases 1.3.2–1.7.1](analysis/github-releases/README.md)
 - [Mainline Klipper migration](docs/MAINLINE-MIGRATION.md)
 - [Mainline printer configurations](mainline-configs/README.md)
 - [Optional mainline add-ons](mainline-addons/README.md)

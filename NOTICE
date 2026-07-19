@@ -77,29 +77,37 @@ authors and are retained as found; their presence does not place that code
 under the MIT license.
 
 
-Reconstructed QIDI Box source lineage (MIT, third party)
---------------------------------------------------------
+QIDI Box source lineage (GPLv3)
+-------------------------------
 
-The readable Box source lineage under analysis/components/lineage-source/ is
-based on a published MIT-licensed source snapshot by stew675. Its license is
-preserved verbatim at:
+The QIDI Box Klipper modules originate in QIDI's GPLv3 fork of Klipper
+(https://github.com/QIDITECH/klipper, branch PLUS4). QIDI shipped them as open
+Python source through firmware 1.7.0 and as compiled Cython .so from 1.7.1.
 
-  analysis/components/lineage-source/LICENSE.published-baseline
+QIDI's authoritative 1.7.0 source is preserved at
+analysis/github-releases/qidi-klipper-1.7.0-box-source/ (GPLv3).
 
-That MIT license and copyright govern that material, not the repository-level
-LICENSE.
+A community snapshot of these files (analysis/components/lineage-source/ is
+derived from it, and its LICENSE.published-baseline records it) is often cited
+as MIT-licensed by stew675. That snapshot is byte-identical to QIDI's GPLv3
+1.7.0 source; because it is QIDI's GPLv3 code, the MIT label does not govern it
+— GPLv3 code cannot be relicensed to MIT by a third party. Treat all of this
+Box source, and anything built from it, as GPLv3. The MIT text is retained only
+as a record of how that snapshot was published, not as the operative license.
 
 
-Rebuilt QIDI Box modules (qidibox-modules/, MIT, third party)
-------------------------------------------------------------
+Rebuilt QIDI Box modules (qidibox-modules/, GPLv3)
+--------------------------------------------------
 
 qidibox-modules/ contains compiled Klipper extension binaries (.so) for the
-QIDI Box. They are a clean compile of the same stew675 MIT source described
-above (see qidibox-modules/build-recipe/SOURCE-MANIFEST.txt for exact inputs
-and build environments), produced for CPython 3.12 and CPython 3.7 on aarch64.
+QIDI Box, produced for CPython 3.12 and CPython 3.7 on aarch64. They are a
+clean compile of QIDI's GPLv3 Box source described above (see
+qidibox-modules/build-recipe/SOURCE-MANIFEST.txt for exact inputs and build
+environments).
 
 These are NOT QIDI's proprietary firmware binaries; no QIDI compiled component
-is redistributed. As a compile of the MIT-licensed source, they are covered by
-that MIT license, preserved at qidibox-modules/LICENSE. The statement above
-that "no QIDI firmware binaries are redistributed" continues to hold: these are
-our build of third-party MIT source, not QIDI's binaries.
+is redistributed — they are built from source. Because the source is GPLv3, the
+binaries are GPLv3 (qidibox-modules/LICENSE is the GPLv3). The corresponding
+source is available both upstream and in this repository at the path above, and
+the build recipe is in qidibox-modules/build-recipe/, satisfying the GPL's
+source-availability requirement for distributed binaries.

@@ -1,8 +1,8 @@
-QIDI Box modules — rebuilt from community MIT source
-====================================================
+QIDI Box modules — rebuilt from QIDI's GPLv3 source
+===================================================
 
-These binaries are compiled from community-published MIT source, NOT from any
-QIDI binary. Two targets are provided:
+These binaries are compiled from QIDI's own GPLv3 Box source, NOT from any QIDI
+binary. Two targets are provided:
 
   cp312-aarch64/  CPython 3.12 / aarch64 — for the Cartographer/Survey fix
                   (klippy-env upgraded to Python 3.12).
@@ -12,11 +12,19 @@ QIDI binary. Two targets are provided:
 
 See ../README.md.
 
-Upstream source (MIT, Copyright (c) 2024 stew675)
--------------------------------------------------
-Repository : https://github.com/qidi-community/Plus4-Wiki
-Path       : content/qidibox-on-orcaslicer/original_source
-Raw base   : https://raw.githubusercontent.com/qidi-community/Plus4-Wiki/main/content/qidibox-on-orcaslicer/original_source
+Upstream source (GPLv3 — QIDI's Klipper fork)
+---------------------------------------------
+Authoritative : https://github.com/QIDITECH/klipper  (branch PLUS4)
+Commit        : 1c4531a5c12c  (pinned by QIDITECH/QIDI_PLUS4 tag Plus4_v1.7.0)
+Path          : klippy/extras/
+License       : GNU GPLv3 (QIDI's fork of Klipper)
+
+The five .py inputs below are byte-identical to the community snapshot often
+cited as MIT (qidi-community/Plus4-Wiki .../qidibox-on-orcaslicer/original_source,
+"Copyright (c) 2024 stew675"). That snapshot is a re-publication of QIDI's GPLv3
+source; the MIT label does not override GPLv3. The authoritative source and the
+identity proof are preserved at
+../../analysis/github-releases/qidi-klipper-1.7.0-box-source/.
 
 Source input SHA-256 (same source for both targets):
   c3c8f716e5188e5ee2db04a01e57bad302a0bb91b7280eaa9c50753a26249c62  aht20_f.py

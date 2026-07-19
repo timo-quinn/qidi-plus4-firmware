@@ -62,8 +62,9 @@ documents a working procedure. In outline:
    Klipper virtual environment (Klipper plugins must be reinstalled afterward).
 2. **Delete the compiled Box `.so` modules and replace them with pure-Python
    `.py` equivalents.** Pure Python imports under any interpreter, so the
-   version guard never fires. The replacements are a community-archived,
-   MIT-licensed source snapshot (see below).
+   version guard never fires. The replacements are QIDI's own 1.7.0 Box source
+   (GPLv3); a community-archived copy is often cited as MIT but is byte-identical
+   to QIDI's GPLv3 source and is therefore also GPLv3 (see below).
 3. Replace QIDI's `probe.py` with the Cartographer-compatible community version.
 4. Add a `box_macros.cfg` so the Box's print-start / purge / cleaning behavior,
    which used to live inside the `.so`, still runs.
@@ -79,11 +80,13 @@ code, so the community deliberately does not do this.
 This repo independently validates the fix and surfaces a caveat the bare
 archive does not:
 
-- **The archived Python source is a confirmed match.** The five modules
-  published under the Plus4 Wiki (`.../qidibox-on-orcaslicer/original_source`,
-  MIT, snapshot dated 29 July 2025) contain 116 public functions/methods, and
-  every one has a corresponding Cython wrapper symbol in both the 1.7.3 and
-  1.8.2 binaries. The swap-in source is a genuine lineage match, not a guess.
+- **The source is QIDI's own, and a confirmed match.** The five modules shipped
+  as open `.py` in QIDI's GPLv3 Klipper fork at firmware 1.7.0, preserved at
+  [`../analysis/github-releases/qidi-klipper-1.7.0-box-source/`](../analysis/github-releases/qidi-klipper-1.7.0-box-source/);
+  the Plus4 Wiki snapshot cited as MIT is byte-identical to it (hence also
+  GPLv3). Their 116 public functions/methods each have a corresponding Cython
+  wrapper symbol in both the 1.7.3 and 1.8.2 binaries — a genuine lineage match,
+  not a guess.
 - **Three commands were added after that snapshot.** The shipped binaries
   expose three `BoxExtras` commands not present in the archived source:
   `cmd_TRY_RESUME_PRINT`, `cmd_BOX_PRINT_START`, and `cmd_INIT_MAPPING_VALUE`.
@@ -102,7 +105,7 @@ not install"; the installable source is the community archive, not this repo.
 ## Prebuilt modules in this repository
 
 For convenience, [`../qidibox-modules/`](../qidibox-modules/) contains the Box
-modules recompiled from the same MIT community source for two targets: CPython
+modules recompiled from QIDI's own GPLv3 1.7.0 source for two targets: CPython
 3.12 / aarch64 (`cp312-aarch64/`, the Cartographer fix) and CPython 3.7 /
 aarch64 (`cp37-aarch64/`, an open equivalent of the stock-host binaries). They
 are a drop-in for anyone who wants to keep QIDI's compiled-module layout instead
