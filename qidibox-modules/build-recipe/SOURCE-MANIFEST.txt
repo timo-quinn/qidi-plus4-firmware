@@ -1,0 +1,70 @@
+QIDI Box modules — rebuilt from community MIT source
+====================================================
+
+These binaries are compiled from community-published MIT source, NOT from any
+QIDI binary. Two targets are provided:
+
+  cp312-aarch64/  CPython 3.12 / aarch64 — for the Cartographer/Survey fix
+                  (klippy-env upgraded to Python 3.12).
+  cp37-aarch64/   CPython 3.7 / aarch64  — matches the stock QIDI host
+                  (Debian 10 Buster). An open, rebuildable equivalent of what
+                  QIDI already ships; not needed for the Cartographer fix.
+
+See ../README.md.
+
+Upstream source (MIT, Copyright (c) 2024 stew675)
+-------------------------------------------------
+Repository : https://github.com/qidi-community/Plus4-Wiki
+Path       : content/qidibox-on-orcaslicer/original_source
+Raw base   : https://raw.githubusercontent.com/qidi-community/Plus4-Wiki/main/content/qidibox-on-orcaslicer/original_source
+
+Source input SHA-256 (same source for both targets):
+  c3c8f716e5188e5ee2db04a01e57bad302a0bb91b7280eaa9c50753a26249c62  aht20_f.py
+  f05433e3a3407ca3244413625eb8ba89b3d8f9bb7d2714befd6c9384cd7602c3  box_detect.py
+  ae99d1504d71b6afe017459873c46f2c25158fe7cc913105399721ab8bd3e21e  box_extras.py
+  242b943b566ae57414758600a33b6b4331b6847b23bc7b811653a1cfb8188dd7  box_rfid.py
+  cb3def5cd019e32c65d45f1e1ad03460ff16e407f786802dd2f74d8ad6a4cf68  box_stepper.py
+
+Cython : 3.0.12 for both targets (matches the version stamped in QIDI's own
+         binaries). Emulation: docker buildx / qemu on an x86_64 host.
+
+--- cp312-aarch64 ---
+Container : quay.io/pypa/manylinux2014_aarch64
+            (digest sha256:a89d9ab0b9452ab8f748153a3d49b3a12a36638ceee285d5b468c6127024018b)
+Python    : CPython 3.12.13  (/opt/python/cp312-cp312)
+glibc     : 2.17 (manylinux2014 — loads on Debian 10 Buster and newer)
+Build cmd : bash build-any.sh /opt/python/cp312-cp312/bin/python
+
+Artifact SHA-256:
+  dbae66c6d8677f2258baf3f63ce0e386194b346b62961bad554c3cb83546704b  aht20_f.so
+  96fc8f3f7681cd5e993c75e652cc069836bf99e3e330e5ca812ee6baab41a849  box_detect.so
+  247af8c8cc2a668b80801e30c4b72eb857e97bedceb2e61650e39501dbf56de5  box_extras.so
+  01fa20fcfdd974b93601545429fb9e07ec4d57248a3f65c55ddae996c240f0b9  box_rfid.so
+  0ab70cffef2c5ab2172e9bde05edf9248960732d78bdbfde9758875aae88eec7  box_stepper.so
+
+--- cp37-aarch64 ---
+Container : python:3.7-buster  (Debian 10 Buster base — same OS as the stock host)
+Python    : CPython 3.7.17
+glibc     : 2.28 (Debian Buster — exact match for the stock QIDI host)
+Build cmd : bash build-any.sh        (defaults to the image's `python`)
+
+Artifact SHA-256:
+  481a5d7e428f993a2774ac1c5024ba4dd167e9691477ec067a36e1188d319472  aht20_f.so
+  c9bab6be9f31b08e16577afd3b6d442397ec3ec7e3a4bc81de051271ea226f2c  box_detect.so
+  9eac5d4d6a0674f4fb4dcedb0e7ea1009320462fb10662fd49e80f708e8f4d29  box_extras.so
+  8b3bed25fe94846212663a08432e9be22d8d2bb919d62368e4b369b0d91e51fd  box_rfid.so
+  e3e3ae02f968224a96d87ec7d76fbd3ed3e8136814b58b42ae33dcfb750b17bd  box_stepper.so
+
+NOTE: A Cython build is not bit-for-bit reproducible across hosts (embedded
+paths, timestamps, and compiler differences vary). The artifact hashes above
+identify these specific builds; a rebuild will match behavior, not necessarily
+the hash. Verify behavior, not the hash.
+
+Verification performed
+----------------------
+  - box_extras.so imports successfully under its build Python (3.12 and 3.7).
+  - The cp312 build is rejected under CPython 3.11 with
+    "undefined symbol: PyUnstable_Code_NewWithPosOnlyArgs", confirming binaries
+    are bound to their build ABI. A cp37 build is likewise 3.7-only.
+  - box_rfid.so uses "from . import bus" and must be loaded by Klipper as
+    extras.box_rfid (its normal loader path), not as a bare top-level module.

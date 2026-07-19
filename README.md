@@ -25,6 +25,9 @@ here.
   macro scaffolds and separate Beacon/Happy Hare integration templates.
 - [`screen-bridge/`](screen-bridge/) scaffolds an independent Python bridge for
   retaining the stock serial touchscreen with mainline Moonraker.
+- [`qidibox-modules/`](qidibox-modules/) contains QIDI Box Klipper modules
+  recompiled from community MIT source for CPython 3.12 and 3.7 (aarch64), for
+  keeping the Box working alongside a Cartographer probe.
 - `data/printer-backups/` contains sensitive local inputs and is ignored by Git.
 
 ## Start here
@@ -36,6 +39,7 @@ here.
 - [Optional mainline add-ons](mainline-addons/README.md)
 - [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
 - [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
+- [QIDI Box vs. Cartographer compiled-Python conflict](docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md)
 - [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)
 - [Install Happy Hare after mainline migration](docs/HAPPY-HARE-INSTALLATION.md)
 - [Stock touchscreen bridge research](docs/SCREEN-BRIDGE.md)
@@ -66,3 +70,29 @@ procedures.
 The contents of `docs/`, `analysis/`, and `tools/` are intended to be reviewable
 and publishable. `data/printer-backups/` is local source material and may contain
 credentials, API keys, databases, SSH keys, and other private printer state.
+
+## License
+
+Original work in this repository is released under the [MIT License](LICENSE).
+The reverse-engineering analysis and material derived from other open-source
+projects are governed by separate terms — see [NOTICE](NOTICE) for the full
+scope and attributions.
+
+## Disclaimer
+
+This is an independent, unofficial project. It is **not affiliated with,
+authorized, endorsed, or sponsored by QIDI Technology** or Makerbase/MKS. "QIDI",
+"Plus4", "QIDI Box", and related names are trademarks of their respective owners,
+used here only for identification and interoperability.
+
+The firmware analysis is static reverse engineering published for
+interoperability, repair, and independent security research. QIDI retains all
+copyright in its firmware; no QIDI firmware binaries are redistributed here. See
+[NOTICE](NOTICE) for details and for the GPLv3 status of Klipper- and
+Moonraker-derived material.
+
+Everything here is provided "as is", without warranty of any kind. Building,
+flashing, or migrating printer firmware can permanently damage hardware, void
+warranties, or render a printer unbootable. You are solely responsible for
+verifying every step against your own hardware and for keeping the recovery
+material described above. Use at your own risk.

@@ -1,0 +1,105 @@
+NOTICE
+======
+
+This repository combines original work with reverse-engineering analysis of
+third-party firmware and with material derived from other open-source projects.
+Different parts are governed by different licenses. This file records what is
+covered by the repository's MIT LICENSE and what is not.
+
+Not affiliated with QIDI Technology
+-----------------------------------
+
+This is an independent, unofficial project. It is not affiliated with,
+authorized, endorsed, or sponsored by QIDI Technology or Makerbase/MKS. "QIDI",
+"Plus4", "QIDI Box", and related names are trademarks of their respective
+owners and are used here only for identification and interoperability.
+
+
+Original work (covered by the MIT LICENSE)
+------------------------------------------
+
+The following are original to this repository and are released under the MIT
+license in LICENSE:
+
+  - tools/            migration, backup, analysis, and export utilities
+  - docs/             written findings and migration guides
+  - mainline-addons/  original Klipper macro scaffolds and integration templates
+  - mainline-configs/ original commissioning/operating profiles (placeholders,
+                      not calibration copied from any printer)
+  - firmware-configs/ original Klipper/Katapult build-config fragments
+  - screen-bridge/    original touchscreen-bridge scaffold
+
+The macro and integration templates are original work that is designed to be
+used alongside third-party projects (Beacon, Happy Hare, KAMP, KlipperScreen,
+FreeDi, Kalico). Those projects are referenced and integrated with, not
+redistributed here; each remains under its own license and copyright.
+
+
+Reverse-engineered analysis of QIDI firmware (NOT MIT)
+------------------------------------------------------
+
+Everything under analysis/ (Ghidra decompilation, ARM64 disassembly, extracted
+strings/symbols, reconstructed and estimated source, and firmware diffs) is the
+product of static analysis of QIDI Plus4 firmware. QIDI Technology retains all
+copyright in its firmware and its compiled components. These artifacts are
+published solely for interoperability, repair, and security research, and no
+QIDI firmware binaries are redistributed in this repository.
+
+If you are a rights holder and believe any specific artifact exceeds what is
+appropriate for interoperability research, please open an issue.
+
+
+Material derived from GPLv3 projects
+------------------------------------
+
+QIDI's firmware is built on Klipper and Moonraker, which are licensed under the
+GNU General Public License v3.0. Files that reproduce or diff their source
+therefore remain under GPLv3, including in particular:
+
+  - analysis/firmware/patches/*klipper*        (derived from Klipper, GPLv3)
+  - analysis/firmware/patches/*moonraker*      (derived from Moonraker, GPLv3)
+  - analysis/firmware/lineage/**               (transitions and readable patches)
+  - reconstructed/estimated source under analysis/components/ that corresponds
+    to Klipper or Moonraker modules
+
+Upstream projects and copyright:
+
+  - Klipper    - Copyright (C) Kevin O'Connor and contributors - GPLv3
+                 https://github.com/Klipper3d/klipper
+  - Moonraker  - Copyright (C) Eric Callahan (Arksine) and contributors - GPLv3
+                 https://github.com/Arksine/moonraker
+  - Katapult   - Copyright (C) Eric Callahan (Arksine) and contributors - GPLv3
+                 https://github.com/Arksine/katapult
+
+Copyright headers preserved inside these artifacts (for example Kevin O'Connor,
+Eric Callahan, Scott Mudge, and Christoph Frei) belong to their respective
+authors and are retained as found; their presence does not place that code
+under the MIT license.
+
+
+Reconstructed QIDI Box source lineage (MIT, third party)
+--------------------------------------------------------
+
+The readable Box source lineage under analysis/components/lineage-source/ is
+based on a published MIT-licensed source snapshot by stew675. Its license is
+preserved verbatim at:
+
+  analysis/components/lineage-source/LICENSE.published-baseline
+
+That MIT license and copyright govern that material, not the repository-level
+LICENSE.
+
+
+Rebuilt QIDI Box modules (qidibox-modules/, MIT, third party)
+------------------------------------------------------------
+
+qidibox-modules/ contains compiled Klipper extension binaries (.so) for the
+QIDI Box. They are a clean compile of the same stew675 MIT source described
+above (see qidibox-modules/build-recipe/SOURCE-MANIFEST.txt for exact inputs
+and build environments), produced for CPython 3.12 and CPython 3.7 on aarch64.
+
+These are NOT QIDI's proprietary firmware binaries; no QIDI compiled component
+is redistributed. As a compile of the MIT-licensed source, they are covered by
+that MIT license, preserved at qidibox-modules/LICENSE. The statement above
+that "no QIDI firmware binaries are redistributed" continues to hold: these are
+our build of third-party MIT source, not QIDI's binaries.
