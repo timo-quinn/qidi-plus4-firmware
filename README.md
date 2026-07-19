@@ -41,7 +41,7 @@ here.
 - [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
 - [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
 - [QIDI Box vs. Cartographer compiled-Python conflict](docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md)
-- [Disabling QIDI cloud / QIDILink on stock firmware](docs/DISABLE-QIDI-CLOUD.md)
+- [Disabling the legacy QIDILink client on stock firmware](docs/DISABLE-QIDI-CLOUD.md)
 - [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)
 - [Install Happy Hare after mainline migration](docs/HAPPY-HARE-INSTALLATION.md)
 - [Stock touchscreen bridge research](docs/SCREEN-BRIDGE.md)

@@ -100,10 +100,10 @@ Rebuilt QIDI Box modules (qidibox-modules/, GPLv3)
 --------------------------------------------------
 
 qidibox-modules/ contains compiled Klipper extension binaries (.so) for the
-QIDI Box, produced for CPython 3.12 and CPython 3.7 on aarch64. They are a
-clean compile of QIDI's GPLv3 Box source described above (see
-qidibox-modules/build-recipe/SOURCE-MANIFEST.txt for exact inputs and build
-environments).
+QIDI Box, produced for CPython 3.12 and CPython 3.7 on aarch64. They are built
+from QIDI's GPLv3 Box source with the documented `ToolChange.is_tool_change`
+compatibility patch (see qidibox-modules/build-recipe/SOURCE-MANIFEST.txt for
+exact inputs, patch, and build environments).
 
 These are NOT QIDI's proprietary firmware binaries; no QIDI compiled component
 is redistributed — they are built from source. Because the source is GPLv3, the
@@ -116,10 +116,12 @@ source-availability requirement for distributed binaries.
 Community configuration from the Plus4 Wiki (third party)
 --------------------------------------------------------
 
-qidibox-modules/box_macros.cfg is included verbatim from the qidi-community
+qidibox-modules/box_macros.cfg is derived from the qidi-community
 Plus4 Wiki (https://github.com/qidi-community/Plus4-Wiki,
 content/customisable_qidibox_firmware/box_macros.cfg). It is community-authored
 Klipper macro configuration, not original to this repository and not part of the
-compiled modules. The Plus4 Wiki is published under the MIT license; that
-attribution and license apply to this file. docs/DISABLE-QIDI-CLOUD.md is
-original writing that documents a procedure from the same wiki, with credit.
+compiled modules. Local syntax and G-code-state fixes have been applied. The
+Plus4 Wiki is published under the MIT license; its copyright notice and full
+license terms are preserved in qidibox-modules/LICENSE.box_macros.
+docs/DISABLE-QIDI-CLOUD.md is original writing that documents a procedure from
+the same wiki, with credit.

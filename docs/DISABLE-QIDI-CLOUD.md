@@ -1,47 +1,41 @@
-# Disabling QIDI cloud / QIDILink on stock firmware
+# Disabling the legacy QIDILink client on stock firmware
 
-This note is for owners who want to keep stock QIDI firmware but stop the
-printer from reaching QIDI's cloud and from being reachable through it. It ties
-the repository's firmware analysis to a community-tested disable procedure. If
-you are migrating to mainline Klipper instead, none of this is needed — the
-mainline stack omits the cloud components entirely (see
-[MAINLINE-MIGRATION.md](MAINLINE-MIGRATION.md)).
+This note records a community-tested procedure for disabling the legacy
+`QIDILink-client`/`udp_server` boot path. It is not a complete cloud-disable
+procedure for every Plus4 firmware release.
 
-## What the cloud stack is
+On firmware 1.8.x, QIDI also ships Moonraker `mqtt` and `frp_manager`
+components. Those components are separate from the legacy launcher and are not
+disabled by the steps below. A printer that has been linked to QIDI Cloud may
+therefore retain an outbound MQTT connection or allow the FRP service to be
+re-enabled. Mainline Klipper/Moonraker omits these QIDI-specific components; see
+[MAINLINE-MIGRATION.md](MAINLINE-MIGRATION.md).
 
-From the firmware analysis, QIDI's remote-access path on 1.8.x is built from a
-few cooperating pieces:
+## Firmware scope
 
-- **`QIDILink-client`** — a compiled binary in `/root`, started at boot from
-  `/root/xindi/build/start.sh` (it launches a `udp_server` helper). It is not
-  packaged; it runs as root.
-- **Moonraker `mqtt` + `frp_manager` components** — an always-on MQTT control
-  channel and an FRP (fast reverse proxy) tunnel that together let the cloud
-  issue Moonraker API calls, start remote prints, and open an inbound tunnel.
-  See [FIRMWARE-CHANGES.md](FIRMWARE-CHANGES.md).
+- On older stock releases, `QIDILink-client.service` and
+  `/root/QIDILink-client/udp_server` implement the remote-access path targeted
+  by this procedure.
+- QIDI's 1.7.3 payload already removes the normally named service and comments
+  out the legacy launcher while retaining renamed files.
+- Firmware 1.8.2 adds compiled Moonraker `mqtt` and `frp_manager` components.
+  This repository has not validated a durable, update-safe way to remove those
+  components from stock firmware, so this guide does not claim to disable them.
 
-The security concern is that enabling QIDI Link associates the printer with a
-publicly reachable cloud endpoint; the community has reported that a linked
-printer can be controlled by anyone who knows its URL. Disabling it removes both
-the outbound channel and the inbound tunnel.
+## Disable the legacy launcher
 
-## Disable procedure (stock firmware)
-
-This is the community-tested procedure from the qidi-community Plus4 Wiki
-([`content/disable QIDILink-client`](https://github.com/qidi-community/Plus4-Wiki/tree/main/content/disable%20QIDILink-client)),
-recorded here with attribution. It is reversible; note each change so you can
-undo it.
+This reversible procedure comes from the qidi-community Plus4 Wiki
+([`content/disable QIDILink-client`](https://github.com/qidi-community/Plus4-Wiki/tree/main/content/disable%20QIDILink-client)).
 
 1. SSH in and become root:
 
    ```bash
-   sudo -i     # authenticate with the mks account password
+   sudo -i
    ```
 
-2. Stop and disable the service:
+2. Stop and disable the service if it exists:
 
    ```bash
-   systemctl stop QIDILink-client
    systemctl disable --now QIDILink-client
    ```
 
@@ -51,42 +45,50 @@ undo it.
    mv /root/QIDILink-client /root/QIDILink-client-DoNotTouch
    ```
 
-   (QIDI's own 1.8.2 update payload already renames it this way, so the name is
-   consistent with vendor behaviour.)
+   QIDI's own update payload uses the same destination name. If the source is
+   already absent and the destination exists, do not run the command again.
 
-4. Comment out the launch line in the boot script:
+4. Comment out the launch line if it is still active:
 
    ```bash
    sed -i 's!^/root/QIDILink-client/udp_server!#/root/QIDILink-client/udp_server!' \
      /root/xindi/build/start.sh
    ```
 
-5. Mask the systemd unit so it cannot be re-activated:
+5. Mask the systemd unit:
 
    ```bash
-   mv -v /etc/systemd/system/QIDILink-client.service{,.masked}
    systemctl mask QIDILink-client
    ```
 
-## Verify and reverse
+## Verify
 
-- Verify: `systemctl is-enabled QIDILink-client` should report `masked`, and the
-  process should be gone (`pgrep -a udp_server` returns nothing after a reboot).
-- Reverse: unmask the unit, restore the `start.sh` line, and rename the data
-  directory back.
+After rebooting, verify the legacy path and inspect the newer components
+separately:
 
-## Scope and cautions
+```bash
+systemctl is-enabled QIDILink-client
+pgrep -a udp_server
+systemctl status QIDILink-client --no-pager
+pgrep -af 'frpc|moonraker'
+```
 
-- This targets the `QIDILink-client`/`udp_server` boot path. QIDI's Moonraker
-  `mqtt`/`frp_manager` components are separate; a QIDI Box printer that never
-  linked to the cloud generally does not bring up the FRP tunnel, but if you
-  have linked before, also confirm no FRP service is enabled.
-- Editing `start.sh` and masking a vendor service can be overwritten by a future
-  QIDI firmware update; re-check after updating.
-- These are owner actions on your own device. Nothing here is required for
-  normal local printing; QIDI Link is an opt-in convenience feature.
+The first command should report `masked`, and `pgrep -a udp_server` should
+produce no output. The final command is diagnostic only: Moonraker itself is
+expected to be present, and a process listing cannot prove that MQTT is
+disconnected. Check Moonraker's log for MQTT connection messages and use
+network-level egress blocking when a strict no-cloud guarantee is required.
+
+## Reverse and cautions
+
+To reverse the legacy change, unmask and enable the unit, restore the
+`start.sh` line, and rename the data directory back. Vendor firmware updates
+may overwrite any of these changes, so re-check after updating.
+
+These are owner actions on your own device. QIDI Link is not required for
+normal local printing.
 
 ## Credit
 
-Procedure from the qidi-community Plus4 Wiki (MIT). This document adds the
-firmware-analysis context and is original to this repository.
+Legacy procedure from the qidi-community Plus4 Wiki (MIT). Firmware-version
+scope and analysis are original to this repository.
