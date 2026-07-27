@@ -1,10 +1,10 @@
-# qidi2 legacy-profile migration notes
+# Legacy stock-fork profile migration notes
 
 Source reviewed:
 
 `qidi-plus4-configs/qidi-plus4-1.7.3-beacon-config`
 
-These notes separate physical qidi2 settings from QIDI-fork behavior. They are
+These notes separate physical reference-printer settings from QIDI-fork behavior. They are
 kept beside the generic X-7 V1.0 profile because each rendered printer still
 receives its own serial identifier and calibration state.
 
@@ -12,7 +12,7 @@ receives its own serial identifier and calibration state.
 
 | Legacy setting | Mainline result |
 | --- | --- |
-| Beacon mount offset `14,-11` | Corrected from the stew675-specific `0,-18.8` values after verifying qidi2's physical right-side mount and qidi1's preserved factory-mount configuration |
+| Beacon mount offset `14,-11` | Mount-dependent — set your own to match your installed mount. This value is for a right-side mount; corrected from the stew675-specific `0,-18.8` values after verifying the reference printer's physical right-side mount and the Box unit's preserved factory-mount configuration |
 | Beacon/Z reference center `152.5,152.5` | Retained |
 | Y-before-X homing and X/Y current reductions | Retained with slower 100 mm/s travel and 50 mm/s move-away |
 | Beacon Contact sensitivity `1`, latency `2`, tolerance `0.012` | Retained, but normal homing remains proximity mode |
@@ -30,9 +30,10 @@ receives its own serial identifier and calibration state.
 | Pressure advance `0.032` | Retained as a starting value after extrusion commissioning; tune it for each filament and toolpath |
 | Slicer fan indexes and print lifecycle macros | Reimplemented in `operations.cfg` using mainline object and command names |
 
-The old profile's Beacon serial is not retained. The renderer inserts the
-actual target printer's stable `/dev/serial/by-id/` path; qidi2 currently uses
-identifier `F92DFBFE5157383837202020FF062E43`.
+The old profile's Beacon serial is not retained. Every Beacon has a unique
+serial, so you must supply your own: find it with `ls /dev/serial/by-id/` and
+pass it to `render-config`, which substitutes it for the
+`CHANGE_ME_BEACON_SERIAL` placeholder. Do not reuse another printer's serial.
 
 ## Deliberately not migrated
 

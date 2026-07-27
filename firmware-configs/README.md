@@ -2,8 +2,8 @@
 
 These Kconfig fragments are consumed by the `build` command in
 [`tools/migration/qidi_plus4.py`](../tools/migration/qidi_plus4.py).
-They describe the two stock Plus4 controller boards verified on `qidi1` and
-`qidi2` on 2026-07-13.
+They describe the two stock Plus4 controller boards verified on two reference
+printers (firmware 1.8.2 with Box, and 1.7.3 without) on 2026-07-13.
 
 | Image | MCU | Application address | Transport |
 |---|---|---:|---|

@@ -20,7 +20,7 @@
   },
   "evidence": {
     "source": "live read-only inspection",
-    "printer": "qidi2",
+    "printer": "reference-1.7.3",
     "observed_on": "2026-07-13",
     "xindi_path": "/root/xindi/build/xindi",
     "xindi_size": 12465248,

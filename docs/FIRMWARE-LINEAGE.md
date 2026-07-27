@@ -19,8 +19,8 @@ The ordered snapshots are:
 | Version | Source | Screen/UI | Notes |
 | --- | --- | --- | --- |
 | 1.1.2 | Verified factory eMMC image | `V112` | Brand-new spare X-7 V1.0 controller eMMC |
-| 1.7.3 | Fresh `qidi2` backup | `V173` | Live printer without QIDI Box |
-| 1.8.2 | Fresh `qidi1` backup | `V182` | Live printer with QIDI Box |
+| 1.7.3 | Fresh printer backup | `V173` | Live printer without QIDI Box |
+| 1.8.2 | Fresh printer backup | `V182` | Live printer with QIDI Box |
 
 The factory partitions were mounted read-only, with ext4 journal recovery
 disabled. The later archives were extracted into WSL-native ext4 storage to

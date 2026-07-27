@@ -18,7 +18,7 @@ KlipperScreen on the stock hardware and not a dependency on FreeDi releases.
 ## Confirmed architecture
 
 The following facts are supported by the two printer backups and live read-only
-checks of `qidi1` (1.8.2 with Box) and `qidi2` (1.7.3):
+checks of the 1.8.2 unit (with Box) and the 1.7.3 unit:
 
 - `makerbase-client.service` starts `/root/xindi/build/xindi localhost`.
 - The front panel communicates through `/dev/ttyS1`.
@@ -34,7 +34,7 @@ checks of `qidi1` (1.8.2 with Box) and `qidi2` (1.7.3):
   profiles are therefore required.
 - The 1.8.2 UI adds substantial `multi_color_controller` and QIDI Box state.
 
-Additional read-only inspection of the connected `qidi1` screen on 2026-07-13
+Additional read-only inspection of the connected 1.8.2 unit's screen on 2026-07-13
 confirmed:
 
 - `xindi` exclusively held `/dev/ttyS1` on file descriptor 12;
@@ -100,7 +100,7 @@ sudo readlink -f /proc/$pid/fd/*
 sudo stty -F /dev/ttyS1 -a
 ```
 
-On `qidi1`, `stty` confirmed the active 115200 baud raw 8N1 configuration while
+On the 1.8.2 unit, `stty` confirmed the active 115200 baud raw 8N1 configuration while
 `xindi` owned the UART. Repeat this check on each screen release; capturing the
 relevant `termios` system call during service startup remains stronger evidence.
 

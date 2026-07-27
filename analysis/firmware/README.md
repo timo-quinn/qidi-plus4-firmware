@@ -17,6 +17,9 @@ Supporting evidence:
   recorded upstream commit, plus additive patches for untracked source;
 * `xindi-metadata.json`, `xindi-symbols-*.txt` and
   `xindi-filtered-strings-*.txt` contain the touchscreen binary comparison;
+* `toolhead-mcu-dictionary.json` is the Klipper command dictionary extracted
+  from the toolhead flash dump (stock Klipper; see
+  [`../../docs/TOOLHEAD-MCU-FIRMWARE.md`](../../docs/TOOLHEAD-MCU-FIRMWARE.md));
 * `../components/` contains ELF metadata, symbols, strings, ARM64
   disassembly and Ghidra pseudocode for QIDI's compiled Python extensions;
 * `../components/estimated-source/` contains generated, non-runnable

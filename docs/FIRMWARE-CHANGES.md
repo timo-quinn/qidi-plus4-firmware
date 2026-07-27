@@ -6,8 +6,8 @@
 
 This report compares freshly regenerated filesystem backups from:
 
-* QIDI Plus4 firmware 1.7.3 (`qidi2`);
-* QIDI Plus4 firmware 1.8.2 with QIDI Box (`qidi1`).
+* QIDI Plus4 firmware 1.7.3 (no QIDI Box);
+* QIDI Plus4 firmware 1.8.2 with QIDI Box.
 
 It covers the broader firmware stack, not only QIDI Box or Happy Hare-related
 code. Printer-specific configuration and installed third-party customizations

@@ -20,7 +20,7 @@ An external Mainsail instance connects through Moonraker and does not require a
 local Fluidd package or `fluidd.cfg`. Mainline-native print, pause, resume,
 cancel, chamber, fan and compatibility macros are supplied by `operations.cfg`.
 
-The mapping from the former qidi2 profile is recorded in
+The mapping from the former stock-fork profile is recorded in
 [`MIGRATION-NOTES.md`](MIGRATION-NOTES.md), including settings that were
 translated, corrected, or deliberately withheld from mainline.
 
@@ -97,13 +97,20 @@ tracked template.
 Test one heater at a time while watching both the intended sensor and the
 physical heater. Begin with a low target and stop if the wrong reading rises.
 The template starts all heaters in bang-bang/watermark control and retains
-qidi2's previous 50% chamber-heater power cap.
+the earlier stock-fork profile's 50% chamber-heater power cap.
 
 After the channels are proven, run fresh PID calibration for the hotend and bed.
 Only then use `operations.cfg`. Its pressure-advance starting value is inherited
 from the same printer's previous profile and must still be tuned per filament.
 Calibrate input shaping before raising the conservative motion limits, and
 commission Beacon Contact separately if desired.
+
+After commissioning, this profile uses the Plus4 production ceilings shared by QIDI's
+official profile and the mainline reference: `max_velocity: 600`,
+`max_accel: 20000`, `max_z_velocity: 20`, `max_z_accel: 500`, and
+`square_corner_velocity: 8`. Orca's feature-specific limits remain lower; these
+ceilings prevent the firmware from unnecessarily clipping its 500 mm/s travel
+moves and 10000 mm/s^2 travel acceleration.
 
 ## Slicer contract
 
@@ -114,19 +121,36 @@ PRINT_START BED_TEMP=60 EXTRUDER_TEMP=220 CHAMBER_TEMP=0
 PRINT_START BED=60 HOTEND=220 CHAMBER=0
 ```
 
-It loads the saved `default` mesh unless `MESH=adaptive` or `MESH=none` is
-provided. End G-code may call either `PRINT_END` or `END_PRINT`. Orca/QIDI fan
-indexes map `P0` to the part fan, `P2` to the auxiliary fan and `P3` to chamber
-circulation. Cutter, chute, brush, QIDI Box and Happy Hare behavior remains a
-separate commissioning layer.
+It generates an upstream adaptive mesh by default, including a 5 mm margin.
+Use `MESH=default` to load the saved full-bed profile or `MESH=none` to skip
+meshing. `MESH_MARGIN=0..25` overrides the adaptive margin and `SOAK=0..600`
+adds an optional post-heat bed soak; the default soak is zero. For the
+OrcaSlicer profile, use this exact machine start G-code:
+
+```gcode
+PRINT_START BED=[bed_temperature_initial_layer_single] HOTEND={first_layer_temperature[initial_extruder]} CHAMBER=[overall_chamber_temperature] MESH=adaptive
+SET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]
+M83
+```
+
+Do not prefix `PRINT_START` with `;`: that comments out the macro call and lets
+the first model move run without the macro's homing, heating, nozzle cleaning,
+mesh and purge sequence. End G-code may call either `PRINT_END` or `END_PRINT`.
+Orca/QIDI fan indexes map `P0` to the part fan, `P2` to the auxiliary fan and
+`P3` to chamber circulation. The standalone cutter/chute/brush macros are
+hardware-specific; QIDI Box and Happy Hare behavior remains a separate
+commissioning layer.
 
 ## Evidence and provenance
 
 The starting pin map is derived from the live migrated printer and the
 [reviewed community reference at commit e3551541](https://github.com/cgarwood82/plus4MainlineKlipperConfig/tree/e3551541f66860658de280b99f8c915a2bff5d34).
-The Beacon mount offsets and dependent Z-tilt/screw coordinates match the
-physical right-side mount and qidi1's preserved pre-change configuration. The
-earlier qidi2 profile's `0,-18.8` values were for the different stew675 mount.
+The Beacon `x_offset`/`y_offset` are **mount-dependent** and must be set to
+match the mount you have physically installed — they are not universal. The
+profile's `14,-11` values are for a right-side mount; the earlier stock-fork
+profile used `0,-18.8` for a different (stew675) mount. Measure and set your
+own, along with the dependent Z-tilt and screw-adjust coordinates, before
+relying on probing.
 Successful parsing proves MCU pin ownership and driver communication; it does
 not prove motion direction, heater routing, dimensional accuracy, or safe
 homing. Those are the purpose of the steps above.

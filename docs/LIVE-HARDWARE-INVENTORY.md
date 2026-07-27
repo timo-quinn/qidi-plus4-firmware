@@ -12,7 +12,7 @@ omitted.
 
 ## Reference systems
 
-| Property | `qidi1` | `qidi2` |
+| Property | 1.8.2 (Box) | 1.7.3 (no Box) |
 | --- | --- | --- |
 | QIDI release | 1.8.2 with QIDI Box | 1.7.3 without Box |
 | Physical controller PCB | `X-7 V1.0` | `X-7 V1.0` |
@@ -59,9 +59,9 @@ required before treating a live FDT difference as a firmware difference.
 | Stock screen | `/dev/ttyS1`, `serial@ff120000`, `dw-apb-uart` | 115200 baud, raw 8N1 | `xindi` |
 | Toolhead | `/dev/ttyS2`, `serial@ff130000`, `dw-apb-uart` | 500000 baud | Klipper |
 | Beacon Rev H | USB CDC ACM, VID:PID `04d8:e72b` | `/dev/ttyACM0` | Klipper |
-| QIDI Box (`qidi1`) | USB CDC ACM, VID:PID `1d50:614e` | `/dev/ttyACM1` | Klipper |
+| QIDI Box (1.8.2 unit) | USB CDC ACM, VID:PID `1d50:614e` | `/dev/ttyACM1` | Klipper |
 
-Klipper, not a separate QIDI service, owns both USB devices on `qidi1`. The Box
+Klipper, not a separate QIDI service, owns both USB devices on the 1.8.2 unit. The Box
 enumerates with model `QIDI_BOX_V1_1.1.1`; stable installation should use its
 `/dev/serial/by-id` identity rather than assuming `ttyACM1`.
 
@@ -74,7 +74,7 @@ The mainboard, toolhead, and Beacon builds are the same on both releases:
 | Stock `mcu` (toolhead) | STM32F103xE, QIDI Klipper build `v0.12.0-65-g96ab9069` | 72 MHz, UART 500000 |
 | Stock `U_1` (mainboard) | STM32F401xC, same QIDI Klipper build | 84 MHz, UART 500000 |
 | `beacon` | Beacon 2.1.0, revision H | 32 MHz, USB CDC ACM |
-| `mcu_box1` (`qidi1`) | `KLP_MCU_MKS_V1_1.1.1`, STM32F401xC | 84 MHz, USB CDC ACM |
+| `mcu_box1` (1.8.2 unit) | `KLP_MCU_MKS_V1_1.1.1`, STM32F401xC | 84 MHz, USB CDC ACM |
 
 The Box runtime dictionary contains 129 commands and declares initial active-low
 states for `PA1`, `PA2`, `PB4`, `PB5`, `PA14`, `PA15`, `PC4`, and `PC5`. It also
@@ -84,11 +84,11 @@ reimplemented.
 
 Full mainboard and toolhead flash dumps already exist for both reference
 printers under ignored backup storage. A full QIDI Box dump also exists for
-`qidi1`.
+the 1.8.2 unit.
 
 ## Screen comparison
 
-| Property | 1.8.2 (`qidi1`) | 1.7.3 (`qidi2`) |
+| Property | 1.8.2 | 1.7.3 |
 | --- | --- | --- |
 | UI version | `V182` | `V173` |
 | `xindi` size | 14,284,000 | 12,465,248 |
