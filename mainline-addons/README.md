@@ -20,7 +20,9 @@ Optional integration templates are under `integrations/`:
 
 - `beacon/` follows current Beacon installation and contact-homing semantics;
 - `happy-hare/` defines where Plus4 cutter/purge behavior can attach without
-  introducing a second material state machine.
+  introducing a second material state machine;
+- `qidi-box-ui/` restores QIDI Box load/unload/eject/RFID control on unmodified
+  Mainsail or Fluidd, using macro prompts instead of QIDI's forked front-end.
 
 These are scaffolds, not tested machine profiles. In particular, the cutter
 implementation intentionally raises an error until its coordinates and sequence

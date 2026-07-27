@@ -2,8 +2,8 @@
 
 This report compares filesystem snapshots from:
 
-* `qidi1`: QIDI firmware 1.8.2, QIDI Box attached, Beacon installed.
-* `qidi2`: QIDI firmware 1.7.3, no QIDI Box attached, Beacon installed.
+* A reference system on firmware 1.8.2, QIDI Box attached, Beacon installed.
+* A reference system on firmware 1.7.3, no QIDI Box attached, Beacon installed.
 
 Both snapshots were taken on 12 July 2026. Machine-specific configuration and
 Beacon differences are excluded from the conclusions below. Credentials,
@@ -269,6 +269,39 @@ the mainline environment has moved to a supported Python version.
    runout recovery and power-loss recovery independently.
 7. Use Mainsail, Fluidd or the third-party KlipperScreen integration for AMS
    control unless a QIDI touchscreen schema bridge is implemented.
+
+### Front-end control surface
+
+QIDI's "Control Box" panel is not a Klipper or Moonraker feature and is not
+part of upstream Fluidd. It is a Vue component compiled into QIDI's own Fluidd
+fork at `/home/mks/fluidd`, identifiable by the `Qidi Tech` theme preset in its
+`config.json`. The panel is present in the bundle even on a printer with no Box
+attached, so it is the printer objects, not an install step, that make it
+appear.
+
+It is a pure Moonraker client. It subscribes to `box_stepper slotN`,
+`box_extras`, `aht20_f heater_boxN` and `save_variables`, fetches
+`officiall_filas_list.cfg` through the file API for its vendor/material/colour
+dropdowns, and sends every action as ordinary G-code:
+
+| Control | Command |
+| --- | --- |
+| Uninstall / Load / Unload | `E_BOX slot=N` / `E_LOAD slot=N` / `E_UNLOAD slot=N` |
+| RFID refresh | `RFID_READ SLOT=slotN` |
+| Vendor / filament / colour | `SAVE_VARIABLE VARIABLE=vendor_slotN\|filament_slotN\|color_slotN` |
+| Box enable toggle | `SAVE_VARIABLE VARIABLE=enable_box VALUE=0\|1` |
+
+`E_BOX`, `E_LOAD`, `E_UNLOAD` and `RFID_READ` are registered by the compiled
+`box_extras` module, not by `box_macros.cfg`.
+
+The practical consequence is that installing upstream Fluidd or Mainsail after
+a migration removes the Box UI even when the Box still works. Neither front-end
+has a plugin or panel API, so the supported way to restore control without
+forking them is Klipper's `action:prompt_*` dialog protocol. That replacement
+is provided by
+[`../mainline-addons/integrations/qidi-box-ui/`](../mainline-addons/integrations/qidi-box-ui/).
+It covers the actions but not the ambient spool grid; a standalone web panel on
+Moonraker's WebSocket API remains the option that reaches full visual parity.
 
 ## Recommended compatibility test matrix
 
