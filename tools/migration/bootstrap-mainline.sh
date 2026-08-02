@@ -15,6 +15,7 @@ data="$home/printer_data"
 klipper="$home/klipper"
 moonraker="$home/moonraker"
 katapult="$home/katapult"
+host_tuning_helper="${QIDI_HOST_TUNING_HELPER:-$home/qidi-host-tuning.sh}"
 klipper_ref="${KLIPPER_REF:-master}"
 moonraker_ref="${MOONRAKER_REF:-master}"
 katapult_ref="${KATAPULT_REF:-master}"
@@ -104,11 +105,21 @@ fi
 MOONRAKER_DATA_PATH="$data" MOONRAKER_FORCE_SYSTEM_INSTALL=y \
     "$moonraker/scripts/install-moonraker.sh" -f
 
+[[ -f "$host_tuning_helper" ]] || {
+    echo "Host tuning helper not found: $host_tuning_helper" >&2
+    exit 1
+}
+chmod 700 "$host_tuning_helper"
+sudo bash "$host_tuning_helper" install --printer-user "$USER" --no-restart
+sudo systemctl restart moonraker.service
+bash "$host_tuning_helper" audit
+
 {
     printf 'installed_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf 'klipper_commit=%s\n' "$(git -C "$klipper" rev-parse HEAD)"
     printf 'moonraker_commit=%s\n' "$(git -C "$moonraker" rev-parse HEAD)"
     printf 'katapult_commit=%s\n' "$(git -C "$katapult" rev-parse HEAD)"
+    printf 'qidi_host_tuning_version=3\n'
 } | tee "$data/mainline-bootstrap.txt"
 
 echo

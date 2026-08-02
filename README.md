@@ -42,6 +42,7 @@ here.
 - [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
 - [Toolhead MCU firmware analysis (load cell, timing)](docs/TOOLHEAD-MCU-FIRMWARE.md)
 - [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
+- [QIDI Box `box.cfg` regeneration and sync implications](docs/QIDI-BOX-CONFIG-REGENERATION.md)
 - [QIDI Box vs. Cartographer compiled-Python conflict](docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md)
 - [Disabling the legacy QIDILink client on stock firmware](docs/DISABLE-QIDI-CLOUD.md)
 - [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)

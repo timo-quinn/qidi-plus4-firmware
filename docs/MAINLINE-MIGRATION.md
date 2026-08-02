@@ -301,7 +301,25 @@ python .\tools\migration\qidi_plus4.py bootstrap-host `
 
 The checked-in bootstrap installs Debian packages, clones official Klipper,
 Moonraker, and Katapult, creates Python environments and systemd services, and
-sets UART permissions. It leaves Klipper stopped until `printer.cfg` is reviewed.
+sets UART permissions. It also installs persistent RK3328 latency tuning:
+
+- the CPU frequency governor is set to `performance`;
+- Klipper is restricted to CPUs 1 and 2;
+- the toolhead `/dev/ttyS2` IRQ is routed to CPU 1;
+- the mainboard `/dev/ttyS0` IRQ is routed to CPU 2;
+- Moonraker and known UI/camera services are restricted to CPUs 0 and 3; and
+- `irqbalance` and Debian's late `ondemand.service` are masked when installed
+  so they cannot undo the UART assignments or governor.
+
+The governor is applied before Klipper starts. UART IRQs do not necessarily
+exist until Klipper opens both serial devices, so a strict post-start hook waits
+for them and applies their affinities on every Klipper restart. The hook also
+waits through the 60-second boot-settle interval used by QIDI's original tuning
+script, because Armbian's hardware optimizer can continue changing host state
+after its systemd unit reports completion. If the hook cannot verify both IRQs,
+Klipper does not complete startup.
+
+It leaves Klipper stopped until `printer.cfg` is reviewed.
 For a repeatable install, pass commit IDs with `--klipper-ref`,
 `--moonraker-ref`, and `--katapult-ref`; the installed commits are always
 recorded in `~/printer_data/mainline-bootstrap.txt`.
@@ -315,6 +333,27 @@ git -C ~/klipper rev-parse HEAD
 git -C ~/moonraker rev-parse HEAD
 git -C ~/katapult rev-parse HEAD
 ```
+
+Audit the effective governor, process affinity, and UART IRQ routing from the
+workstation:
+
+```powershell
+python .\tools\migration\qidi_plus4.py audit-host-tuning --printer $Printer
+```
+
+Printers bootstrapped by an older checkout can be patched without reflashing an
+MCU:
+
+```powershell
+python .\tools\migration\qidi_plus4.py tune-host `
+  --printer $Printer --confirm TUNE-HOST
+```
+
+The patch is idempotent and refuses to restart Klipper or Moonraker while a job
+is printing or paused. Klipper requires the early governor service and remains
+failed if its post-start UART affinity hook cannot verify both IRQs. The patch
+deliberately does not relax Klipper's scheduling checks or change the
+500000-baud MCU firmware.
 
 The official Qidi X-6 board definition supplies the device tree. Do not apply
 old fork-specific UART overlays unless the new-host audit proves one is missing.

@@ -14,16 +14,27 @@ import shlex
 import shutil
 import struct
 import subprocess
+import sys
 import tarfile
 import tempfile
 import urllib.request
 from datetime import datetime, timezone
 
-
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+
+# probes.py is a sibling module. Running this file as a script puts its own
+# directory on sys.path, but loading it by path — as the tests and any external
+# orchestrator may — does not, so make the import work either way.
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import probes  # noqa: E402  - depends on the sys.path entry above
+
+
 REPO_ROOT = SCRIPT_DIR.parent.parent
 REMOTE_HELPER = SCRIPT_DIR / "qidi-plus4-remote.sh"
 BOOTSTRAP_HELPER = SCRIPT_DIR / "bootstrap-mainline.sh"
+HOST_TUNING_HELPER = SCRIPT_DIR / "qidi-host-tuning.sh"
 BACKUP_HELPER = SCRIPT_DIR / "backup-remote.sh"
 LAYOUTS_FILE = SCRIPT_DIR / "mcu-layouts.json"
 SMOKE_TEST_CONFIG = SCRIPT_DIR / "smoke-test-printer.cfg"
@@ -82,6 +93,17 @@ def run(command: list[str], *, input_data: bytes | None = None) -> None:
     result = subprocess.run(command, input=input_data)
     if result.returncode:
         raise SystemExit(f"Command failed with exit code {result.returncode}")
+
+
+def capture(command: list[str], *, input_data: bytes | None = None
+            ) -> subprocess.CompletedProcess[bytes]:
+    """Run a command, capturing its output instead of inheriting stdout.
+
+    The machine-readable commands print one JSON document and nothing else, so
+    the traced command line goes to stderr here rather than to stdout.
+    """
+    print("+", " ".join(shlex.quote(part) for part in command), file=sys.stderr)
+    return subprocess.run(command, input=input_data, capture_output=True)
 
 
 def output(command: list[str]) -> str:
@@ -246,9 +268,95 @@ def scp_base(args: argparse.Namespace) -> list[str]:
             + identity_options(args) + mux_options())
 
 
+def collect_facts(args: argparse.Namespace) -> tuple[dict | None, str]:
+    """Collect machine-readable migration facts over SSH.
+
+    Returns `(facts, reason)`. `facts` is None when the printer could not be
+    read, in which case `reason` says why. An unreachable printer is a normal
+    outcome here, not an error: the host is legitimately absent during the eMMC
+    swap, which is exactly when a resume decision has to be made.
+    """
+    ssh, _ = ssh_base(args)
+    # Both arguments are always sent, empty when unset, so their positions stay
+    # fixed. The printer user makes the collector read the Klipper account's
+    # home rather than the home of whichever account was used to connect.
+    data_dir = getattr(args, "data_dir", "") or ""
+    printer_user = getattr(args, "printer_user", None) or ""
+    remote = (f"bash -s -- probe {shlex.quote(data_dir)} "
+              f"{shlex.quote(printer_user)}")
+    completed = capture(ssh + [remote], input_data=REMOTE_HELPER.read_bytes())
+    stderr = completed.stderr.decode("utf-8", errors="replace").strip()
+    if completed.returncode != 0:
+        detail = stderr.splitlines()[-1] if stderr else ""
+        reason = f"probe command exited {completed.returncode}"
+        return None, f"{reason}: {detail}" if detail else reason
+    text = completed.stdout.decode("utf-8", errors="replace")
+    try:
+        facts = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return None, f"probe output was not valid JSON: {exc}"
+    if not isinstance(facts, dict):
+        return None, "probe output was not a JSON object"
+    if stderr:
+        print(stderr, file=sys.stderr)
+    return facts, ""
+
+
 def audit(args: argparse.Namespace) -> None:
+    if getattr(args, "json", False):
+        facts, reason = collect_facts(args)
+        document = facts if facts is not None else {
+            "schema": probes.SCHEMA_VERSION, "reachable": False, "reason": reason
+        }
+        print(json.dumps(document, indent=2, sort_keys=True))
+        return
     ssh, _ = ssh_base(args)
     run(ssh + ["bash -s -- audit"], input_data=REMOTE_HELPER.read_bytes())
+
+
+def list_probes(_args: argparse.Namespace) -> None:
+    print(json.dumps(
+        [{"id": probe.id, "stage": probe.stage, "description": probe.description}
+         for probe in probes.PROBES],
+        indent=2,
+    ))
+
+
+def probe_printer(args: argparse.Namespace) -> None:
+    """Report which migration stages are observably complete on a printer.
+
+    Always exits 0 when it produced a well-formed report. Whether the printer
+    answered is carried by `reachable` and by per-probe `indeterminate` results,
+    so that "the tool broke" stays distinguishable from "the printer could not
+    tell us". Collapsing those two into one exit code is precisely the ambiguity
+    this command exists to remove.
+    """
+    try:
+        selected = probes.select(args.probe or None)
+    except KeyError as exc:
+        raise SystemExit(str(exc).strip('"')) from exc
+    ids = [probe.id for probe in selected]
+
+    if args.facts_file:
+        try:
+            facts = json.loads(args.facts_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SystemExit(f"Could not read facts file {args.facts_file}: {exc}") from exc
+        if not isinstance(facts, dict):
+            raise SystemExit(f"Facts file is not a JSON object: {args.facts_file}")
+        reason = ""
+    else:
+        facts, reason = collect_facts(args)
+
+    if facts is None:
+        results = probes.unreachable(reason, ids)
+        document = probes.report(args.printer, None, results, reachable=False)
+    else:
+        results = probes.evaluate(facts, ids=ids)
+        document = probes.report(args.printer, facts, results, reachable=True)
+    if not args.include_facts:
+        document.pop("facts", None)
+    print(json.dumps(document, indent=2, sort_keys=True))
 
 
 def backup_printer(args: argparse.Namespace) -> None:
@@ -293,13 +401,40 @@ def bootstrap_host(args: argparse.Namespace) -> None:
         raise SystemExit("This action requires --confirm BOOTSTRAP-HOST")
     ssh, target = ssh_base(args)
     remote = f"/home/{args.user}/bootstrap-mainline.sh"
+    remote_tuning = f"/home/{args.user}/qidi-host-tuning.sh"
     run(scp_base(args) + [str(BOOTSTRAP_HELPER), f"{target}:{remote}"])
+    run(scp_base(args) + [str(HOST_TUNING_HELPER), f"{target}:{remote_tuning}"])
     environment = " ".join((
         f"KLIPPER_REF={shlex.quote(args.klipper_ref)}",
         f"MOONRAKER_REF={shlex.quote(args.moonraker_ref)}",
         f"KATAPULT_REF={shlex.quote(args.katapult_ref)}",
+        f"QIDI_HOST_TUNING_HELPER={shlex.quote(remote_tuning)}",
     ))
     run(ssh + [f"chmod 700 {shlex.quote(remote)} && {environment} {shlex.quote(remote)}"])
+
+
+def host_tuning(args: argparse.Namespace) -> None:
+    if args.command == "tune-host" and args.confirm != "TUNE-HOST":
+        raise SystemExit("This action requires --confirm TUNE-HOST")
+
+    ssh, target = ssh_base(args)
+    if args.command == "audit-host-tuning":
+        run(ssh + ["bash -s -- audit"], input_data=HOST_TUNING_HELPER.read_bytes())
+        return
+
+    remote = "/tmp/qidi-host-tuning.sh"
+    run(scp_base(args) + [str(HOST_TUNING_HELPER), f"{target}:{remote}"])
+    cleanup = f"rm -f {shlex.quote(remote)}"
+    # The tuning targets the account that owns Klipper, which is not necessarily
+    # the account this connection uses.
+    printer_user = getattr(args, "printer_user", None) or args.user
+    command = (
+        f"trap {shlex.quote(cleanup)} EXIT; "
+        f"chmod 700 {shlex.quote(remote)} && "
+        f"sudo -n bash {shlex.quote(remote)} install "
+        f"--printer-user {shlex.quote(printer_user)}"
+    )
+    run(ssh + [command])
 
 
 def render_config(args: argparse.Namespace) -> None:
@@ -462,6 +597,57 @@ def setup_ssh(args: argparse.Namespace) -> None:
         print(f"Pass --identity {private} to the other qidi_plus4.py commands.")
 
 
+def setup_management_user(args: argparse.Namespace) -> None:
+    """Create a dedicated management account, leaving the Klipper account alone.
+
+    This runs through an account that already has passwordless sudo, so no
+    password is entered anywhere. The new account is key-only: no password is
+    ever set on it, and the password field is locked.
+    """
+    if args.confirm != "CREATE-MANAGEMENT-USER":
+        raise SystemExit("This action requires --confirm CREATE-MANAGEMENT-USER")
+
+    public = pathlib.Path(args.pubkey).expanduser()
+    if public.suffix != ".pub":
+        public = public.with_name(public.name + ".pub")
+    if not public.is_file():
+        raise SystemExit(f"Public key not found: {public}")
+    key_line = public.read_text(encoding="utf-8").strip()
+    if not key_line.startswith(("ssh-", "ecdsa-")):
+        raise SystemExit(f"{public} does not look like an OpenSSH public key")
+    if "\n" in key_line:
+        raise SystemExit(f"{public} holds more than one key; pass a single key file")
+
+    ssh, _ = ssh_base(args)
+    remote = " ".join((
+        "bash -s -- setup-management-user",
+        shlex.quote(args.new_user),
+        shlex.quote(key_line),
+        "CREATE-MANAGEMENT-USER",
+    ))
+    print(f"Creating management account {args.new_user!r} on {args.printer}...")
+    run(ssh + [remote], input_data=REMOTE_HELPER.read_bytes())
+
+    private = public.with_suffix("")
+    if not private.is_file():
+        print(f"Account created. Private key {private} is not present here, so "
+              "key login was not verified.")
+        return
+    verify = [require_command("ssh"), "-p", str(args.port),
+              "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
+              "-i", str(private), "-o", "IdentitiesOnly=yes",
+              f"{args.new_user}@{args.printer}",
+              "id -un; sudo -n true && echo sudo=ok"]
+    print(f"Verifying key login as {args.new_user}...")
+    if subprocess.run(verify).returncode:
+        raise SystemExit(
+            f"The account was created but key login as {args.new_user} did not "
+            "succeed. Check the printer's sshd configuration before relying on it."
+        )
+    print(f"{args.new_user} is ready. Point the inventory's `user` at it and keep "
+          "`printerUser` on the account that owns Klipper.")
+
+
 def stage_mainboard_sdcard(args: argparse.Namespace) -> None:
     image = args.image.resolve()
     validate_image("mainboard", image)
@@ -488,12 +674,19 @@ def smoke_test(args: argparse.Namespace) -> None:
     remote_cfg = f"{args.data_dir}/config/printer.cfg"
     remote_log = f"{args.data_dir}/logs/klippy.log"
     run(scp_base(args) + [str(SMOKE_TEST_CONFIG), f"{target}:{remote_tmp}"])
+    # The config belongs to the Klipper account, which is not necessarily the
+    # account this connection uses. Copy through sudo and hand ownership back,
+    # so a dedicated management account can install it without owning the
+    # directory.
+    owner = shlex.quote(getattr(args, "printer_user", None) or args.user)
     install = (
         f"set -e; cfg={shlex.quote(remote_cfg)}; tmp={shlex.quote(remote_tmp)}; "
+        f"owner={owner}; "
         "ts=$(date -u +%Y%m%dT%H%M%SZ); "
-        'if [ -s "$cfg" ]; then cp "$cfg" "$cfg.$ts.bak"; '
+        'if [ -s "$cfg" ]; then sudo -n cp -p "$cfg" "$cfg.$ts.bak"; '
         'echo "Backed up existing printer.cfg to $cfg.$ts.bak"; fi; '
-        'cp "$tmp" "$cfg"; sudo -n systemctl restart klipper'
+        'sudo -n install -m 644 -o "$owner" -g "$owner" "$tmp" "$cfg"; '
+        "sudo -n systemctl restart klipper"
     )
     print("Installing the inert smoke-test printer.cfg and restarting mainline Klipper...")
     run(ssh + [install])
@@ -509,6 +702,9 @@ def smoke_test(args: argparse.Namespace) -> None:
 def add_connection(parser: argparse.ArgumentParser, *, image: bool = False) -> None:
     parser.add_argument("--printer", required=True)
     parser.add_argument("--user", default="mks")
+    parser.add_argument("--printer-user",
+                        help="Account that owns Klipper on the printer, when it "
+                             "differs from the account used to connect")
     parser.add_argument("--port", type=int, default=22)
     parser.add_argument("--identity", help="SSH private key for password-free login (see setup-ssh)")
     if image:
@@ -538,9 +734,43 @@ def create_parser() -> argparse.ArgumentParser:
                        help="Create an ed25519 key if none exists")
     setup.set_defaults(func=setup_ssh)
 
+    manage = sub.add_parser(
+        "setup-management-user",
+        help="Create a dedicated key-only management account with passwordless sudo",
+    )
+    add_connection(manage)
+    manage.add_argument("--new-user", default="plab",
+                        help="Account to create (default: plab)")
+    manage.add_argument("--pubkey", required=True,
+                        help="OpenSSH public key to install for the new account")
+    manage.add_argument("--confirm", required=True)
+    manage.set_defaults(func=setup_management_user)
+
     audit_parser = sub.add_parser("audit", help="Run a read-only live printer audit")
     add_connection(audit_parser)
+    audit_parser.add_argument("--json", action="store_true",
+                              help="Emit collected facts as JSON instead of text")
+    audit_parser.add_argument("--data-dir", default="",
+                              help="Remote printer_data directory (default: ~/printer_data)")
     audit_parser.set_defaults(func=audit)
+
+    probe_parser = sub.add_parser(
+        "probe", help="Report which migration stages are observably complete"
+    )
+    add_connection(probe_parser)
+    probe_parser.add_argument("--data-dir", default="",
+                              help="Remote printer_data directory (default: ~/printer_data)")
+    probe_parser.add_argument("--probe", action="append", default=[],
+                              help="Evaluate only this probe; repeat for several")
+    probe_parser.add_argument("--include-facts", action="store_true",
+                              help="Embed the raw collected facts in the report")
+    probe_parser.add_argument("--facts-file", type=pathlib.Path,
+                              help="Evaluate a saved facts document instead of "
+                                   "connecting (for replay and testing)")
+    probe_parser.set_defaults(func=probe_printer)
+
+    probe_list = sub.add_parser("probes", help="List the available migration probes")
+    probe_list.set_defaults(func=list_probes)
 
     backup = sub.add_parser("backup", help="Stream a filesystem/source backup over SSH")
     add_connection(backup)
@@ -559,6 +789,21 @@ def create_parser() -> argparse.ArgumentParser:
     bootstrap.add_argument("--moonraker-ref", default="master")
     bootstrap.add_argument("--katapult-ref", default="master")
     bootstrap.set_defaults(func=bootstrap_host)
+
+    tuning_audit = sub.add_parser(
+        "audit-host-tuning",
+        help="Read and verify CPU, service, and UART IRQ affinity on a migrated host",
+    )
+    add_connection(tuning_audit)
+    tuning_audit.set_defaults(func=host_tuning)
+
+    tuning_install = sub.add_parser(
+        "tune-host",
+        help="Install persistent RK3328 CPU and UART latency tuning",
+    )
+    add_connection(tuning_install)
+    tuning_install.add_argument("--confirm", required=True)
+    tuning_install.set_defaults(func=host_tuning)
 
     config = sub.add_parser(
         "render-config", help="Render a per-printer mainline config from a reviewed profile"
