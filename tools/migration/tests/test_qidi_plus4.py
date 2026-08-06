@@ -1560,7 +1560,7 @@ def test_bootstrap_uploads_and_passes_host_tuning_helper(
 
 
 def test_render_config_supports_external_profile_and_output(tmp_path: pathlib.Path) -> None:
-    profile = tmp_path / "qidi-plus4-configs" / "printers" / "qidi2"
+    profile = tmp_path / "qidi-plus4-configs" / "printers" / "mainline-klipper-beacon"
     profile.mkdir(parents=True)
     (profile / "printer.cfg").write_text(
         "[include hardware.cfg]\n# CHANGE_ME_BEACON_SERIAL\n", encoding="utf-8"
@@ -1573,7 +1573,7 @@ def test_render_config_supports_external_profile_and_output(tmp_path: pathlib.Pa
     metadata = json.loads((output / qidi_plus4.RENDER_METADATA_FILE).read_text(encoding="utf-8"))
     assert metadata["schema"] == qidi_plus4.RENDER_METADATA_SCHEMA
     assert metadata["managed_by"] == qidi_plus4.RENDER_METADATA_MANAGER
-    assert metadata["profile"] == "qidi2"
+    assert metadata["profile"] == "mainline-klipper-beacon"
 
 
 def test_render_force_refuses_unmanaged_directory(tmp_path: pathlib.Path) -> None:

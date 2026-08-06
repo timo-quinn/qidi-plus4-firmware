@@ -212,11 +212,11 @@ before using any action other than `Audit` or `Validate*`.
 After both MCU links pass the inert smoke test, render a reviewed configuration
 with the target printer's exact Beacon serial path. The runtime profile can
 come directly from the companion config repository, which is the preferred
-source for current per-printer work:
+source for reusable firmware and hardware setup examples:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py render-config `
-  --profile-dir ..\qidi-plus4-configs\printers\qidi2 `
+  --profile-dir ..\qidi-plus4-configs\printers\mainline-klipper-beacon `
   --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_CHANGE_ME-if00' `
   --output C:\printerlab-workspaces\qidi2
 ```
