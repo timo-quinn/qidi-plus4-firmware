@@ -471,6 +471,169 @@ def test_refresh_klippee_agent_requires_exact_confirmation_before_ssh(
         qidi_plus4.refresh_klippee_agent(args)
 
 
+def klippee_agent_upgrade_result(*, ok: bool = True) -> dict[str, object]:
+    return {
+        "schema": qidi_plus4.KLIPPEE_AGENT_UPGRADE_SCHEMA,
+        "ok": ok,
+        "changed": ok,
+        "account": qidi_plus4.KLIPPEE_AGENT_ACCOUNT,
+        "cli_path": qidi_plus4.KLIPPEE_AGENT_CLI_PATH,
+        "source_url": qidi_plus4.KLIPPEE_AGENT_UPGRADE_SOURCE,
+        "before": {"version": "2026.08.06.5", "sha256": "1" * 64},
+        "after": {
+            "version": "2026.08.06.6" if ok else "2026.08.06.5",
+            "sha256": "2" * 64 if ok else "1" * 64,
+        },
+        "service": qidi_plus4.KLIPPEE_AGENT_SERVICE,
+        "scope": "user",
+        "observed_state": "active",
+        "before_pid": 410,
+        "after_pid": 512 if ok else 410,
+        "upgrade_exit": 0 if ok else 1,
+        "state_exit": 0,
+        "upgrade_reported_success": ok,
+        "agent_restart_performed": ok,
+        "klipper_actions_performed": False,
+        "config_deployment_performed": False,
+    }
+
+
+def test_upgrade_klippee_agent_uses_only_fixed_official_workflow(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    parsed = qidi_plus4.create_parser().parse_args([
+        "upgrade-klippee-agent",
+        "--printer", "qidi1",
+        "--confirm", "UPGRADE-KLIPPEE-AGENT",
+    ])
+    assert parsed.func is qidi_plus4.upgrade_klippee_agent
+
+    monkeypatch.setattr(
+        qidi_plus4, "ssh_base", lambda _args: (["ssh", "mks@qidi1"], "mks@qidi1")
+    )
+    calls: list[list[str]] = []
+    expected = klippee_agent_upgrade_result()
+
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        assert input_data is not None
+        assert b'def download_cli()' in input_data
+        assert b'"--disable"' in input_data
+        assert b'os.replace(temporary, CLI_PATH)' in input_data
+        assert b'run_systemctl("restart", SERVICE)' in input_data
+        assert b'CLI_PATH, "upgrade"' not in input_data
+        calls.append(command)
+        return subprocess.CompletedProcess(
+            command, 0, json.dumps(expected).encode("utf-8"), b""
+        )
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    args = connection_args(
+        "upgrade-klippee-agent", confirm="UPGRADE-KLIPPEE-AGENT"
+    )
+
+    qidi_plus4.upgrade_klippee_agent(args)
+
+    result = json.loads(capsys.readouterr().out)
+    assert result == expected
+    assert len(calls) == 1
+    assert calls[0] == [
+        "ssh",
+        "mks@qidi1",
+        "exec /usr/bin/env -i HOME=/home/mks USER=mks LOGNAME=mks "
+        "PATH=/usr/bin:/bin LANG=C LC_ALL=C /usr/bin/python3 -I -",
+    ]
+
+
+def test_upgrade_klippee_agent_reports_unproven_restart_as_failure(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4, "ssh_base", lambda _args: (["ssh", "mks@qidi1"], "mks@qidi1")
+    )
+    failure = klippee_agent_upgrade_result(ok=False)
+    failure["error"] = "managed agent restart was not proven"
+    monkeypatch.setattr(
+        qidi_plus4,
+        "capture",
+        lambda command, input_data=None: subprocess.CompletedProcess(
+            command, 1, json.dumps(failure).encode("utf-8"), b""
+        ),
+    )
+    args = connection_args(
+        "upgrade-klippee-agent", confirm="UPGRADE-KLIPPEE-AGENT"
+    )
+
+    with pytest.raises(SystemExit) as raised:
+        qidi_plus4.upgrade_klippee_agent(args)
+
+    assert raised.value.code == 1
+    result = json.loads(capsys.readouterr().out)
+    assert result["ok"] is False
+    assert result["changed"] is False
+    assert result["agent_restart_performed"] is False
+    assert "restart was not proven" in result["error"]
+
+
+def test_upgrade_klippee_agent_surfaces_bounded_helper_preflight_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4, "ssh_base", lambda _args: (["ssh", "mks@qidi1"], "mks@qidi1")
+    )
+    monkeypatch.setattr(
+        qidi_plus4,
+        "capture",
+        lambda command, input_data=None: subprocess.CompletedProcess(
+            command,
+            1,
+            b"",
+            b"klippee-agent-upgrade: managed unit has unreviewed directives\n",
+        ),
+    )
+    args = connection_args(
+        "upgrade-klippee-agent", confirm="UPGRADE-KLIPPEE-AGENT"
+    )
+
+    with pytest.raises(SystemExit, match="managed unit has unreviewed directives"):
+        qidi_plus4.upgrade_klippee_agent(args)
+
+
+def test_upgrade_klippee_agent_requires_confirmation_and_fixed_account(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: pytest.fail("preflight must precede SSH construction"),
+    )
+    with pytest.raises(SystemExit, match="UPGRADE-KLIPPEE-AGENT"):
+        qidi_plus4.upgrade_klippee_agent(
+            connection_args("upgrade-klippee-agent", confirm="wrong")
+        )
+    with pytest.raises(SystemExit, match="fixed mks"):
+        qidi_plus4.upgrade_klippee_agent(connection_args(
+            "upgrade-klippee-agent",
+            user="plab",
+            printer_user="mks",
+            confirm="UPGRADE-KLIPPEE-AGENT",
+        ))
+
+
+def test_klippee_agent_upgrade_rejects_duplicate_or_unsafe_evidence() -> None:
+    with pytest.raises(SystemExit, match="duplicate field"):
+        qidi_plus4._decode_unique_json(
+            b'{"schema":"one","schema":"two"}', "upgrade"
+        )
+    document = klippee_agent_upgrade_result()
+    document["source_url"] = "https://attacker.invalid/klippee.py"
+    with pytest.raises(SystemExit, match="fixed identity"):
+        qidi_plus4._validate_klippee_agent_upgrade_result(
+            document, returncode=0
+        )
+
+
 def test_start_klipper_only_starts_exact_unit_and_verifies_active(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

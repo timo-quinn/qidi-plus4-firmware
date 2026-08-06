@@ -117,6 +117,31 @@ It never restarts Klipper, deploys configuration, or reads printer files. It is
 intended for orchestration such as `plab klippee refresh-agent`, not as an
 implicit retry of a failed Klippee deployment.
 
+## Upgrading the managed Klippee agent
+
+Use the guarded upgrade operation when a newly deployed Klippee CLI adds an
+agent method or response schema:
+
+```powershell
+python .\tools\migration\qidi_plus4.py upgrade-klippee-agent `
+  --printer $Printer --confirm UPGRADE-KLIPPEE-AGENT
+```
+
+The operation is intentionally narrower than remote command execution. It
+accepts no executable path or download URL, requires the stock `mks` account,
+streams a reviewed source-bound upgrader, and never executes the old CLI as an
+upgrade authority. The helper downloads only
+`https://klippee.xyz/install/klippee.py` with fixed HTTPS/curl controls,
+validates the marker, version, size, UTF-8, and printer-Python syntax, then
+atomically replaces only `/home/mks/.local/bin/klippee`. It validates the exact
+managed user-unit directives, rejects systemd drop-ins, and proves both the old
+and new PIDs run that fixed CLI as `mks`. A failed changed-artifact activation
+rolls the CLI back and recovers the old agent. Its JSON result includes the
+before/after CLI versions and SHA-256 digests and explicit proof that it neither
+restarted Klipper nor deployed configuration. Printerlab exposes this as
+`plab klippee upgrade-agent` and first proves the current agent has no running
+operation.
+
 ## Staging the mainboard microSD image
 
 `stage-mainboard-sdcard` re-validates a built mainboard image, copies it to a

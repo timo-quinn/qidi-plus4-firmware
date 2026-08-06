@@ -48,6 +48,17 @@ PLR_DEPLOYMENT_ASSETS = (
     "manifest.json",
 )
 KLIPPEE_AGENT_SERVICE = "klippee-moonraker.service"
+KLIPPEE_AGENT_ACCOUNT = "mks"
+KLIPPEE_AGENT_CLI_PATH = "/home/mks/.local/bin/klippee"
+KLIPPEE_AGENT_UPGRADE_SOURCE = "https://klippee.xyz/install/klippee.py"
+KLIPPEE_AGENT_UPGRADE_ACTION = "UPGRADE-KLIPPEE-AGENT"
+KLIPPEE_AGENT_UPGRADE_SCHEMA = "qidi-plus4-klippee-agent-upgrade/v1"
+KLIPPEE_AGENT_UPGRADE_HELPER = SCRIPT_DIR / "upgrade-klippee-agent.py"
+KLIPPEE_AGENT_VERSION = re.compile(
+    r"^[0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?$"
+)
+KLIPPEE_AGENT_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+KLIPPEE_AGENT_MAX_RESULT_BYTES = 64 * 1024
 KLIPPER_SERVICE = "klipper.service"
 KLIPPER_START_STABILITY_CHECKS = 5
 KLIPPER_START_STABILITY_INTERVAL_SECONDS = 1.0
@@ -1006,6 +1017,188 @@ def refresh_klippee_agent(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+def _decode_unique_json(raw: bytes, label: str) -> dict:
+    if not raw or len(raw) > KLIPPEE_AGENT_MAX_RESULT_BYTES:
+        raise SystemExit(f"{label} returned an invalid result size")
+
+    def unique_object(pairs: list[tuple[str, object]]) -> dict:
+        result = {}
+        for name, value in pairs:
+            if name in result:
+                raise ValueError(f"duplicate field {name!r}")
+            result[name] = value
+        return result
+
+    try:
+        document = json.loads(
+            raw.decode("utf-8"), object_pairs_hook=unique_object
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise SystemExit(f"{label} returned invalid JSON: {exc}") from exc
+    if not isinstance(document, dict):
+        raise SystemExit(f"{label} did not return one JSON object")
+    return document
+
+
+def _klippee_agent_version_key(value: str) -> tuple[int, ...]:
+    if not KLIPPEE_AGENT_VERSION.fullmatch(value):
+        raise SystemExit(f"Invalid Klippee agent version: {value!r}")
+    return tuple(int(part) for part in value.split("."))
+
+
+def _validate_klippee_agent_artifact(value: object, label: str) -> dict:
+    if not isinstance(value, dict) or set(value) != {"version", "sha256"}:
+        raise SystemExit(f"Klippee agent upgrade returned invalid {label} evidence")
+    version = value.get("version")
+    digest = value.get("sha256")
+    if not isinstance(version, str) or not KLIPPEE_AGENT_VERSION.fullmatch(version):
+        raise SystemExit(f"Klippee agent upgrade returned an invalid {label} version")
+    if not isinstance(digest, str) or not KLIPPEE_AGENT_SHA256.fullmatch(digest):
+        raise SystemExit(f"Klippee agent upgrade returned an invalid {label} SHA-256")
+    return value
+
+
+def _validate_klippee_agent_upgrade_result(
+    document: dict, *, returncode: int
+) -> dict:
+    required = {
+        "schema", "ok", "changed", "account", "cli_path", "source_url",
+        "before", "after", "service", "scope", "observed_state",
+        "before_pid", "after_pid", "upgrade_exit", "state_exit",
+        "upgrade_reported_success", "agent_restart_performed",
+        "klipper_actions_performed", "config_deployment_performed",
+    }
+    allowed = required | {"error"}
+    if not required.issubset(document) or not set(document).issubset(allowed):
+        raise SystemExit("Klippee agent upgrade returned an unexpected contract")
+    if (
+        document.get("schema") != KLIPPEE_AGENT_UPGRADE_SCHEMA
+        or document.get("account") != KLIPPEE_AGENT_ACCOUNT
+        or document.get("cli_path") != KLIPPEE_AGENT_CLI_PATH
+        or document.get("source_url") != KLIPPEE_AGENT_UPGRADE_SOURCE
+        or document.get("service") != KLIPPEE_AGENT_SERVICE
+        or document.get("scope") != "user"
+    ):
+        raise SystemExit("Klippee agent upgrade returned an unexpected fixed identity")
+    boolean_fields = (
+        "ok", "changed", "upgrade_reported_success",
+        "agent_restart_performed", "klipper_actions_performed",
+        "config_deployment_performed",
+    )
+    if any(not isinstance(document.get(name), bool) for name in boolean_fields):
+        raise SystemExit("Klippee agent upgrade returned an invalid boolean proof")
+    if (
+        document["klipper_actions_performed"]
+        or document["config_deployment_performed"]
+    ):
+        raise SystemExit("Klippee agent upgrade did not prove zero Klipper/config actions")
+
+    before = _validate_klippee_agent_artifact(document.get("before"), "before")
+    after = _validate_klippee_agent_artifact(document.get("after"), "after")
+    if _klippee_agent_version_key(after["version"]) < _klippee_agent_version_key(before["version"]):
+        raise SystemExit("Klippee agent upgrade reported a version downgrade")
+    changed = (
+        before["version"] != after["version"]
+        or before["sha256"] != after["sha256"]
+    )
+    if document["changed"] != changed:
+        raise SystemExit("Klippee agent upgrade returned inconsistent artifact evidence")
+
+    state = document.get("observed_state")
+    integer_fields = ("before_pid", "after_pid", "upgrade_exit", "state_exit")
+    if (
+        not isinstance(state, str)
+        or not state
+        or len(state) > 32
+        or re.fullmatch(r"[a-z-]+", state) is None
+        or any(
+            isinstance(document.get(name), bool)
+            or not isinstance(document.get(name), int)
+            for name in integer_fields
+        )
+        or not 0 < document["before_pid"] <= 2_147_483_647
+        or not 0 <= document["after_pid"] <= 2_147_483_647
+        or not 0 <= document["upgrade_exit"] <= 255
+        or not 0 <= document["state_exit"] <= 255
+    ):
+        raise SystemExit("Klippee agent upgrade returned invalid process/service evidence")
+    if document["upgrade_reported_success"] != (document["upgrade_exit"] == 0):
+        raise SystemExit("Klippee agent upgrade returned inconsistent exit evidence")
+    if (state == "active") != (document["state_exit"] == 0):
+        raise SystemExit("Klippee agent upgrade returned inconsistent service evidence")
+    if document["agent_restart_performed"]:
+        if document["before_pid"] == document["after_pid"]:
+            raise SystemExit("Klippee agent upgrade returned inconsistent restart evidence")
+    elif document["before_pid"] != document["after_pid"]:
+        raise SystemExit("Klippee agent upgrade returned unexplained process churn")
+
+    ok = document["ok"]
+    error = document.get("error")
+    if ok:
+        if returncode != 0:
+            raise SystemExit("Klippee agent upgrade exited nonzero after reporting success")
+        if "error" in document and error:
+            raise SystemExit("Klippee agent upgrade reported success with an error")
+        if (
+            state != "active"
+            or document["upgrade_exit"] != 0
+            or not document["upgrade_reported_success"]
+            or not document["agent_restart_performed"]
+            or document["after_pid"] <= 0
+        ):
+            raise SystemExit("Klippee agent upgrade omitted required success proof")
+    else:
+        if returncode == 0:
+            raise SystemExit("Klippee agent upgrade exited zero after reporting failure")
+        if not isinstance(error, str) or not error.strip() or len(error) > 2_000:
+            raise SystemExit("Klippee agent upgrade failure omitted its bounded error")
+    return document
+
+
+def upgrade_klippee_agent(args: argparse.Namespace) -> None:
+    """Run the reviewed source-bound Klippee upgrader over SSH stdin."""
+
+    if args.confirm != KLIPPEE_AGENT_UPGRADE_ACTION:
+        raise SystemExit(
+            f"This action requires --confirm {KLIPPEE_AGENT_UPGRADE_ACTION}"
+        )
+    account = getattr(args, "printer_user", None) or args.user
+    if args.user != KLIPPEE_AGENT_ACCOUNT or account != KLIPPEE_AGENT_ACCOUNT:
+        raise SystemExit(
+            "Klippee agent upgrade requires the fixed mks SSH and printer account"
+        )
+    ssh, _target = ssh_base(args)
+    helper = KLIPPEE_AGENT_UPGRADE_HELPER
+    if (
+        helper.is_symlink()
+        or not helper.is_file()
+        or not 0 < helper.stat().st_size <= 128 * 1024
+    ):
+        raise SystemExit(f"Reviewed Klippee upgrade helper not found: {helper}")
+    completed = capture(
+        ssh + [
+            "exec /usr/bin/env -i HOME=/home/mks USER=mks LOGNAME=mks "
+            "PATH=/usr/bin:/bin LANG=C LC_ALL=C /usr/bin/python3 -I -"
+        ],
+        input_data=helper.read_bytes(),
+    )
+    if not completed.stdout and completed.returncode:
+        detail = " ".join(
+            completed.stderr.decode("utf-8", errors="replace").split()
+        )[:500]
+        suffix = f": {detail}" if detail else ""
+        raise SystemExit(
+            f"Klippee agent upgrade exited {completed.returncode}{suffix}"
+        )
+    result = _decode_unique_json(completed.stdout, "Klippee agent upgrade")
+    _validate_klippee_agent_upgrade_result(
+        result, returncode=completed.returncode
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+    if completed.returncode:
+        raise SystemExit(completed.returncode)
+
+
 def _validated_plr_backup_manifest(path: str, scripts_dir: str) -> str:
     scripts_dir = scripts_dir.rstrip("/")
     pattern = (
@@ -1795,6 +1988,14 @@ def create_parser() -> argparse.ArgumentParser:
     add_connection(refresh_agent)
     refresh_agent.add_argument("--confirm", required=True)
     refresh_agent.set_defaults(func=refresh_klippee_agent)
+
+    upgrade_agent = sub.add_parser(
+        "upgrade-klippee-agent",
+        help="Upgrade the fixed Klippee CLI and prove its managed agent restarted",
+    )
+    add_connection(upgrade_agent)
+    upgrade_agent.add_argument("--confirm", required=True)
+    upgrade_agent.set_defaults(func=upgrade_klippee_agent)
 
     plr_deploy = sub.add_parser(
         "deploy-plr-hardening",
