@@ -1,0 +1,6 @@
+path	reason
+lib/hc32f460/driver/inc/hc32f460_timer4_sevt.h	original-patch-contained-nul
+lib/stm32f0/include/stm32f072xb.h	original-patch-contained-nul
+lib/stm32f4/include/stm32f401xc.h	original-patch-contained-nul
+lib/stm32h7/include/stm32h7b3xx.h	original-patch-contained-nul
+lib/stm32l4/include/stm32l432xx.h	original-patch-contained-nul

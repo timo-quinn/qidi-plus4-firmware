@@ -151,6 +151,14 @@ even without a key you are prompted at most once per command. Re-run `setup-ssh`
 after the host OS is replaced, because the new Armbian install has its own host
 key and account.
 
+When Printerlab orchestrates this first login, configure the printer entry with
+a dedicated `identityFile` and a temporary `sshPasswordEnv` name, then run
+`plab mainline setup-ssh <printer> --generate`. Printerlab supplies the password
+only through its private randomized askpass gate; this utility accepts the
+environment variable name, never the password as an argument. Remove
+`sshPasswordEnv` and clear the environment variable immediately after the key
+is installed.
+
 ## 1. Back up and audit
 
 Use the cross-platform Python backup and audit commands:
@@ -301,7 +309,25 @@ python .\tools\migration\qidi_plus4.py bootstrap-host `
 
 The checked-in bootstrap installs Debian packages, clones official Klipper,
 Moonraker, and Katapult, creates Python environments and systemd services, and
-sets UART permissions. It leaves Klipper stopped until `printer.cfg` is reviewed.
+sets UART permissions. It also installs persistent RK3328 latency tuning:
+
+- the CPU frequency governor is set to `performance`;
+- Klipper is restricted to CPUs 1 and 2;
+- the toolhead `/dev/ttyS2` IRQ is routed to CPU 1;
+- the mainboard `/dev/ttyS0` IRQ is routed to CPU 2;
+- Moonraker and known UI/camera services are restricted to CPUs 0 and 3; and
+- `irqbalance` and Debian's late `ondemand.service` are masked when installed
+  so they cannot undo the UART assignments or governor.
+
+The governor is applied before Klipper starts. UART IRQs do not necessarily
+exist until Klipper opens both serial devices, so a strict post-start hook waits
+for them and applies their affinities on every Klipper restart. The hook also
+waits through the 60-second boot-settle interval used by QIDI's original tuning
+script, because Armbian's hardware optimizer can continue changing host state
+after its systemd unit reports completion. If the hook cannot verify both IRQs,
+Klipper does not complete startup.
+
+It leaves Klipper stopped until `printer.cfg` is reviewed.
 For a repeatable install, pass commit IDs with `--klipper-ref`,
 `--moonraker-ref`, and `--katapult-ref`; the installed commits are always
 recorded in `~/printer_data/mainline-bootstrap.txt`.
@@ -315,6 +341,27 @@ git -C ~/klipper rev-parse HEAD
 git -C ~/moonraker rev-parse HEAD
 git -C ~/katapult rev-parse HEAD
 ```
+
+Audit the effective governor, process affinity, and UART IRQ routing from the
+workstation:
+
+```powershell
+python .\tools\migration\qidi_plus4.py audit-host-tuning --printer $Printer
+```
+
+Printers bootstrapped by an older checkout can be patched without reflashing an
+MCU:
+
+```powershell
+python .\tools\migration\qidi_plus4.py tune-host `
+  --printer $Printer --confirm TUNE-HOST
+```
+
+The patch is idempotent and refuses to restart Klipper or Moonraker while a job
+is printing or paused. Klipper requires the early governor service and remains
+failed if its post-start UART affinity hook cannot verify both IRQs. The patch
+deliberately does not relax Klipper's scheduling checks or change the
+500000-baud MCU firmware.
 
 The official Qidi X-6 board definition supplies the device tree. Do not apply
 old fork-specific UART overlays unless the new-host audit proves one is missing.
@@ -447,11 +494,15 @@ reviewed X-7 V1.0 / Beacon profile with the target printer's exact by-id path:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py render-config `
+  --profile-dir ..\qidi-plus4-configs\printers\qidi2 `
   --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_CHANGE_ME-if00' `
-  --output .\artifacts\generated-configs\my-plus4
+  --output C:\printerlab-workspaces\qidi2
 ```
 
-Read the generated files and follow the profile-specific commissioning order in
+`qidi-plus4-configs` is the preferred source for current runtime profiles.
+Omit `--profile-dir` to use this repository's bundled compatibility fallback.
+Read the generated files and follow the selected profile's commissioning notes;
+the fallback is documented in
 [`../mainline-configs/plus4-x7-v1.0-beacon/README.md`](../mainline-configs/plus4-x7-v1.0-beacon/README.md).
 It excludes inherited calibration and movement outside the build envelope for
 the cutter, chute, and nozzle brush. Its mainline-native operating layer must

@@ -16,8 +16,11 @@ Start with [`../../../docs/FIRMWARE-LINEAGE.md`](../../../docs/FIRMWARE-LINEAGE.
 - `xindi/` contains metadata, symbols, and security-filtered string deltas.
 - `transitions/` contains readable installed-source and service patches;
   `.skipped.txt` files identify native/binary changes not represented as text.
-- `patches/` contains each source tree's tracked diff against its recorded Git
-  HEAD, plus untracked-source indexes and readable additive patches.
+- `patches/` contains each source tree's NUL-free UTF-8 tracked diff against its
+  recorded Git HEAD, plus untracked-source indexes and readable additive
+  patches. Sibling `*.skipped.txt` manifests record binary, NUL-bearing, or
+  non-UTF-8 paths excluded from readable publication, with content hashes when
+  generated from a snapshot.
 - `snapshots.json` records release identities and Git revisions without local
   input paths.
 
@@ -32,6 +35,13 @@ python3 tools/Analyze-QidiFirmwareLineage.py \
   --snapshot 1.8.2=/path/to/extracted-1.8.2 \
   --output analysis/firmware/lineage
 ```
+
+Some older Klipper patch blobs are retained as text evidence placeholders
+because the original generated diff embedded NUL bytes from vendor header
+files. Each placeholder records the original commit, path, byte count, and
+SHA-256 so the exact historical blob remains recoverable. A Linux/WSL
+regeneration with the current tool will replace it with the filtered readable
+patch and a hashed skipped-path manifest.
 
 Printer configurations are retained as metadata evidence but contain owner
 customizations and must not be treated as vendor-only changes.

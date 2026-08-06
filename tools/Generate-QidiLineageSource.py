@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Build source-lineage estimates from QIDI's published Box Python source.
 
-The generated files retain the published MIT-licensed source as a readable
+The generated files retain the published Box source as a readable GPLv3
 baseline, annotate methods known to differ between 1.7.3 and 1.8.2, and add
 non-runnable stubs for public binary APIs absent from the published snapshot.
-They are analysis aids and must not be installed on a printer.
+The Plus4-Wiki snapshot's MIT label is retained as publication history but is
+not the operative license; it is byte-identical to QIDI's GPLv3 Klipper source.
+These files are analysis aids and must not be installed on a printer.
 """
 
 from __future__ import annotations
@@ -169,7 +171,7 @@ def annotated_source(
     banner = [
         '"""SOURCE-LINEAGE ESTIMATE -- DO NOT INSTALL ON A PRINTER.',
         "",
-        f"Published MIT baseline: {BASELINE_URL}",
+        f"Published Box-source snapshot (GPLv3 origin): {BASELINE_URL}",
         f"Baseline revision: {revision}",
         f"Estimated target firmware: {version}",
         "",
@@ -207,6 +209,9 @@ def main() -> None:
     args = parser.parse_args()
 
     args.output.mkdir(parents=True, exist_ok=True)
+    # Preserve the license text distributed with the selected snapshot as
+    # publication evidence. NOTICE and the generated README explain why the
+    # snapshot remains governed by its QIDI/Klipper GPLv3 origin.
     shutil.copyfile(find_license(args.baseline), args.output / "LICENSE.published-baseline")
     rows: list[dict[str, object]] = []
 
@@ -248,10 +253,12 @@ def main() -> None:
 
     (args.output / "README.md").write_text(
         "# Generated source-lineage estimates\n\n"
-        "These files combine the Plus4-Wiki MIT-licensed published Box source "
+        "These files combine the published Box source (GPLv3 — the Plus4-Wiki "
+        "snapshot's MIT label does not govern it; see `../LINEAGE-ANALYSIS.md`) "
         "with API evidence from QIDI firmware binaries. They are analysis aids, "
         "not recovered source or deployable printer software. See "
-        "`../LINEAGE-ANALYSIS.md` for confidence levels and methodology.\n\n"
+        "`../LINEAGE-ANALYSIS.md` for confidence levels, licensing, and "
+        "methodology.\n\n"
         f"Published baseline: {BASELINE_URL}\n\n"
         f"Baseline revision: `{args.source_revision}`\n",
         encoding="utf-8",

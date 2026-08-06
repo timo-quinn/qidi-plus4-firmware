@@ -1,6 +1,6 @@
 """SOURCE-LINEAGE ESTIMATE -- DO NOT INSTALL ON A PRINTER.
 
-Published MIT baseline: https://github.com/qidi-community/Plus4-Wiki/tree/main/content/qidibox-on-orcaslicer/original_source
+Published Box-source snapshot (GPLv3 origin): https://github.com/qidi-community/Plus4-Wiki/tree/main/content/qidibox-on-orcaslicer/original_source
 Baseline revision: 9716c01355aa76f061f7dad35a719cbed91b22ee
 Estimated target firmware: 1.8.2
 

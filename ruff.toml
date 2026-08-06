@@ -1,0 +1,14 @@
+line-length = 100
+target-version = "py310"
+
+# These paths are published evidence or preserved upstream source. They are
+# checked for provenance and safe publication, not rewritten to this repo's
+# style.
+extend-exclude = [
+    "analysis/components/1.7.3",
+    "analysis/components/1.8.2",
+    "analysis/components/estimated-source",
+    "analysis/components/lineage-source",
+    "analysis/firmware",
+    "analysis/github-releases/qidi-klipper-1.7.0-box-source",
+]
