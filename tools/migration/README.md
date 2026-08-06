@@ -117,6 +117,28 @@ It never restarts Klipper, deploys configuration, or reads printer files. It is
 intended for orchestration such as `plab klippee refresh-agent`, not as an
 implicit retry of a failed Klippee deployment.
 
+## Installing the QIDI Box output clock guard
+
+The clock-guard operation installs exactly the reviewed
+`qidibox-modules/box_output_clock_guard.py` at the fixed stock Klipper extras
+path. It verifies the local, staged, and installed SHA-256; preserves an
+existing target in a timestamped rollback directory; and verifies owner `mks`
+and mode `0644`:
+
+```powershell
+python .\tools\migration\qidi_plus4.py install-box-output-clock-guard `
+  --printer $Printer `
+  --confirm INSTALL-BOX-OUTPUT-CLOCK-GUARD
+```
+
+The JSON result contains the installed digest and the exact backup path, when a
+backup was needed. This command never changes printer configuration and never
+stops or restarts Klipper. Add `[box_output_clock_guard]` through the managed
+configuration workflow, restart once while idle, and verify the object's status
+before operating the Box. See
+[`../../docs/QIDI-BOX-OUTPUT-CLOCK-GUARD.md`](../../docs/QIDI-BOX-OUTPUT-CLOCK-GUARD.md)
+for the activation and verification procedure.
+
 ## Staging the mainboard microSD image
 
 `stage-mainboard-sdcard` re-validates a built mainboard image, copies it to a

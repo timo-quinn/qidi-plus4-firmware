@@ -28,22 +28,44 @@ initializer writes `mcu` through Python's normal `tp_setattro` path. The guard
 still treats either missing API or a rejected assignment as fatal and leaves
 the pair unchanged.
 
-## Manual integration
+## Guarded installation
 
-This is intentionally not an automated installer. On a stock QIDI 1.8.2 host,
-an integration should:
+The migration CLI has a narrowly scoped installer for the reviewed module:
 
-1. back up any existing file with the target name;
-2. copy `box_output_clock_guard.py` to
-   `~/klipper/klippy/extras/box_output_clock_guard.py`;
-3. add this empty section to the managed printer configuration:
+```powershell
+python .\tools\migration\qidi_plus4.py install-box-output-clock-guard `
+  --printer $Printer `
+  --confirm INSTALL-BOX-OUTPUT-CLOCK-GUARD
+```
+
+The operation has no source, destination, owner, mode, or service options. It
+uploads only this repository's `box_output_clock_guard.py`, calculates its
+SHA-256 locally, requires the staged and installed copies to match that digest,
+and fixes the destination at
+`/home/mks/klipper/klippy/extras/box_output_clock_guard.py`, owned by `mks` with
+mode `0644`. If a different target file exists, it is first copied to a
+timestamped directory below
+`klippy/extras/.qidi-plus4-backups/`; the structured result contains that exact
+rollback path and both digests. A symlinked source, target, target directory, or
+backup directory is rejected.
+
+The installer deliberately does **not** edit configuration, stop Klipper, or
+restart any service. After reviewing its JSON proof:
+
+1. add this empty section through the normal managed printer configuration:
 
    ```ini
    [box_output_clock_guard]
    ```
 
-4. restart Klipper while the printer is idle; and
-5. verify the Klippy log and Moonraker object status before operating the Box.
+2. deploy that configuration through the normal Klippee/Printerlab workflow;
+3. restart Klipper once while the printer is idle; and
+4. verify the Klippy log and Moonraker object status before operating the Box.
+
+When connecting with a dedicated management account, pass both the connection
+owner and the fixed Klipper owner, for example `--user plab --printer-user mks`.
+The installer rejects any `--printer-user` other than `mks` because this overlay
+targets the known stock QIDI layout only.
 
 Successful stock output should identify both pins and their actual MCU, for
 example:
@@ -59,10 +81,11 @@ object. Its `state` is `corrected` or `already-correct`, and `outputs` records
 the previous and pin MCU name for `b_output` and `e_output`.
 
 For Klippee/Printerlab integration, treat the module and config section as one
-versioned deployment: upload by expected digest, preserve a rollback copy,
-activate the section through the normal managed-config path, restart once, and
-require both output statuses before reporting success. Removal is the reverse:
-remove the managed section, restore/remove the extra, and restart Klipper.
+versioned deployment: run the guarded installer, preserve its structured
+rollback handle, activate the section through the normal managed-config path,
+restart once, and require both output statuses before reporting success.
+Removal is the reverse: remove the managed section, restore/remove the extra,
+and restart Klipper.
 
 ## Safety boundary
 

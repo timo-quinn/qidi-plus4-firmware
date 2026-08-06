@@ -38,6 +38,18 @@ REPO_ROOT = SCRIPT_DIR.parent.parent
 REMOTE_HELPER = SCRIPT_DIR / "qidi-plus4-remote.sh"
 BOOTSTRAP_HELPER = SCRIPT_DIR / "bootstrap-mainline.sh"
 HOST_TUNING_HELPER = SCRIPT_DIR / "qidi-host-tuning.sh"
+BOX_CLOCK_GUARD_REMOTE_INSTALLER = SCRIPT_DIR / "box_clock_guard_installer.py"
+BOX_CLOCK_GUARD_SOURCE = (
+    REPO_ROOT / "qidibox-modules" / "box_output_clock_guard.py"
+)
+BOX_CLOCK_GUARD_TARGET = (
+    "/home/mks/klipper/klippy/extras/box_output_clock_guard.py"
+)
+BOX_CLOCK_GUARD_OWNER = "mks"
+BOX_CLOCK_GUARD_MODE = "0644"
+BOX_CLOCK_GUARD_REMOTE_PYTHON = "/usr/bin/python3"
+BOX_CLOCK_GUARD_CONFIRMATION = "INSTALL-BOX-OUTPUT-CLOCK-GUARD"
+BOX_CLOCK_GUARD_SCHEMA = "qidi-plus4-box-output-clock-guard-install/v1"
 PLR_HARDENING_DIR = REPO_ROOT / "plr-hardening"
 PLR_DEPLOYMENT_ASSETS = (
     "install.py",
@@ -1006,6 +1018,252 @@ def refresh_klippee_agent(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+class BoxClockGuardInstallError(Exception):
+    """A remote clock-guard install failed or returned unverifiable proof."""
+
+    def __init__(self, message: str, *, document: dict | None = None) -> None:
+        super().__init__(message)
+        self.document = document
+
+
+def _box_clock_guard_transaction_id() -> str:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return f"{stamp}-{secrets.token_hex(8)}"
+
+
+def _validate_box_clock_guard_account(args: argparse.Namespace) -> str:
+    requested = getattr(args, "printer_user", None)
+    if requested is not None and requested != BOX_CLOCK_GUARD_OWNER:
+        raise SystemExit(
+            "The clock guard targets the fixed stock Klipper account "
+            f"{BOX_CLOCK_GUARD_OWNER}; got {requested!r}"
+        )
+    return BOX_CLOCK_GUARD_OWNER
+
+
+def _validated_box_clock_guard_result(
+    completed: subprocess.CompletedProcess[bytes],
+    *,
+    expected_digest: str,
+    transaction_id: str,
+) -> dict:
+    try:
+        document = json.loads(completed.stdout.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise BoxClockGuardInstallError(
+            f"Remote clock-guard installer returned invalid JSON: {exc}"
+        ) from exc
+    if not isinstance(document, dict):
+        raise BoxClockGuardInstallError(
+            "Remote clock-guard installer did not return a JSON object"
+        )
+    if completed.returncode or not document.get("ok"):
+        error = document.get("error")
+        detail = error.strip() if isinstance(error, str) and error.strip() else "unknown error"
+        raise BoxClockGuardInstallError(
+            f"Remote clock-guard installer failed: {detail}", document=document
+        )
+
+    expected_scalars = {
+        "schema": BOX_CLOCK_GUARD_SCHEMA,
+        "verified": True,
+        "account": BOX_CLOCK_GUARD_OWNER,
+        "transaction_id": transaction_id,
+        "source_sha256": expected_digest,
+        "klipper_service_action": "none",
+        "klipper_restarted": False,
+        "config_changed": False,
+        "activation_required": True,
+        "required_config_section": "[box_output_clock_guard]",
+    }
+    for key, expected in expected_scalars.items():
+        if document.get(key) != expected:
+            raise BoxClockGuardInstallError(
+                f"Remote clock-guard proof has unexpected {key!r}",
+                document=document,
+            )
+    changed = document.get("changed")
+    if not isinstance(changed, bool) or document.get("applied") is not changed:
+        raise BoxClockGuardInstallError(
+            "Remote clock-guard proof has inconsistent change state",
+            document=document,
+        )
+
+    target = document.get("target")
+    if not isinstance(target, dict) or target.get("path") != BOX_CLOCK_GUARD_TARGET:
+        raise BoxClockGuardInstallError(
+            "Remote clock-guard proof has an unexpected target path",
+            document=document,
+        )
+    if (
+        target.get("sha256") != expected_digest
+        or target.get("owner") != BOX_CLOCK_GUARD_OWNER
+        or target.get("mode") != BOX_CLOCK_GUARD_MODE
+        or not isinstance(target.get("group"), str)
+        or not target.get("group")
+    ):
+        raise BoxClockGuardInstallError(
+            "Remote clock-guard target digest or metadata was not verified",
+            document=document,
+        )
+
+    backup = document.get("backup")
+    if backup is not None:
+        expected_backup = (
+            "/home/mks/klipper/klippy/extras/.qidi-plus4-backups/"
+            f"box-output-clock-guard-{transaction_id}/box_output_clock_guard.py"
+        )
+        if (
+            not isinstance(backup, dict)
+            or backup.get("path") != expected_backup
+            or not isinstance(backup.get("sha256"), str)
+            or not re.fullmatch(r"[0-9a-f]{64}", backup["sha256"])
+        ):
+            raise BoxClockGuardInstallError(
+                "Remote clock-guard proof has an invalid rollback backup",
+                document=document,
+            )
+    if not changed and backup is not None:
+        raise BoxClockGuardInstallError(
+            "Unchanged clock-guard install unexpectedly created a backup",
+            document=document,
+        )
+    return document
+
+
+def install_box_output_clock_guard(args: argparse.Namespace) -> None:
+    """Install exactly the reviewed Box clock guard without restarting Klipper."""
+
+    if args.confirm != BOX_CLOCK_GUARD_CONFIRMATION:
+        raise SystemExit(
+            f"This action requires --confirm {BOX_CLOCK_GUARD_CONFIRMATION}"
+        )
+    account = _validate_box_clock_guard_account(args)
+    source_candidate = BOX_CLOCK_GUARD_SOURCE
+    source = source_candidate.resolve()
+    if (
+        source_candidate.is_symlink()
+        or not source.is_file()
+        or source.name != "box_output_clock_guard.py"
+    ):
+        raise SystemExit(f"Reviewed clock-guard asset is missing or unsafe: {source}")
+    if (
+        BOX_CLOCK_GUARD_REMOTE_INSTALLER.is_symlink()
+        or not BOX_CLOCK_GUARD_REMOTE_INSTALLER.is_file()
+    ):
+        raise SystemExit(
+            "Clock-guard remote installer is missing or unsafe: "
+            f"{BOX_CLOCK_GUARD_REMOTE_INSTALLER}"
+        )
+    source_digest = sha256(source)
+    transaction_id = _box_clock_guard_transaction_id()
+    ssh, target = ssh_base(args)
+    stage: str | None = None
+    phase = "create-stage"
+    result: dict | None = None
+    failure: dict | None = None
+    try:
+        stage = _checked_capture(
+            ssh + ["mktemp -d /tmp/qidi-box-clock-guard.XXXXXXXX"]
+        ).decode("utf-8", errors="strict").strip()
+        if not re.fullmatch(r"/tmp/qidi-box-clock-guard\.[A-Za-z0-9]+", stage):
+            raise BoxClockGuardInstallError(
+                f"Unsafe remote clock-guard staging path returned: {stage!r}"
+            )
+        remote_source = f"{stage}/box_output_clock_guard.py"
+        phase = "upload"
+        _checked_capture(
+            scp_base(args) + [str(source), f"{target}:{remote_source}"]
+        )
+        phase = "install"
+        remote_command = " ".join(
+            shlex.quote(part)
+            for part in (
+                "sudo",
+                "-n",
+                BOX_CLOCK_GUARD_REMOTE_PYTHON,
+                "-I",
+                "-",
+                "--source",
+                remote_source,
+                "--expected-sha256",
+                source_digest,
+                "--transaction-id",
+                transaction_id,
+            )
+        )
+        completed = capture(
+            ssh + [remote_command],
+            input_data=BOX_CLOCK_GUARD_REMOTE_INSTALLER.read_bytes(),
+        )
+        phase = "verify"
+        result = _validated_box_clock_guard_result(
+            completed,
+            expected_digest=source_digest,
+            transaction_id=transaction_id,
+        )
+    except BaseException as exc:
+        remote_document = (
+            exc.document if isinstance(exc, BoxClockGuardInstallError) else None
+        )
+        failure = {
+            "schema": BOX_CLOCK_GUARD_SCHEMA,
+            "ok": False,
+            "verified": False,
+            "phase": phase,
+            "account": account,
+            "transaction_id": transaction_id,
+            "source_sha256": source_digest,
+            "target": {"path": BOX_CLOCK_GUARD_TARGET},
+            "backup": (
+                remote_document.get("backup")
+                if isinstance(remote_document, dict)
+                else None
+            ),
+            "klipper_service_action": "none",
+            "klipper_restarted": False,
+            "config_changed": False,
+            "activation_required": True,
+            "required_config_section": "[box_output_clock_guard]",
+            "error": str(exc),
+        }
+        if remote_document is not None:
+            failure["remote_result"] = remote_document
+    finally:
+        cleanup_ok = stage is None
+        cleanup_error = ""
+        if stage is not None and re.fullmatch(
+            r"/tmp/qidi-box-clock-guard\.[A-Za-z0-9]+", stage
+        ):
+            remote_source = f"{stage}/box_output_clock_guard.py"
+            cleanup_command = (
+                f"rm -f -- {shlex.quote(remote_source)} && "
+                f"rmdir -- {shlex.quote(stage)}"
+            )
+            try:
+                cleanup = capture(ssh + [cleanup_command])
+                cleanup_ok = cleanup.returncode == 0
+                if not cleanup_ok:
+                    cleanup_error = cleanup.stderr.decode(
+                        "utf-8", errors="replace"
+                    ).strip()
+            except (OSError, subprocess.SubprocessError) as exc:
+                cleanup_ok = False
+                cleanup_error = str(exc)
+        document = failure if failure is not None else result
+        if document is not None:
+            document["staging_cleanup_verified"] = cleanup_ok
+            if cleanup_error:
+                document["staging_cleanup_error"] = cleanup_error
+
+    if failure is not None:
+        print(json.dumps(failure, indent=2, sort_keys=True))
+        raise SystemExit(1)
+    if result is None:
+        raise SystemExit("Clock-guard installation returned no result")
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
 def _validated_plr_backup_manifest(path: str, scripts_dir: str) -> str:
     scripts_dir = scripts_dir.rstrip("/")
     pattern = (
@@ -1795,6 +2053,17 @@ def create_parser() -> argparse.ArgumentParser:
     add_connection(refresh_agent)
     refresh_agent.add_argument("--confirm", required=True)
     refresh_agent.set_defaults(func=refresh_klippee_agent)
+
+    clock_guard = sub.add_parser(
+        "install-box-output-clock-guard",
+        help=(
+            "Install the reviewed QIDI Box clock guard by verified digest "
+            "without restarting Klipper"
+        ),
+    )
+    add_connection(clock_guard)
+    clock_guard.add_argument("--confirm", required=True)
+    clock_guard.set_defaults(func=install_box_output_clock_guard)
 
     plr_deploy = sub.add_parser(
         "deploy-plr-hardening",

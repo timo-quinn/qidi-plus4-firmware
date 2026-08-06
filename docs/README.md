@@ -29,5 +29,8 @@ Human-readable findings and practical integration guidance:
 - [QIDI-BOX-OUTPUT-CLOCK-GUARD.md](QIDI-BOX-OUTPUT-CLOCK-GUARD.md) documents the
   guarded stock-1.8.2 overlay that corrects QIDI Box output scheduling to use
   the MCU that owns each output pin.
+- [QIDI-BOX-WATCHDOG-RESET.md](QIDI-BOX-WATCHDOG-RESET.md) records the 2026-08-06
+  Box MCU watchdog forensics, PB0 interrupt/debounce defect, safe containment,
+  and hardware isolation boundary.
 
 Generated evidence supporting these documents is under [`../analysis/`](../analysis/).
