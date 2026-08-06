@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import csv
 import difflib
+import hashlib
 import importlib.util
 import json
 import re
@@ -137,26 +138,103 @@ def git_revision(root: Path, relative: str) -> dict[str, str] | None:
     return result
 
 
-def git_output(repo: Path, *arguments: str) -> str:
-    completed = subprocess.run(
-        [
-            "git",
-            "-c",
-            f"safe.directory={repo}",
-            "-c",
-            "core.fileMode=false",
-            "-C",
-            str(repo),
-            *arguments,
-        ],
-        text=True,
-        errors="replace",
+def run_git(repo: Path, *arguments: str) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", "-c", f"safe.directory={repo}", "-c", "core.fileMode=false",
+         "-C", str(repo), *arguments],
         capture_output=True,
         check=False,
     )
+
+
+def git_output_bytes(repo: Path, *arguments: str) -> bytes:
+    completed = run_git(repo, *arguments)
     if completed.returncode:
-        raise RuntimeError(f"git {' '.join(arguments)} failed in {repo}: {completed.stderr}")
+        error = completed.stderr.decode("utf-8", errors="replace")
+        raise RuntimeError(f"git {' '.join(arguments)} failed in {repo}: {error}")
     return completed.stdout
+
+
+def git_output(repo: Path, *arguments: str) -> str:
+    return git_output_bytes(repo, *arguments).decode("utf-8", errors="replace")
+
+
+def head_blob(repo: Path, relative: str) -> bytes | None:
+    completed = run_git(repo, "show", f"HEAD:{relative}")
+    return completed.stdout if completed.returncode == 0 else None
+
+
+def bytes_summary(data: bytes | None) -> str:
+    if data is None:
+        return "absent"
+    return f"{len(data)}:{hashlib.sha256(data).hexdigest()}"
+
+
+def skipped_record(relative: str, reason: str, old: bytes | None, new: bytes | None) -> str:
+    return (
+        f"{relative}\t{reason}\thead={bytes_summary(old)}\t"
+        f"worktree={bytes_summary(new)}"
+    )
+
+
+def readable_repo_patch_paths(repo: Path) -> tuple[list[str], list[str]]:
+    """Select tracked changes that are safe to publish as a UTF-8 text patch."""
+    names = git_output_bytes(
+        repo, "diff", "--no-renames", "--name-only", "-z", "HEAD", "--"
+    ).split(b"\0")
+    readable: list[str] = []
+    skipped: list[str] = []
+    for raw_name in filter(None, names):
+        try:
+            relative = raw_name.decode("utf-8")
+        except UnicodeDecodeError:
+            skipped.append(
+                f"<hex:{raw_name.hex()}>\tpath-not-utf8\thead=unknown\tworktree=unknown"
+            )
+            continue
+        current = repo / relative
+        old = head_blob(repo, relative)
+        if current.is_symlink():
+            skipped.append(skipped_record(relative, "worktree-symlink", old, None))
+            continue
+        if current.exists() and not current.is_file():
+            skipped.append(skipped_record(relative, "worktree-not-file", old, None))
+            continue
+        new = current.read_bytes() if current.is_file() else None
+        reason = ""
+        for label, data in (("head", old), ("worktree", new)):
+            if data is None:
+                continue
+            if b"\x00" in data:
+                reason = f"{label}-contains-nul"
+                break
+            try:
+                data.decode("utf-8")
+            except UnicodeDecodeError:
+                reason = f"{label}-not-utf8"
+                break
+        if reason:
+            skipped.append(skipped_record(relative, reason, old, new))
+        else:
+            readable.append(relative)
+    return readable, skipped
+
+
+def repo_patch_text(repo: Path, paths: list[str], *options: str) -> str:
+    if not paths:
+        return ""
+    data = git_output_bytes(repo, "diff", "--no-renames", *options, "HEAD", "--", *paths)
+    if b"\x00" in data:
+        raise RuntimeError(f"git produced a NUL-bearing published patch in {repo}")
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError(f"git produced a non-UTF-8 published patch in {repo}") from exc
+
+
+def write_skipped_manifest(path: Path, records: list[str]) -> None:
+    header = "path\treason\thead=size:sha256\tworktree=size:sha256\n"
+    path.write_text(header + "\n".join(records) + ("\n" if records else ""), encoding="utf-8")
 
 
 def write_repo_patches(snapshots: list[tuple[str, Path]], output: Path) -> None:
@@ -173,17 +251,30 @@ def write_repo_patches(snapshots: list[tuple[str, Path]], output: Path) -> None:
             if not (repo / ".git").exists():
                 continue
             prefix = directory / f"{slug}-{repo_name}"
-            patch = git_output(repo, "diff", "--binary", "HEAD", "--")
+            readable_paths, skipped = readable_repo_patch_paths(repo)
+            patch = repo_patch_text(repo, readable_paths, "--binary")
             stat = git_output(repo, "diff", "--stat", "HEAD", "--")
-            semantic_patch = git_output(repo, "diff", "--ignore-space-at-eol", "HEAD", "--")
-            semantic_stat = git_output(
-                repo, "diff", "--ignore-space-at-eol", "--stat", "HEAD", "--"
+            semantic_patch = repo_patch_text(
+                repo, readable_paths, "--ignore-space-at-eol"
             )
-            untracked = [
-                line
-                for line in git_output(repo, "ls-files", "--others", "--exclude-standard").splitlines()
-                if line
-            ]
+            semantic_stat = (
+                git_output(repo, "diff", "--no-renames", "--ignore-space-at-eol",
+                           "--stat", "HEAD", "--", *readable_paths)
+                if readable_paths else ""
+            )
+            untracked: list[str] = []
+            untracked_skipped: list[str] = []
+            raw_untracked = git_output_bytes(
+                repo, "ls-files", "--others", "--exclude-standard", "-z"
+            ).split(b"\0")
+            for raw_name in filter(None, raw_untracked):
+                try:
+                    untracked.append(raw_name.decode("utf-8"))
+                except UnicodeDecodeError:
+                    untracked_skipped.append(
+                        f"<hex:{raw_name.hex()}>\tpath-not-utf8\t"
+                        "head=absent\tworktree=unknown"
+                    )
             prefix.with_name(prefix.name + "-vs-recorded-head.patch").write_text(
                 patch, encoding="utf-8"
             )
@@ -196,22 +287,47 @@ def write_repo_patches(snapshots: list[tuple[str, Path]], output: Path) -> None:
             prefix.with_name(
                 prefix.name + "-vs-recorded-head.semantic.stat.txt"
             ).write_text(semantic_stat, encoding="utf-8")
+            write_skipped_manifest(
+                prefix.with_name(prefix.name + "-vs-recorded-head.skipped.txt"), skipped
+            )
             prefix.with_name(prefix.name + "-untracked.txt").write_text(
                 "\n".join(untracked) + ("\n" if untracked else ""), encoding="utf-8"
             )
             additions: list[str] = []
             for relative_path in untracked:
                 path = repo / relative_path
-                if (
-                    path.is_symlink()
-                    or not path.is_file()
-                    or path.suffix.lower() not in readable_suffixes
-                    or path.stat().st_size > 1024 * 1024
-                    or pairwise.should_skip(Path(relative_path))
-                ):
+                if path.is_symlink() or not path.is_file():
+                    untracked_skipped.append(
+                        skipped_record(relative_path, "not-regular-file", None, None)
+                    )
                     continue
-                text = path.read_text(encoding="utf-8", errors="replace")
-                if "\x00" in text:
+                data = path.read_bytes()
+                if path.suffix.lower() not in readable_suffixes:
+                    untracked_skipped.append(
+                        skipped_record(relative_path, "unsupported-suffix", None, data)
+                    )
+                    continue
+                if len(data) > 1024 * 1024:
+                    untracked_skipped.append(
+                        skipped_record(relative_path, "larger-than-1MiB", None, data)
+                    )
+                    continue
+                if pairwise.should_skip(Path(relative_path)):
+                    untracked_skipped.append(
+                        skipped_record(relative_path, "publication-policy", None, data)
+                    )
+                    continue
+                if b"\x00" in data:
+                    untracked_skipped.append(
+                        skipped_record(relative_path, "worktree-contains-nul", None, data)
+                    )
+                    continue
+                try:
+                    text = data.decode("utf-8")
+                except UnicodeDecodeError:
+                    untracked_skipped.append(
+                        skipped_record(relative_path, "worktree-not-utf8", None, data)
+                    )
                     continue
                 additions.extend(
                     difflib.unified_diff(
@@ -224,6 +340,10 @@ def write_repo_patches(snapshots: list[tuple[str, Path]], output: Path) -> None:
             prefix.with_name(prefix.name + "-untracked-readable.patch").write_text(
                 "".join(additions), encoding="utf-8"
             )
+            write_skipped_manifest(
+                prefix.with_name(prefix.name + "-untracked-readable.skipped.txt"),
+                untracked_skipped,
+            )
 
 
 def readable_lines(path: Path | None) -> list[str] | None:
@@ -232,9 +352,15 @@ def readable_lines(path: Path | None) -> list[str] | None:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 1024 * 1024:
         return None
     data = path.read_bytes()
-    if b"\x00" in data or pairwise.SECRET_RE.search(data.decode("utf-8", errors="replace")):
+    if b"\x00" in data:
         return None
-    return [line + "\n" for line in data.decode("utf-8", errors="replace").splitlines()]
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    if pairwise.SECRET_RE.search(text):
+        return None
+    return [line + "\n" for line in text.splitlines()]
 
 
 def write_transition_patches(snapshots: list[tuple[str, Path]], output: Path) -> None:

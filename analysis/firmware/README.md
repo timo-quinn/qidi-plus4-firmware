@@ -15,6 +15,8 @@ Supporting evidence:
   native-component, source-patch and `xindi` evidence;
 * `patches/` contains readable diffs against each embedded repository's
   recorded upstream commit, plus additive patches for untracked source;
+  `*.skipped.txt` records source paths excluded because they were binary,
+  NUL-bearing, or not UTF-8;
 * `xindi-metadata.json`, `xindi-symbols-*.txt` and
   `xindi-filtered-strings-*.txt` contain the touchscreen binary comparison;
 * `toolhead-mcu-dictionary.json` is the Klipper command dictionary extracted

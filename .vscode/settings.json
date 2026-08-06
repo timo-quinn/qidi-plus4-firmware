@@ -1,0 +1,15 @@
+{
+  "search.exclude": {
+    "**/analysis/components/1.7.3/**": true,
+    "**/analysis/components/1.8.2/**": true,
+    "**/analysis/firmware/lineage/patches/**": true,
+    "**/analysis/firmware/patches/**": true,
+    "**/artifacts/**": true,
+    "**/data/printer-backups/**": true,
+    "**/__pycache__/**": true
+  },
+  "files.watcherExclude": {
+    "**/artifacts/**": true,
+    "**/data/printer-backups/**": true
+  }
+}

@@ -1,11 +1,32 @@
 # QIDI Plus4 firmware research
 
-Technical reference material for QIDI Plus4 firmware versions 1.7.3 and 1.8.2,
-including printer backups, static analysis, decompilation output, reconstructed
-source, and MCU flashing research. Stock-fork profiles live in the companion
-[qidi-plus4-configs](https://github.com/timo-quinn/qidi-plus4-configs)
+Technical reference material for QIDI Plus4 firmware from the factory 1.1.2
+image through versions 1.7.3 and 1.8.2, including printer backups, static
+analysis, decompilation output, reconstructed source, and MCU flashing
+research. Stock-fork profiles live in the companion
+[qidi-plus4-configs](https://github.com/cl-tim/qidi-plus4-configs)
 repository; the new upstream-Klipper commissioning and operating profiles live
-here.
+here temporarily as a compatibility fallback while config ownership moves to
+that repository.
+
+## Content ownership and navigation
+
+| Area | Kind | Source of truth / editing rule |
+| --- | --- | --- |
+| [`docs/`](docs/) and [`tools/`](tools/) | Maintained project work | Edit here; migration CLI compatibility is part of the printerlab contract. |
+| [`firmware-configs/`](firmware-configs/) | MCU build input | Authoritative here; these are Kconfig fragments, not runtime printer configs. |
+| [`mainline-configs/`](mainline-configs/) | Runtime config fallback | Transitional bundled copy. New live/profile work belongs in `qidi-plus4-configs`; `render-config --profile-dir` can consume it directly. |
+| [`mainline-addons/`](mainline-addons/) | Optional runtime templates | Maintained templates, never per-printer saved state. |
+| [`analysis/`](analysis/) | Generated evidence | Regenerate with the documented tools; do not hand-edit decompilation, disassembly, inventories, or reconstructed outlines. |
+| [`analysis/github-releases/qidi-klipper-1.7.0-box-source/`](analysis/github-releases/qidi-klipper-1.7.0-box-source/) | Preserved upstream GPLv3 source | Immutable vendor snapshot used for provenance and QIDI Box rebuilds. |
+| [`qidibox-modules/`](qidibox-modules/) | Rebuildable distribution | Recipes and provenance are maintained; `.so` files are derived release artifacts. |
+| [`data/printer-backups/`](data/README.md) | Private local input | Ignored by Git; may contain credentials, databases, and device identities. |
+| [`artifacts/`](artifacts/README.md) | Local output | Ignored by Git; generated and live copies are never configuration authority. |
+
+For firmware behavior, start in [`docs/`](docs/README.md). For migration and
+printerlab integration, start in [`tools/migration/`](tools/migration/README.md).
+For raw evidence, use the indexes under [`analysis/`](analysis/README.md) rather
+than searching the generated trees directly.
 
 ## Repository layout
 

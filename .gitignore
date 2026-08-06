@@ -1,5 +1,6 @@
 data/printer-backups/
-artifacts/
+/artifacts/*
+!/artifacts/README.md
 **/__pycache__/
 *.pyc
 *.log
