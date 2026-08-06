@@ -92,7 +92,17 @@ class BoxOutputClockGuard:
         try:
             box_extras = self._printer.lookup_object("box_extras")
         except Exception as exc:
-            raise self._fail("cannot find box_extras (%s)" % (exc,))
+            # Stock QIDI's box_detect may regenerate box.cfg and request a
+            # second Klipper start. During that transitional first start the
+            # Box include can legitimately be absent. Halting Klipper here
+            # prevents box_detect from completing its own recovery cycle.
+            self._state = "inactive-no-box"
+            logging.warning(
+                "%s: box_extras is not loaded; deferring until the next Klipper start (%s)",
+                _LOG_PREFIX,
+                exc,
+            )
+            return
 
         # Preflight both outputs before changing either.  In particular, this
         # prevents a recognized b_output from being changed when e_output is

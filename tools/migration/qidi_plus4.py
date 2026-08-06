@@ -39,17 +39,20 @@ REMOTE_HELPER = SCRIPT_DIR / "qidi-plus4-remote.sh"
 BOOTSTRAP_HELPER = SCRIPT_DIR / "bootstrap-mainline.sh"
 HOST_TUNING_HELPER = SCRIPT_DIR / "qidi-host-tuning.sh"
 BOX_CLOCK_GUARD_REMOTE_INSTALLER = SCRIPT_DIR / "box_clock_guard_installer.py"
-BOX_CLOCK_GUARD_SOURCE = (
-    REPO_ROOT / "qidibox-modules" / "box_output_clock_guard.py"
-)
-BOX_CLOCK_GUARD_TARGET = (
-    "/home/mks/klipper/klippy/extras/box_output_clock_guard.py"
-)
+BOX_CLOCK_GUARD_SOURCE = REPO_ROOT / "qidibox-modules" / "box_output_clock_guard.py"
+BOX_CLOCK_GUARD_TARGET = "/home/mks/klipper/klippy/extras/box_output_clock_guard.py"
 BOX_CLOCK_GUARD_OWNER = "mks"
 BOX_CLOCK_GUARD_MODE = "0644"
 BOX_CLOCK_GUARD_REMOTE_PYTHON = "/usr/bin/python3"
 BOX_CLOCK_GUARD_CONFIRMATION = "INSTALL-BOX-OUTPUT-CLOCK-GUARD"
 BOX_CLOCK_GUARD_SCHEMA = "qidi-plus4-box-output-clock-guard-install/v1"
+BOX_MOTION_GUARD_REMOTE_INSTALLER = SCRIPT_DIR / "box_motion_template_guard.py"
+BOX_MOTION_GUARD_CONFIRMATION = "HARDEN-BOX-MOTION-TEMPLATE"
+BOX_MOTION_GUARD_SCHEMA = "qidi-plus4-box-motion-template-guard/v1"
+KLIPPEE_VARIABLE_CONFIRMATION = "SET-KLIPPEE-VARIABLE"
+KLIPPEE_VARIABLE_SCHEMA = "qidi-plus4-klippee-variable-set/v1"
+KLIPPEE_VARIABLE_CLI = "/home/mks/.local/bin/klippee"
+KLIPPEE_VARIABLE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 PLR_HARDENING_DIR = REPO_ROOT / "plr-hardening"
 PLR_DEPLOYMENT_ASSETS = (
     "install.py",
@@ -108,16 +111,19 @@ def mux_options() -> list[str]:
     if _MUX_DIR is None:
         _MUX_DIR = tempfile.mkdtemp(prefix="qidi-ssh-mux-")
         atexit.register(shutil.rmtree, _MUX_DIR, ignore_errors=True)
-    return ["-o", "ControlMaster=auto",
-            "-o", f"ControlPath={os.path.join(_MUX_DIR, '%C')}",
-            "-o", "ControlPersist=120"]
+    return [
+        "-o",
+        "ControlMaster=auto",
+        "-o",
+        f"ControlPath={os.path.join(_MUX_DIR, '%C')}",
+        "-o",
+        "ControlPersist=120",
+    ]
 
 
 def password_environment_name(value: str) -> str:
     if not ENVIRONMENT_NAME.fullmatch(value):
-        raise argparse.ArgumentTypeError(
-            f"environment name must match {ENVIRONMENT_NAME.pattern}"
-        )
+        raise argparse.ArgumentTypeError(f"environment name must match {ENVIRONMENT_NAME.pattern}")
     if value.upper() in RESERVED_PASSWORD_ENVIRONMENTS:
         raise argparse.ArgumentTypeError(f"environment name {value!r} is reserved")
     return value
@@ -126,8 +132,7 @@ def password_environment_name(value: str) -> str:
 def connection_user(value: str) -> str:
     if not UNIX_ACCOUNT_NAME.fullmatch(value):
         raise argparse.ArgumentTypeError(
-            "account name must be a simple Linux user matching "
-            f"{UNIX_ACCOUNT_NAME.pattern}"
+            f"account name must be a simple Linux user matching {UNIX_ACCOUNT_NAME.pattern}"
         )
     return value
 
@@ -187,10 +192,14 @@ def password_auth_options(args: argparse.Namespace) -> list[str]:
     if os.environ.get("SSH_ASKPASS_REQUIRE") != "force":
         raise SystemExit("--password-env requires SSH_ASKPASS_REQUIRE=force")
     return [
-        "-o", "BatchMode=no",
-        "-o", "PubkeyAuthentication=no",
-        "-o", "PreferredAuthentications=password,keyboard-interactive",
-        "-o", "NumberOfPasswordPrompts=1",
+        "-o",
+        "BatchMode=no",
+        "-o",
+        "PubkeyAuthentication=no",
+        "-o",
+        "PreferredAuthentications=password,keyboard-interactive",
+        "-o",
+        "NumberOfPasswordPrompts=1",
     ]
 
 
@@ -222,8 +231,9 @@ def run(command: list[str], *, input_data: bytes | None = None) -> None:
         raise SystemExit(f"Command failed with exit code {result.returncode}")
 
 
-def capture(command: list[str], *, input_data: bytes | None = None
-            ) -> subprocess.CompletedProcess[bytes]:
+def capture(
+    command: list[str], *, input_data: bytes | None = None
+) -> subprocess.CompletedProcess[bytes]:
     """Run a command, capturing its output instead of inheriting stdout.
 
     The machine-readable commands print one JSON document and nothing else, so
@@ -298,15 +308,27 @@ def build_firmware(args: argparse.Namespace) -> None:
 
     try:
         builds = (
-            (configs / "klipper/plus4-mainboard.config", klipper,
-             klipper / "out/klipper.bin", output_dir / "plus4-mainboard-klipper.bin",
-             "mainboard"),
-            (configs / "klipper/plus4-toolhead.config", klipper,
-             klipper / "out/klipper.bin", output_dir / "plus4-toolhead-klipper.bin",
-             "toolhead-app"),
-            (configs / "katapult/plus4-toolhead.config", katapult,
-             katapult / "out/katapult.bin", output_dir / "plus4-toolhead-katapult.bin",
-             "toolhead-katapult"),
+            (
+                configs / "klipper/plus4-mainboard.config",
+                klipper,
+                klipper / "out/klipper.bin",
+                output_dir / "plus4-mainboard-klipper.bin",
+                "mainboard",
+            ),
+            (
+                configs / "klipper/plus4-toolhead.config",
+                klipper,
+                klipper / "out/klipper.bin",
+                output_dir / "plus4-toolhead-klipper.bin",
+                "toolhead-app",
+            ),
+            (
+                configs / "katapult/plus4-toolhead.config",
+                katapult,
+                katapult / "out/katapult.bin",
+                output_dir / "plus4-toolhead-katapult.bin",
+                "toolhead-katapult",
+            ),
         )
         for fragment, source, built, target, kind in builds:
             shutil.copyfile(fragment, source / ".config")
@@ -356,8 +378,10 @@ def armbian_image(args: argparse.Namespace) -> None:
     base = "https://dl.armbian.com/qidi-x6/Trixie_current_minimal"
     print("Official Armbian Qidi X-6 / Plus4 minimal image")
     print("https://www.armbian.com/boards/qidi-x6")
-    print("Build: ./compile.sh BOARD=qidi-x6 RELEASE=trixie "
-          "BUILD_DESKTOP=no BUILD_MINIMAL=yes KERNEL_CONFIGURE=no")
+    print(
+        "Build: ./compile.sh BOARD=qidi-x6 RELEASE=trixie "
+        "BUILD_DESKTOP=no BUILD_MINIMAL=yes KERNEL_CONFIGURE=no"
+    )
     if args.list_only:
         return
     args.output.mkdir(parents=True, exist_ok=True)
@@ -386,9 +410,21 @@ def ssh_base(args: argparse.Namespace) -> tuple[list[str], str]:
     target = f"{user}@{host}"
     password_options = password_auth_options(args)
     connection_reuse = [] if password_options else mux_options()
-    options = (["-p", str(port), "-o", "ConnectTimeout=10",
-                "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=2"]
-               + password_options + identity_options(args) + connection_reuse)
+    options = (
+        [
+            "-p",
+            str(port),
+            "-o",
+            "ConnectTimeout=10",
+            "-o",
+            "ServerAliveInterval=15",
+            "-o",
+            "ServerAliveCountMax=2",
+        ]
+        + password_options
+        + identity_options(args)
+        + connection_reuse
+    )
     return ([ssh] + options + ["--", target], target)
 
 
@@ -397,8 +433,13 @@ def scp_base(args: argparse.Namespace) -> list[str]:
     scp = require_command("scp")
     password_options = password_auth_options(args)
     connection_reuse = [] if password_options else mux_options()
-    return ([scp, "-P", str(port), "-o", "ConnectTimeout=10"]
-            + password_options + identity_options(args) + connection_reuse + ["--"])
+    return (
+        [scp, "-P", str(port), "-o", "ConnectTimeout=10"]
+        + password_options
+        + identity_options(args)
+        + connection_reuse
+        + ["--"]
+    )
 
 
 def collect_facts(args: argparse.Namespace) -> tuple[dict | None, str]:
@@ -415,8 +456,7 @@ def collect_facts(args: argparse.Namespace) -> tuple[dict | None, str]:
     # home rather than the home of whichever account was used to connect.
     data_dir = getattr(args, "data_dir", "") or ""
     printer_user = getattr(args, "printer_user", None) or ""
-    remote = (f"bash -s -- probe {shlex.quote(data_dir)} "
-              f"{shlex.quote(printer_user)}")
+    remote = f"bash -s -- probe {shlex.quote(data_dir)} {shlex.quote(printer_user)}"
     completed = capture(ssh + [remote], input_data=REMOTE_HELPER.read_bytes())
     stderr = completed.stderr.decode("utf-8", errors="replace").strip()
     if completed.returncode != 0:
@@ -438,9 +478,11 @@ def collect_facts(args: argparse.Namespace) -> tuple[dict | None, str]:
 def audit(args: argparse.Namespace) -> None:
     if getattr(args, "json", False):
         facts, reason = collect_facts(args)
-        document = facts if facts is not None else {
-            "schema": probes.SCHEMA_VERSION, "reachable": False, "reason": reason
-        }
+        document = (
+            facts
+            if facts is not None
+            else {"schema": probes.SCHEMA_VERSION, "reachable": False, "reason": reason}
+        )
         print(json.dumps(document, indent=2, sort_keys=True))
         return
     ssh, _ = ssh_base(args)
@@ -448,11 +490,15 @@ def audit(args: argparse.Namespace) -> None:
 
 
 def list_probes(_args: argparse.Namespace) -> None:
-    print(json.dumps(
-        [{"id": probe.id, "stage": probe.stage, "description": probe.description}
-         for probe in probes.PROBES],
-        indent=2,
-    ))
+    print(
+        json.dumps(
+            [
+                {"id": probe.id, "stage": probe.stage, "description": probe.description}
+                for probe in probes.PROBES
+            ],
+            indent=2,
+        )
+    )
 
 
 def probe_printer(args: argparse.Namespace) -> None:
@@ -495,7 +541,9 @@ def probe_printer(args: argparse.Namespace) -> None:
 def backup_printer(args: argparse.Namespace) -> None:
     ssh, target = ssh_base(args)
     scp = scp_base(args)
-    safe_name = "".join(c if c.isalnum() or c in "._-" else "-" for c in (args.name or args.printer)).strip("-")
+    safe_name = "".join(
+        c if c.isalnum() or c in "._-" else "-" for c in (args.name or args.printer)
+    ).strip("-")
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     base = f"qidi-plus4-{safe_name or 'printer'}-{timestamp}"
     destination = args.output.resolve() / safe_name
@@ -509,9 +557,7 @@ def backup_printer(args: argparse.Namespace) -> None:
     final_paths = (archive, manifest, checksum)
     partial_paths = (archive_partial, manifest_partial, checksum_partial)
     occupied = [
-        path
-        for path in (*final_paths, *partial_paths)
-        if path.exists() or path.is_symlink()
+        path for path in (*final_paths, *partial_paths) if path.exists() or path.is_symlink()
     ]
     if occupied:
         raise SystemExit(
@@ -522,10 +568,13 @@ def backup_printer(args: argparse.Namespace) -> None:
     remote_manifest = f"/tmp/{base}-manifest.txt"
     run(scp + [str(BACKUP_HELPER), f"{target}:{remote_helper}"])
     run(ssh + [f"chmod 700 {shlex.quote(remote_helper)}"])
-    command = [shlex.quote(remote_helper), shlex.quote(remote_manifest),
-               "1" if args.include_gcodes else "0",
-               "1" if args.include_logs else "0",
-               "1" if args.include_environments else "0"]
+    command = [
+        shlex.quote(remote_helper),
+        shlex.quote(remote_manifest),
+        "1" if args.include_gcodes else "0",
+        "1" if args.include_logs else "0",
+        "1" if args.include_environments else "0",
+    ]
     print(f"Streaming backup to {archive_partial}")
     published: list[pathlib.Path] = []
     try:
@@ -559,13 +608,7 @@ def backup_printer(args: argparse.Namespace) -> None:
                 final.unlink(missing_ok=True)
         raise
     finally:
-        subprocess.run(
-            ssh
-            + [
-                f"rm -f {shlex.quote(remote_helper)} "
-                f"{shlex.quote(remote_manifest)}"
-            ]
-        )
+        subprocess.run(ssh + [f"rm -f {shlex.quote(remote_helper)} {shlex.quote(remote_manifest)}"])
     print(f"Verified {archive}\nSHA-256 {digest}")
 
 
@@ -577,12 +620,14 @@ def bootstrap_host(args: argparse.Namespace) -> None:
     remote_tuning = f"/home/{args.user}/qidi-host-tuning.sh"
     run(scp_base(args) + [str(BOOTSTRAP_HELPER), f"{target}:{remote}"])
     run(scp_base(args) + [str(HOST_TUNING_HELPER), f"{target}:{remote_tuning}"])
-    environment = " ".join((
-        f"KLIPPER_REF={shlex.quote(args.klipper_ref)}",
-        f"MOONRAKER_REF={shlex.quote(args.moonraker_ref)}",
-        f"KATAPULT_REF={shlex.quote(args.katapult_ref)}",
-        f"QIDI_HOST_TUNING_HELPER={shlex.quote(remote_tuning)}",
-    ))
+    environment = " ".join(
+        (
+            f"KLIPPER_REF={shlex.quote(args.klipper_ref)}",
+            f"MOONRAKER_REF={shlex.quote(args.moonraker_ref)}",
+            f"KATAPULT_REF={shlex.quote(args.katapult_ref)}",
+            f"QIDI_HOST_TUNING_HELPER={shlex.quote(remote_tuning)}",
+        )
+    )
     run(ssh + [f"chmod 700 {shlex.quote(remote)} && {environment} {shlex.quote(remote)}"])
 
 
@@ -615,9 +660,7 @@ def _checked_capture(command: list[str]) -> bytes:
     if completed.returncode:
         stderr = completed.stderr.decode("utf-8", errors="replace").strip()
         detail = f": {stderr.splitlines()[-1]}" if stderr else ""
-        raise SystemExit(
-            f"Command failed with exit code {completed.returncode}{detail}"
-        )
+        raise SystemExit(f"Command failed with exit code {completed.returncode}{detail}")
     return completed.stdout
 
 
@@ -681,9 +724,7 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
     """Upload, plan, stop, apply, and verify PLR hardening without restart."""
 
     if args.confirm != "DEPLOY-PLR-HARDENING":
-        raise SystemExit(
-            "This action requires --confirm DEPLOY-PLR-HARDENING"
-    )
+        raise SystemExit("This action requires --confirm DEPLOY-PLR-HARDENING")
     service = _validated_plr_service(args.service)
     account, paths = _validated_plr_layout(args)
     transaction_id = _plr_transaction_id()
@@ -700,26 +741,37 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
     verification: dict | None = None
     backup_manifest: str | None = None
     try:
-        stage_raw = _checked_capture(
-            ssh + ["mktemp -d /tmp/qidi-plr-hardening.XXXXXXXX"]
-        ).decode("utf-8", errors="strict").strip()
+        stage_raw = (
+            _checked_capture(ssh + ["mktemp -d /tmp/qidi-plr-hardening.XXXXXXXX"])
+            .decode("utf-8", errors="strict")
+            .strip()
+        )
         if not re.fullmatch(r"/tmp/qidi-plr-hardening\.[A-Za-z0-9]+", stage_raw):
             raise SystemExit(f"Unsafe remote staging path returned: {stage_raw!r}")
         stage = stage_raw
         for name in assets:
             _checked_capture(
-                scp_base(args)
-                + [str(PLR_HARDENING_DIR / name), f"{target}:{stage}/{name}"]
+                scp_base(args) + [str(PLR_HARDENING_DIR / name), f"{target}:{stage}/{name}"]
             )
         installer = [
-            "sudo", "-n", args.remote_python, f"{stage}/install.py",
-            "--printer-user", account,
-            "--transaction-id", transaction_id,
-            "--klipper-dir", args.klipper_dir,
-            "--printer-data", args.printer_data,
-            "--scripts-dir", args.scripts_dir,
-            "--python", args.remote_python,
-            "--service", service,
+            "sudo",
+            "-n",
+            args.remote_python,
+            f"{stage}/install.py",
+            "--printer-user",
+            account,
+            "--transaction-id",
+            transaction_id,
+            "--klipper-dir",
+            args.klipper_dir,
+            "--printer-data",
+            args.printer_data,
+            "--scripts-dir",
+            args.scripts_dir,
+            "--python",
+            args.remote_python,
+            "--service",
+            service,
             "--json",
         ]
         install_command = " ".join(shlex.quote(part) for part in installer)
@@ -730,9 +782,7 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
         if plan.get("changed"):
             if not isinstance(planned_backup, str):
                 raise SystemExit("Changed PLR plan omitted its backup manifest")
-            backup_manifest = _validated_plr_backup_manifest(
-                planned_backup, paths["scripts_dir"]
-            )
+            backup_manifest = _validated_plr_backup_manifest(planned_backup, paths["scripts_dir"])
         elif planned_backup is not None:
             raise SystemExit("Unchanged PLR plan returned a backup manifest")
         if not plan.get("changed"):
@@ -754,9 +804,7 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
             return
 
         phase = "stop"
-        _checked_capture(
-            ssh + [f"sudo -n systemctl stop {shlex.quote(service)}"]
-        )
+        _checked_capture(ssh + [f"sudo -n systemctl stop {shlex.quote(service)}"])
         state = capture(ssh + [f"systemctl is-active {shlex.quote(service)}"])
         observed = state.stdout.decode("utf-8", errors="replace").strip()
         if state.returncode != 3 or observed != "inactive":
@@ -766,15 +814,11 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
             )
         stopped = True
         phase = "apply"
-        installation = _remote_json(
-            ssh, install_command + " --apply --klipper-stopped"
-        )
+        installation = _remote_json(ssh, install_command + " --apply --klipper-stopped")
         _validate_remote_plr_identity(installation, account, paths)
         backup_manifest = installation.get("backup_manifest")
         if backup_manifest != plan.get("backup_manifest"):
-            raise SystemExit(
-                "PLR installer changed its predeclared backup_manifest"
-            )
+            raise SystemExit("PLR installer changed its predeclared backup_manifest")
         phase = "verify"
         verification = _remote_json(ssh, install_command)
         _validate_remote_plr_identity(verification, account, paths)
@@ -806,17 +850,12 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
         }
         print(json.dumps(result, indent=2, sort_keys=True))
     except BaseException as exc:
-        remote_document = (
-            exc.document if isinstance(exc, RemoteJsonError) else None
-        )
+        remote_document = exc.document if isinstance(exc, RemoteJsonError) else None
         identity_error = None
         if remote_document is not None and (
-            remote_document.get("account") != account
-            or remote_document.get("paths") != paths
+            remote_document.get("account") != account or remote_document.get("paths") != paths
         ):
-            identity_error = (
-                "remote failure result did not match the validated account and paths"
-            )
+            identity_error = "remote failure result did not match the validated account and paths"
             remote_document = None
         if remote_document is not None:
             if phase == "plan":
@@ -844,9 +883,7 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
                 verification = None
         error = identity_error or str(exc).strip() or exc.__class__.__name__
         remote_state = (
-            remote_document.get("transaction_state")
-            if remote_document is not None
-            else None
+            remote_document.get("transaction_state") if remote_document is not None else None
         )
         if phase == "verify" and installation is not None:
             transaction_state = "indeterminate"
@@ -858,17 +895,11 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
             "indeterminate",
         }:
             transaction_state = remote_state
-            applied = (
-                None
-                if remote_state in {"partial", "indeterminate"}
-                else False
-            )
+            applied = None if remote_state in {"partial", "indeterminate"} else False
         else:
             transaction_state = "not_started" if not stopped else "indeterminate"
             applied = False if transaction_state == "not_started" else None
-        exposed_backup_manifest = (
-            None if transaction_state == "not_started" else backup_manifest
-        )
+        exposed_backup_manifest = None if transaction_state == "not_started" else backup_manifest
         failure = {
             "schema": "qidi-plus4-plr-deployment/v1",
             "ok": False,
@@ -913,9 +944,7 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
 
 def _validated_plr_service(service: str) -> str:
     if service != KLIPPER_SERVICE:
-        raise SystemExit(
-            f"PLR operations target exactly {KLIPPER_SERVICE}; got {service!r}"
-        )
+        raise SystemExit(f"PLR operations target exactly {KLIPPER_SERVICE}; got {service!r}")
     return service
 
 
@@ -948,9 +977,7 @@ def _validated_plr_layout(args: argparse.Namespace) -> tuple[str, dict[str, str]
     }
     for key, value in supplied.items():
         if value != paths[key]:
-            raise SystemExit(
-                f"PLR {key} must match printer account {account}: {paths[key]}"
-            )
+            raise SystemExit(f"PLR {key} must match printer account {account}: {paths[key]}")
     return account, paths
 
 
@@ -959,9 +986,7 @@ def _plr_transaction_id() -> str:
     return f"{stamp}-{secrets.token_hex(8)}"
 
 
-def _validate_remote_plr_identity(
-    document: dict, account: str, paths: dict[str, str]
-) -> None:
+def _validate_remote_plr_identity(document: dict, account: str, paths: dict[str, str]) -> None:
     if document.get("account") != account or document.get("paths") != paths:
         raise RemoteJsonError(
             "Remote PLR result did not match the validated printer account and paths",
@@ -973,9 +998,7 @@ def refresh_klippee_agent(args: argparse.Namespace) -> None:
     """Restart only Klippee's managed user service and verify it is active."""
 
     if args.confirm != "REFRESH-KLIPPEE-AGENT":
-        raise SystemExit(
-            "This action requires --confirm REFRESH-KLIPPEE-AGENT"
-        )
+        raise SystemExit("This action requires --confirm REFRESH-KLIPPEE-AGENT")
     ssh, _target = ssh_base(args)
     agent_user = getattr(args, "printer_user", None) or args.user
     # validate_connection() inside ssh_base validated both account names. If a
@@ -991,12 +1014,8 @@ def refresh_klippee_agent(args: argparse.Namespace) -> None:
             f"sudo -n -u {quoted_user} env XDG_RUNTIME_DIR=/run/user/$uid "
             "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$uid/bus systemctl --user"
         )
-    restart = capture(
-        ssh + [f"{systemctl} restart {KLIPPEE_AGENT_SERVICE}"]
-    )
-    state = capture(
-        ssh + [f"{systemctl} is-active {KLIPPEE_AGENT_SERVICE}"]
-    )
+    restart = capture(ssh + [f"{systemctl} restart {KLIPPEE_AGENT_SERVICE}"])
+    state = capture(ssh + [f"{systemctl} is-active {KLIPPEE_AGENT_SERVICE}"])
     observed = state.stdout.decode("utf-8", errors="replace").strip()
     ok = restart.returncode == 0 and state.returncode == 0 and observed == "active"
     result = {
@@ -1054,9 +1073,7 @@ def _validated_box_clock_guard_result(
             f"Remote clock-guard installer returned invalid JSON: {exc}"
         ) from exc
     if not isinstance(document, dict):
-        raise BoxClockGuardInstallError(
-            "Remote clock-guard installer did not return a JSON object"
-        )
+        raise BoxClockGuardInstallError("Remote clock-guard installer did not return a JSON object")
     if completed.returncode or not document.get("ok"):
         error = document.get("error")
         detail = error.strip() if isinstance(error, str) and error.strip() else "unknown error"
@@ -1135,9 +1152,7 @@ def install_box_output_clock_guard(args: argparse.Namespace) -> None:
     """Install exactly the reviewed Box clock guard without restarting Klipper."""
 
     if args.confirm != BOX_CLOCK_GUARD_CONFIRMATION:
-        raise SystemExit(
-            f"This action requires --confirm {BOX_CLOCK_GUARD_CONFIRMATION}"
-        )
+        raise SystemExit(f"This action requires --confirm {BOX_CLOCK_GUARD_CONFIRMATION}")
     account = _validate_box_clock_guard_account(args)
     source_candidate = BOX_CLOCK_GUARD_SOURCE
     source = source_candidate.resolve()
@@ -1152,8 +1167,7 @@ def install_box_output_clock_guard(args: argparse.Namespace) -> None:
         or not BOX_CLOCK_GUARD_REMOTE_INSTALLER.is_file()
     ):
         raise SystemExit(
-            "Clock-guard remote installer is missing or unsafe: "
-            f"{BOX_CLOCK_GUARD_REMOTE_INSTALLER}"
+            f"Clock-guard remote installer is missing or unsafe: {BOX_CLOCK_GUARD_REMOTE_INSTALLER}"
         )
     source_digest = sha256(source)
     transaction_id = _box_clock_guard_transaction_id()
@@ -1163,18 +1177,18 @@ def install_box_output_clock_guard(args: argparse.Namespace) -> None:
     result: dict | None = None
     failure: dict | None = None
     try:
-        stage = _checked_capture(
-            ssh + ["mktemp -d /tmp/qidi-box-clock-guard.XXXXXXXX"]
-        ).decode("utf-8", errors="strict").strip()
+        stage = (
+            _checked_capture(ssh + ["mktemp -d /tmp/qidi-box-clock-guard.XXXXXXXX"])
+            .decode("utf-8", errors="strict")
+            .strip()
+        )
         if not re.fullmatch(r"/tmp/qidi-box-clock-guard\.[A-Za-z0-9]+", stage):
             raise BoxClockGuardInstallError(
                 f"Unsafe remote clock-guard staging path returned: {stage!r}"
             )
         remote_source = f"{stage}/box_output_clock_guard.py"
         phase = "upload"
-        _checked_capture(
-            scp_base(args) + [str(source), f"{target}:{remote_source}"]
-        )
+        _checked_capture(scp_base(args) + [str(source), f"{target}:{remote_source}"])
         phase = "install"
         remote_command = " ".join(
             shlex.quote(part)
@@ -1203,9 +1217,7 @@ def install_box_output_clock_guard(args: argparse.Namespace) -> None:
             transaction_id=transaction_id,
         )
     except BaseException as exc:
-        remote_document = (
-            exc.document if isinstance(exc, BoxClockGuardInstallError) else None
-        )
+        remote_document = exc.document if isinstance(exc, BoxClockGuardInstallError) else None
         failure = {
             "schema": BOX_CLOCK_GUARD_SCHEMA,
             "ok": False,
@@ -1216,9 +1228,7 @@ def install_box_output_clock_guard(args: argparse.Namespace) -> None:
             "source_sha256": source_digest,
             "target": {"path": BOX_CLOCK_GUARD_TARGET},
             "backup": (
-                remote_document.get("backup")
-                if isinstance(remote_document, dict)
-                else None
+                remote_document.get("backup") if isinstance(remote_document, dict) else None
             ),
             "klipper_service_action": "none",
             "klipper_restarted": False,
@@ -1232,21 +1242,16 @@ def install_box_output_clock_guard(args: argparse.Namespace) -> None:
     finally:
         cleanup_ok = stage is None
         cleanup_error = ""
-        if stage is not None and re.fullmatch(
-            r"/tmp/qidi-box-clock-guard\.[A-Za-z0-9]+", stage
-        ):
+        if stage is not None and re.fullmatch(r"/tmp/qidi-box-clock-guard\.[A-Za-z0-9]+", stage):
             remote_source = f"{stage}/box_output_clock_guard.py"
             cleanup_command = (
-                f"rm -f -- {shlex.quote(remote_source)} && "
-                f"rmdir -- {shlex.quote(stage)}"
+                f"rm -f -- {shlex.quote(remote_source)} && rmdir -- {shlex.quote(stage)}"
             )
             try:
                 cleanup = capture(ssh + [cleanup_command])
                 cleanup_ok = cleanup.returncode == 0
                 if not cleanup_ok:
-                    cleanup_error = cleanup.stderr.decode(
-                        "utf-8", errors="replace"
-                    ).strip()
+                    cleanup_error = cleanup.stderr.decode("utf-8", errors="replace").strip()
             except (OSError, subprocess.SubprocessError) as exc:
                 cleanup_ok = False
                 cleanup_error = str(exc)
@@ -1264,11 +1269,212 @@ def install_box_output_clock_guard(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
+def _validated_box_motion_guard_result(
+    completed: subprocess.CompletedProcess[bytes],
+    box_count: int,
+    transaction_id: str,
+) -> dict:
+    stdout = completed.stdout.decode("utf-8", errors="strict").strip()
+    stderr = completed.stderr.decode("utf-8", errors="replace").strip()
+    lines = [line for line in stdout.splitlines() if line.strip()]
+    if len(lines) != 1:
+        raise SystemExit("Remote Box motion guard did not return exactly one JSON document")
+    try:
+        document = json.loads(lines[0])
+    except json.JSONDecodeError as exc:
+        raise SystemExit("Remote Box motion guard returned invalid JSON") from exc
+    if completed.returncode != 0 or stderr or not isinstance(document, dict):
+        detail = stderr or document.get("error", "remote operation failed")
+        raise SystemExit(f"Remote Box motion guard failed: {detail}")
+    expected_target = f"/home/mks/cfg_with_{box_count}"
+    target = document.get("target")
+    changed = document.get("changed")
+    backup = document.get("backup")
+    valid = (
+        set(document)
+        == {
+            "schema",
+            "ok",
+            "changed",
+            "verified",
+            "box_count",
+            "transaction_id",
+            "target",
+            "backup",
+            "use_irq",
+            "debounce_us_present",
+            "active_config_changed",
+            "klipper_service_action",
+            "klipper_restarted",
+            "activation_required",
+        }
+        and document.get("schema") == BOX_MOTION_GUARD_SCHEMA
+        and document.get("ok") is True
+        and isinstance(changed, bool)
+        and document.get("verified") is True
+        and document.get("box_count") == box_count
+        and document.get("transaction_id") == transaction_id
+        and isinstance(target, dict)
+        and set(target) == {"path", "before_sha256", "after_sha256", "mode", "uid", "gid"}
+        and target.get("path") == expected_target
+        and isinstance(target.get("before_sha256"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", target["before_sha256"])
+        and isinstance(target.get("after_sha256"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", target["after_sha256"])
+        and re.fullmatch(r"0[0-7]{3}", target.get("mode", ""))
+        and isinstance(target.get("uid"), int)
+        and isinstance(target.get("gid"), int)
+        and document.get("use_irq") is False
+        and document.get("debounce_us_present") is False
+        and document.get("active_config_changed") is False
+        and document.get("klipper_service_action") == "none"
+        and document.get("klipper_restarted") is False
+        and document.get("activation_required") is True
+    )
+    if not valid:
+        raise SystemExit("Remote Box motion guard returned inconsistent proof")
+    if changed:
+        if (
+            not isinstance(backup, dict)
+            or set(backup) != {"path", "sha256"}
+            or backup.get("path")
+            != (
+                "/home/mks/.qidi-plus4-backups/box-motion-guard-"
+                f"{transaction_id}/cfg_with_{box_count}"
+            )
+            or backup.get("sha256") != target.get("before_sha256")
+        ):
+            raise SystemExit("Remote Box motion guard returned invalid backup proof")
+        if target.get("before_sha256") == target.get("after_sha256"):
+            raise SystemExit("Changed Box motion guard returned identical digests")
+    elif backup is not None or target.get("before_sha256") != target.get("after_sha256"):
+        raise SystemExit("Unchanged Box motion guard returned inconsistent proof")
+    return document
+
+
+def harden_box_motion_template(args: argparse.Namespace) -> None:
+    """Persist use_irq=False in the active stock box_detect template."""
+
+    if args.confirm != BOX_MOTION_GUARD_CONFIRMATION:
+        raise SystemExit(f"This action requires --confirm {BOX_MOTION_GUARD_CONFIRMATION}")
+    _validate_box_clock_guard_account(args)
+    if args.box_count not in (1, 2, 3, 4):
+        raise SystemExit("Box count must be 1 through 4")
+    if (
+        BOX_MOTION_GUARD_REMOTE_INSTALLER.is_symlink()
+        or not BOX_MOTION_GUARD_REMOTE_INSTALLER.is_file()
+    ):
+        raise SystemExit(
+            "Box motion-guard remote installer is missing or unsafe: "
+            f"{BOX_MOTION_GUARD_REMOTE_INSTALLER}"
+        )
+    transaction_id = _box_clock_guard_transaction_id()
+    ssh, _target = ssh_base(args)
+    remote_command = " ".join(
+        shlex.quote(part)
+        for part in (
+            "sudo",
+            "-n",
+            BOX_CLOCK_GUARD_REMOTE_PYTHON,
+            "-I",
+            "-",
+            "--box-count",
+            str(args.box_count),
+            "--transaction-id",
+            transaction_id,
+        )
+    )
+    completed = capture(
+        ssh + [remote_command],
+        input_data=BOX_MOTION_GUARD_REMOTE_INSTALLER.read_bytes(),
+    )
+    result = _validated_box_motion_guard_result(
+        completed,
+        args.box_count,
+        transaction_id,
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+def set_klippee_variable(args: argparse.Namespace) -> None:
+    """Set one folder-scoped physical Klippee value without touching config."""
+
+    if args.confirm != KLIPPEE_VARIABLE_CONFIRMATION:
+        raise SystemExit(f"This action requires --confirm {KLIPPEE_VARIABLE_CONFIRMATION}")
+    _validate_box_clock_guard_account(args)
+    if not KLIPPEE_VARIABLE_NAME.fullmatch(args.name):
+        raise SystemExit("Klippee variable name is invalid")
+    if (
+        not isinstance(args.value, str)
+        or not args.value
+        or len(args.value.encode("utf-8")) > 4096
+        or "\x00" in args.value
+        or "\r" in args.value
+        or "\n" in args.value
+    ):
+        raise SystemExit("Klippee variable value must be 1-4096 bytes on one line")
+    ssh, _target = ssh_base(args)
+    set_command = " ".join(
+        shlex.quote(part)
+        for part in (
+            "sudo",
+            "-n",
+            "-u",
+            BOX_CLOCK_GUARD_OWNER,
+            KLIPPEE_VARIABLE_CLI,
+            "variables",
+            "set",
+            args.name,
+            args.value,
+        )
+    )
+    set_result = capture(ssh + [set_command])
+    doctor_result = None
+    if set_result.returncode == 0:
+        doctor_command = " ".join(
+            shlex.quote(part)
+            for part in (
+                "sudo",
+                "-n",
+                "-u",
+                BOX_CLOCK_GUARD_OWNER,
+                KLIPPEE_VARIABLE_CLI,
+                "variables",
+                "doctor",
+            )
+        )
+        doctor_result = capture(ssh + [doctor_command])
+    ok = bool(
+        set_result.returncode == 0 and doctor_result is not None and doctor_result.returncode == 0
+    )
+    document = {
+        "schema": KLIPPEE_VARIABLE_SCHEMA,
+        "ok": ok,
+        "account": BOX_CLOCK_GUARD_OWNER,
+        "cli_path": KLIPPEE_VARIABLE_CLI,
+        "name": args.name,
+        "value_sha256": hashlib.sha256(args.value.encode("utf-8")).hexdigest(),
+        "set_return_code": set_result.returncode,
+        "doctor_return_code": (doctor_result.returncode if doctor_result is not None else None),
+        "verified": bool(doctor_result is not None and doctor_result.returncode == 0),
+        "config_deployed": False,
+        "klipper_action": "none",
+        "error": "",
+    }
+    if not ok:
+        diagnostic = set_result.stderr
+        if doctor_result is not None and doctor_result.returncode != 0:
+            diagnostic = doctor_result.stderr
+        document["error"] = diagnostic.decode("utf-8", errors="replace").strip()[:1000]
+    print(json.dumps(document, indent=2, sort_keys=True))
+    if not ok:
+        raise SystemExit(1)
+
+
 def _validated_plr_backup_manifest(path: str, scripts_dir: str) -> str:
     scripts_dir = scripts_dir.rstrip("/")
     pattern = (
-        re.escape(scripts_dir)
-        + r"/backups/plr-hardening-[A-Za-z0-9._-]+/backup-manifest\.json"
+        re.escape(scripts_dir) + r"/backups/plr-hardening-[A-Za-z0-9._-]+/backup-manifest\.json"
     )
     if not scripts_dir.startswith("/") or not re.fullmatch(pattern, path):
         raise SystemExit(
@@ -1286,8 +1492,7 @@ def _validated_plr_safety_manifest(path: str, scripts_dir: str) -> str:
     )
     if not scripts_dir.startswith("/") or not re.fullmatch(pattern, path):
         raise SystemExit(
-            "Safety manifest must be an exact safety-manifest.json below "
-            f"{scripts_dir}/backups"
+            f"Safety manifest must be an exact safety-manifest.json below {scripts_dir}/backups"
         )
     return path
 
@@ -1300,9 +1505,7 @@ def start_klipper(args: argparse.Namespace) -> None:
     service = _validated_plr_service(args.service)
     rollback_hint = None
     if args.rollback_manifest:
-        rollback_hint = _validated_plr_backup_manifest(
-            args.rollback_manifest, args.scripts_dir
-        )
+        rollback_hint = _validated_plr_backup_manifest(args.rollback_manifest, args.scripts_dir)
     ssh, _target = ssh_base(args)
     start = capture(ssh + [f"sudo -n systemctl start {shlex.quote(service)}"])
     samples = []
@@ -1317,9 +1520,8 @@ def start_klipper(args: argparse.Namespace) -> None:
             time.sleep(KLIPPER_START_STABILITY_INTERVAL_SECONDS)
     assert state is not None
     observed = samples[-1]["state"]
-    stable = (
-        len(samples) == KLIPPER_START_STABILITY_CHECKS
-        and all(item["exit"] == 0 and item["state"] == "active" for item in samples)
+    stable = len(samples) == KLIPPER_START_STABILITY_CHECKS and all(
+        item["exit"] == 0 and item["state"] == "active" for item in samples
     )
     ok = start.returncode == 0 and stable
     result = {
@@ -1353,20 +1555,12 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
     """Restore one validated installer backup and leave Klipper stopped."""
 
     if args.confirm != "ROLLBACK-PLR-HARDENING":
-        raise SystemExit(
-            "This action requires --confirm ROLLBACK-PLR-HARDENING"
-    )
+        raise SystemExit("This action requires --confirm ROLLBACK-PLR-HARDENING")
     service = _validated_plr_service(args.service)
     account, paths = _validated_plr_layout(args)
     transaction_id = _plr_transaction_id()
-    manifest = _validated_plr_backup_manifest(
-        args.backup_manifest, paths["scripts_dir"]
-    )
-    missing = [
-        name
-        for name in PLR_DEPLOYMENT_ASSETS
-        if not (PLR_HARDENING_DIR / name).is_file()
-    ]
+    manifest = _validated_plr_backup_manifest(args.backup_manifest, paths["scripts_dir"])
+    missing = [name for name in PLR_DEPLOYMENT_ASSETS if not (PLR_HARDENING_DIR / name).is_file()]
     if missing:
         raise SystemExit(f"PLR deployment assets missing: {', '.join(missing)}")
     ssh, target = ssh_base(args)
@@ -1378,27 +1572,39 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
     verification: dict | None = None
     safety_manifest: str | None = None
     try:
-        stage_raw = _checked_capture(
-            ssh + ["mktemp -d /tmp/qidi-plr-hardening.XXXXXXXX"]
-        ).decode("utf-8", errors="strict").strip()
+        stage_raw = (
+            _checked_capture(ssh + ["mktemp -d /tmp/qidi-plr-hardening.XXXXXXXX"])
+            .decode("utf-8", errors="strict")
+            .strip()
+        )
         if not re.fullmatch(r"/tmp/qidi-plr-hardening\.[A-Za-z0-9]+", stage_raw):
             raise SystemExit(f"Unsafe remote staging path returned: {stage_raw!r}")
         stage = stage_raw
         for name in PLR_DEPLOYMENT_ASSETS:
             _checked_capture(
-                scp_base(args)
-                + [str(PLR_HARDENING_DIR / name), f"{target}:{stage}/{name}"]
+                scp_base(args) + [str(PLR_HARDENING_DIR / name), f"{target}:{stage}/{name}"]
             )
         installer = [
-            "sudo", "-n", args.remote_python, f"{stage}/install.py",
-            "--printer-user", account,
-            "--transaction-id", transaction_id,
-            "--klipper-dir", args.klipper_dir,
-            "--printer-data", args.printer_data,
-            "--scripts-dir", args.scripts_dir,
-            "--python", args.remote_python,
-            "--service", service,
-            "--rollback-manifest", manifest,
+            "sudo",
+            "-n",
+            args.remote_python,
+            f"{stage}/install.py",
+            "--printer-user",
+            account,
+            "--transaction-id",
+            transaction_id,
+            "--klipper-dir",
+            args.klipper_dir,
+            "--printer-data",
+            args.printer_data,
+            "--scripts-dir",
+            args.scripts_dir,
+            "--python",
+            args.remote_python,
+            "--service",
+            service,
+            "--rollback-manifest",
+            manifest,
             "--json",
         ]
         command = " ".join(shlex.quote(part) for part in installer)
@@ -1411,31 +1617,33 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
         if plan.get("changed"):
             if not isinstance(planned_safety, str):
                 raise SystemExit("Changed rollback plan omitted safety_manifest")
-            safety_manifest = _validated_plr_safety_manifest(
-                planned_safety, paths["scripts_dir"]
-            )
+            safety_manifest = _validated_plr_safety_manifest(planned_safety, paths["scripts_dir"])
         elif planned_safety is not None:
             raise SystemExit("Unchanged rollback plan returned safety_manifest")
         if not plan.get("changed"):
-            print(json.dumps({
-                "schema": "qidi-plus4-plr-rollback/v1",
-                "ok": True,
-                "changed": False,
-                "applied": False,
-                "verified": True,
-                "klipper_left_stopped": False,
-                "backup_manifest": manifest,
-                "safety_manifest": None,
-                "transaction_state": "not_started",
-                "account": account,
-                "paths": paths,
-                "plan": plan,
-            }, indent=2, sort_keys=True))
+            print(
+                json.dumps(
+                    {
+                        "schema": "qidi-plus4-plr-rollback/v1",
+                        "ok": True,
+                        "changed": False,
+                        "applied": False,
+                        "verified": True,
+                        "klipper_left_stopped": False,
+                        "backup_manifest": manifest,
+                        "safety_manifest": None,
+                        "transaction_state": "not_started",
+                        "account": account,
+                        "paths": paths,
+                        "plan": plan,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
             return
         phase = "stop"
-        _checked_capture(
-            ssh + [f"sudo -n systemctl stop {shlex.quote(service)}"]
-        )
+        _checked_capture(ssh + [f"sudo -n systemctl stop {shlex.quote(service)}"])
         state = capture(ssh + [f"systemctl is-active {shlex.quote(service)}"])
         observed = state.stdout.decode("utf-8", errors="replace").strip()
         if state.returncode != 3 or observed != "inactive":
@@ -1445,9 +1653,7 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
             )
         stopped = True
         phase = "apply"
-        rollback_result = _remote_json(
-            ssh, command + " --apply --klipper-stopped"
-        )
+        rollback_result = _remote_json(ssh, command + " --apply --klipper-stopped")
         _validate_remote_plr_identity(rollback_result, account, paths)
         if rollback_result.get("backup_manifest") != manifest:
             raise SystemExit("Rollback result changed the backup manifest handle")
@@ -1461,34 +1667,35 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
             raise SystemExit("Rollback verification changed the backup manifest handle")
         if verification.get("changed"):
             raise SystemExit("Post-rollback verification is not idempotent")
-        print(json.dumps({
-            "schema": "qidi-plus4-plr-rollback/v1",
-            "ok": True,
-            "changed": True,
-            "applied": True,
-            "verified": True,
-            "klipper_left_stopped": True,
-            "backup_manifest": manifest,
-            "safety_manifest": safety_manifest,
-            "transaction_state": "rolled_back",
-            "account": account,
-            "paths": paths,
-            "plan": plan,
-            "rollback": rollback_result,
-            "verification": verification,
-        }, indent=2, sort_keys=True))
-    except BaseException as exc:
-        remote_document = (
-            exc.document if isinstance(exc, RemoteJsonError) else None
+        print(
+            json.dumps(
+                {
+                    "schema": "qidi-plus4-plr-rollback/v1",
+                    "ok": True,
+                    "changed": True,
+                    "applied": True,
+                    "verified": True,
+                    "klipper_left_stopped": True,
+                    "backup_manifest": manifest,
+                    "safety_manifest": safety_manifest,
+                    "transaction_state": "rolled_back",
+                    "account": account,
+                    "paths": paths,
+                    "plan": plan,
+                    "rollback": rollback_result,
+                    "verification": verification,
+                },
+                indent=2,
+                sort_keys=True,
+            )
         )
+    except BaseException as exc:
+        remote_document = exc.document if isinstance(exc, RemoteJsonError) else None
         identity_error = None
         if remote_document is not None and (
-            remote_document.get("account") != account
-            or remote_document.get("paths") != paths
+            remote_document.get("account") != account or remote_document.get("paths") != paths
         ):
-            identity_error = (
-                "remote failure result did not match the validated account and paths"
-            )
+            identity_error = "remote failure result did not match the validated account and paths"
             remote_document = None
         if remote_document is not None:
             if phase == "plan":
@@ -1511,9 +1718,7 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
                     remote_document = None
                     safety_manifest = None
         remote_state = (
-            remote_document.get("transaction_state")
-            if remote_document is not None
-            else None
+            remote_document.get("transaction_state") if remote_document is not None else None
         )
         if phase == "verify" and rollback_result is not None:
             transaction_state = "indeterminate"
@@ -1525,17 +1730,11 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
             "indeterminate",
         }:
             transaction_state = remote_state
-            applied = (
-                None
-                if remote_state in {"partial", "indeterminate"}
-                else False
-            )
+            applied = None if remote_state in {"partial", "indeterminate"} else False
         else:
             transaction_state = "not_started" if not stopped else "indeterminate"
             applied = False if transaction_state == "not_started" else None
-        exposed_safety_manifest = (
-            None if transaction_state == "not_started" else safety_manifest
-        )
+        exposed_safety_manifest = None if transaction_state == "not_started" else safety_manifest
         failure = {
             "schema": "qidi-plus4-plr-rollback/v1",
             "ok": False,
@@ -1583,9 +1782,7 @@ def config_profile_source(args: argparse.Namespace) -> tuple[pathlib.Path, str]:
     source = MAINLINE_CONFIGS / profile
     if source.is_dir():
         return source, profile
-    available = ", ".join(
-        path.name for path in sorted(MAINLINE_CONFIGS.iterdir()) if path.is_dir()
-    )
+    available = ", ".join(path.name for path in sorted(MAINLINE_CONFIGS.iterdir()) if path.is_dir())
     raise SystemExit(f"Unknown config profile {profile!r}. Available: {available}")
 
 
@@ -1610,12 +1807,11 @@ def managed_render_directory(path: pathlib.Path) -> bool:
     profile = metadata.get("profile")
     serial = metadata.get("beacon_serial")
     rendered_at = metadata.get("rendered_at_utc")
-    if not all(
-        isinstance(value, str) and value for value in (profile, serial, rendered_at)
-    ):
+    if not all(isinstance(value, str) and value for value in (profile, serial, rendered_at)):
         return False
-    if (not serial.startswith("/dev/serial/by-id/usb-Beacon_") or
-            any(character.isspace() for character in serial)):
+    if not serial.startswith("/dev/serial/by-id/usb-Beacon_") or any(
+        character.isspace() for character in serial
+    ):
         return False
     schema = metadata.get("schema")
     manager = metadata.get("managed_by")
@@ -1640,16 +1836,19 @@ def install_rendered_directory(staging: pathlib.Path, destination: pathlib.Path)
     try:
         shutil.rmtree(backup)
     except OSError as exc:
-        print(f"Warning: rendered config was installed but old copy remains at {backup}: {exc}",
-              file=sys.stderr)
+        print(
+            f"Warning: rendered config was installed but old copy remains at {backup}: {exc}",
+            file=sys.stderr,
+        )
 
 
 def render_config(args: argparse.Namespace) -> None:
     source, profile = config_profile_source(args)
 
     serial = args.beacon_serial.strip()
-    if (not serial.startswith("/dev/serial/by-id/usb-Beacon_") or
-            any(character.isspace() for character in serial)):
+    if not serial.startswith("/dev/serial/by-id/usb-Beacon_") or any(
+        character.isspace() for character in serial
+    ):
         raise SystemExit(
             "--beacon-serial must be the complete whitespace-free "
             "/dev/serial/by-id/usb-Beacon_... path"
@@ -1671,22 +1870,21 @@ def render_config(args: argparse.Namespace) -> None:
         raise SystemExit(f"Config output must not be a symlink: {destination}")
 
     destination.parent.mkdir(parents=True, exist_ok=True)
-    staging = pathlib.Path(tempfile.mkdtemp(
-        prefix=f".{destination.name}.render-", dir=destination.parent
-    ))
+    staging = pathlib.Path(
+        tempfile.mkdtemp(prefix=f".{destination.name}.render-", dir=destination.parent)
+    )
     try:
         rendered = 0
         for source_file in sorted(source.glob("*.cfg")):
             text = source_file.read_text(encoding="utf-8")
             text = text.replace(BEACON_SERIAL_TOKEN, serial)
-            (staging / source_file.name).write_text(
-                text, encoding="utf-8", newline="\n"
-            )
+            (staging / source_file.name).write_text(text, encoding="utf-8", newline="\n")
             rendered += 1
         if not rendered:
             raise SystemExit(f"No .cfg files found in profile: {source}")
         remaining = [
-            path.name for path in staging.glob("*.cfg")
+            path.name
+            for path in staging.glob("*.cfg")
             if BEACON_SERIAL_TOKEN in path.read_text(encoding="utf-8")
         ]
         if remaining:
@@ -1738,7 +1936,11 @@ def remote_action(args: argparse.Namespace) -> None:
         "validate-mainboard": ("mainboard", "validate", None),
         "validate-toolhead-katapult": ("toolhead-katapult", "validate", None),
         "validate-toolhead": ("toolhead-app", "validate", None),
-        "flash-toolhead-katapult": ("toolhead-katapult", "flash-toolhead-katapult", "ERASE-TOOLHEAD"),
+        "flash-toolhead-katapult": (
+            "toolhead-katapult",
+            "flash-toolhead-katapult",
+            "ERASE-TOOLHEAD",
+        ),
         "flash-toolhead": ("toolhead-app", "flash-toolhead", "FLASH-TOOLHEAD"),
     }
     kind, remote_command, required_confirmation = actions[args.command]
@@ -1767,8 +1969,11 @@ def default_private_key() -> pathlib.Path | None:
 
 
 def is_default_key(private: pathlib.Path) -> bool:
-    return (private.parent == (pathlib.Path.home() / ".ssh")
-            and private.name in ("id_ed25519", "id_ecdsa", "id_rsa"))
+    return private.parent == (pathlib.Path.home() / ".ssh") and private.name in (
+        "id_ed25519",
+        "id_ecdsa",
+        "id_rsa",
+    )
 
 
 def setup_ssh(args: argparse.Namespace) -> None:
@@ -1802,21 +2007,43 @@ def setup_ssh(args: argparse.Namespace) -> None:
     # This first connection authenticates with the printer password. It uses
     # neither the identity nor multiplexing, so the operator is prompted exactly
     # once here; every later command reuses the installed key.
-    install = ([ssh, "-p", str(port), "-o", "ConnectTimeout=10"]
-               + password_options + ["--", target,
-               'set -e; install -d -m 700 "$HOME/.ssh"; '
-               'touch "$HOME/.ssh/authorized_keys"; chmod 600 "$HOME/.ssh/authorized_keys"; '
-               'key="$(cat)"; '
-               'grep -qxF "$key" "$HOME/.ssh/authorized_keys" '
-               '|| printf "%s\\n" "$key" >> "$HOME/.ssh/authorized_keys"'])
+    install = (
+        [ssh, "-p", str(port), "-o", "ConnectTimeout=10"]
+        + password_options
+        + [
+            "--",
+            target,
+            'set -e; install -d -m 700 "$HOME/.ssh"; '
+            'touch "$HOME/.ssh/authorized_keys"; chmod 600 "$HOME/.ssh/authorized_keys"; '
+            'key="$(cat)"; '
+            'grep -qxF "$key" "$HOME/.ssh/authorized_keys" '
+            '|| printf "%s\\n" "$key" >> "$HOME/.ssh/authorized_keys"',
+        ]
+    )
     if password_options:
         print(f"Installing {public.name} on {target} through configured SSH askpass.")
     else:
-        print(f"Installing {public.name} on {target}. Enter the printer password once when prompted.")
+        print(
+            f"Installing {public.name} on {target}. Enter the printer password once when prompted."
+        )
     run(install, input_data=(key_line + "\n").encode("utf-8"))
 
-    verify = [ssh, "-p", str(port), "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
-              "-i", str(private), "-o", "IdentitiesOnly=yes", "--", target, "true"]
+    verify = [
+        ssh,
+        "-p",
+        str(port),
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "BatchMode=yes",
+        "-i",
+        str(private),
+        "-o",
+        "IdentitiesOnly=yes",
+        "--",
+        target,
+        "true",
+    ]
     print("Verifying key-based login...")
     if subprocess.run(verify).returncode:
         raise SystemExit(
@@ -1854,34 +2081,51 @@ def setup_management_user(args: argparse.Namespace) -> None:
         raise SystemExit(f"{public} holds more than one key; pass a single key file")
 
     ssh, _ = ssh_base(args)
-    remote = " ".join((
-        "bash -s -- setup-management-user",
-        shlex.quote(new_user),
-        shlex.quote(key_line),
-        "CREATE-MANAGEMENT-USER",
-    ))
+    remote = " ".join(
+        (
+            "bash -s -- setup-management-user",
+            shlex.quote(new_user),
+            shlex.quote(key_line),
+            "CREATE-MANAGEMENT-USER",
+        )
+    )
     print(f"Creating management account {new_user!r} on {args.printer}...")
     run(ssh + [remote], input_data=REMOTE_HELPER.read_bytes())
 
     private = public.with_suffix("")
     if not private.is_file():
-        print(f"Account created. Private key {private} is not present here, so "
-              "key login was not verified.")
+        print(
+            f"Account created. Private key {private} is not present here, so "
+            "key login was not verified."
+        )
         return
     host, _user, port = validate_connection(args)
-    verify = [require_command("ssh"), "-p", str(port),
-              "-o", "ConnectTimeout=10", "-o", "BatchMode=yes",
-              "-i", str(private), "-o", "IdentitiesOnly=yes",
-              "--", f"{new_user}@{host}",
-              "id -un; sudo -n true && echo sudo=ok"]
+    verify = [
+        require_command("ssh"),
+        "-p",
+        str(port),
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "BatchMode=yes",
+        "-i",
+        str(private),
+        "-o",
+        "IdentitiesOnly=yes",
+        "--",
+        f"{new_user}@{host}",
+        "id -un; sudo -n true && echo sudo=ok",
+    ]
     print(f"Verifying key login as {args.new_user}...")
     if subprocess.run(verify).returncode:
         raise SystemExit(
             f"The account was created but key login as {new_user} did not "
             "succeed. Check the printer's sshd configuration before relying on it."
         )
-    print(f"{new_user} is ready. Point the inventory's `user` at it and keep "
-          "`printerUser` on the account that owns Klipper.")
+    print(
+        f"{new_user} is ready. Point the inventory's `user` at it and keep "
+        "`printerUser` on the account that owns Klipper."
+    )
 
 
 def stage_mainboard_sdcard(args: argparse.Namespace) -> None:
@@ -1897,9 +2141,11 @@ def stage_mainboard_sdcard(args: argparse.Namespace) -> None:
     (destination / "qd_mcu.bin.sha256").write_text(f"{digest}  qd_mcu.bin\n", encoding="ascii")
     print(f"Staged validated mainboard image to {target}")
     print(f"SHA-256 {digest}")
-    print("Copy qd_mcu.bin to the root of a FAT32 microSD card, insert it into the "
-          "mainboard, and power on. A successful update renames it to qd_mcu.CUR. "
-          "See docs/MAINLINE-MIGRATION.md.")
+    print(
+        "Copy qd_mcu.bin to the root of a FAT32 microSD card, insert it into the "
+        "mainboard, and power on. A successful update renames it to qd_mcu.CUR. "
+        "See docs/MAINLINE-MIGRATION.md."
+    )
 
 
 def smoke_test(args: argparse.Namespace) -> None:
@@ -1926,23 +2172,32 @@ def smoke_test(args: argparse.Namespace) -> None:
     )
     print("Installing the inert smoke-test printer.cfg and restarting mainline Klipper...")
     run(ssh + [install])
-    inspect = (f"log={shlex.quote(remote_log)}; sleep 8; "
-               'if [ -f "$log" ]; then tail -n 40 "$log"; '
-               'else echo "klippy.log not found at $log"; fi')
+    inspect = (
+        f"log={shlex.quote(remote_log)}; sleep 8; "
+        'if [ -f "$log" ]; then tail -n 40 "$log"; '
+        'else echo "klippy.log not found at $log"; fi'
+    )
     print('Recent klippy.log output (both MCUs should reach "Ready"):')
     run(ssh + [inspect])
-    print('\nIf either MCU reports "is not responding" or the host stays in shutdown, '
-          "recheck that board's firmware and UART before installing the real configuration.")
+    print(
+        '\nIf either MCU reports "is not responding" or the host stays in shutdown, '
+        "recheck that board's firmware and UART before installing the real configuration."
+    )
 
 
 def add_connection(parser: argparse.ArgumentParser, *, image: bool = False) -> None:
     parser.add_argument("--printer", required=True, type=connection_host)
     parser.add_argument("--user", default="mks", type=connection_user)
-    parser.add_argument("--printer-user", type=connection_user,
-                        help="Account that owns Klipper on the printer, when it "
-                             "differs from the account used to connect")
+    parser.add_argument(
+        "--printer-user",
+        type=connection_user,
+        help="Account that owns Klipper on the printer, when it "
+        "differs from the account used to connect",
+    )
     parser.add_argument("--port", type=connection_port, default=22)
-    parser.add_argument("--identity", help="SSH private key for password-free login (see setup-ssh)")
+    parser.add_argument(
+        "--identity", help="SSH private key for password-free login (see setup-ssh)"
+    )
     parser.add_argument(
         "--password-env",
         type=password_environment_name,
@@ -1960,8 +2215,9 @@ def create_parser() -> argparse.ArgumentParser:
     build = sub.add_parser("build", help="Build all three MCU images")
     build.add_argument("--klipper-dir", type=pathlib.Path, required=True)
     build.add_argument("--katapult-dir", type=pathlib.Path, required=True)
-    build.add_argument("--output", type=pathlib.Path,
-                       default=DEFAULT_ARTIFACTS / "mainline-firmware")
+    build.add_argument(
+        "--output", type=pathlib.Path, default=DEFAULT_ARTIFACTS / "mainline-firmware"
+    )
     build.set_defaults(func=build_firmware)
 
     image = sub.add_parser("armbian-image", help="Download and verify the official Qidi X-6 image")
@@ -1969,10 +2225,13 @@ def create_parser() -> argparse.ArgumentParser:
     image.add_argument("--list-only", action="store_true")
     image.set_defaults(func=armbian_image)
 
-    setup = sub.add_parser("setup-ssh", help="Install an SSH key so later commands need no password")
+    setup = sub.add_parser(
+        "setup-ssh", help="Install an SSH key so later commands need no password"
+    )
     add_connection(setup)
-    setup.add_argument("--generate", action="store_true",
-                       help="Create an ed25519 key if none exists")
+    setup.add_argument(
+        "--generate", action="store_true", help="Create an ed25519 key if none exists"
+    )
     setup.set_defaults(func=setup_ssh)
 
     manage = sub.add_parser(
@@ -1980,34 +2239,41 @@ def create_parser() -> argparse.ArgumentParser:
         help="Create a dedicated key-only management account with passwordless sudo",
     )
     add_connection(manage)
-    manage.add_argument("--new-user", default="plab",
-                        help="Account to create (default: plab)")
-    manage.add_argument("--pubkey", required=True,
-                        help="OpenSSH public key to install for the new account")
+    manage.add_argument("--new-user", default="plab", help="Account to create (default: plab)")
+    manage.add_argument(
+        "--pubkey", required=True, help="OpenSSH public key to install for the new account"
+    )
     manage.add_argument("--confirm", required=True)
     manage.set_defaults(func=setup_management_user)
 
     audit_parser = sub.add_parser("audit", help="Run a read-only live printer audit")
     add_connection(audit_parser)
-    audit_parser.add_argument("--json", action="store_true",
-                              help="Emit collected facts as JSON instead of text")
-    audit_parser.add_argument("--data-dir", default="",
-                              help="Remote printer_data directory (default: ~/printer_data)")
+    audit_parser.add_argument(
+        "--json", action="store_true", help="Emit collected facts as JSON instead of text"
+    )
+    audit_parser.add_argument(
+        "--data-dir", default="", help="Remote printer_data directory (default: ~/printer_data)"
+    )
     audit_parser.set_defaults(func=audit)
 
     probe_parser = sub.add_parser(
         "probe", help="Report which migration stages are observably complete"
     )
     add_connection(probe_parser)
-    probe_parser.add_argument("--data-dir", default="",
-                              help="Remote printer_data directory (default: ~/printer_data)")
-    probe_parser.add_argument("--probe", action="append", default=[],
-                              help="Evaluate only this probe; repeat for several")
-    probe_parser.add_argument("--include-facts", action="store_true",
-                              help="Embed the raw collected facts in the report")
-    probe_parser.add_argument("--facts-file", type=pathlib.Path,
-                              help="Evaluate a saved facts document instead of "
-                                   "connecting (for replay and testing)")
+    probe_parser.add_argument(
+        "--data-dir", default="", help="Remote printer_data directory (default: ~/printer_data)"
+    )
+    probe_parser.add_argument(
+        "--probe", action="append", default=[], help="Evaluate only this probe; repeat for several"
+    )
+    probe_parser.add_argument(
+        "--include-facts", action="store_true", help="Embed the raw collected facts in the report"
+    )
+    probe_parser.add_argument(
+        "--facts-file",
+        type=pathlib.Path,
+        help="Evaluate a saved facts document instead of connecting (for replay and testing)",
+    )
     probe_parser.set_defaults(func=probe_printer)
 
     probe_list = sub.add_parser("probes", help="List the available migration probes")
@@ -2016,8 +2282,7 @@ def create_parser() -> argparse.ArgumentParser:
     backup = sub.add_parser("backup", help="Stream a filesystem/source backup over SSH")
     add_connection(backup)
     backup.add_argument("--name")
-    backup.add_argument("--output", type=pathlib.Path,
-                        default=REPO_ROOT / "data/printer-backups")
+    backup.add_argument("--output", type=pathlib.Path, default=REPO_ROOT / "data/printer-backups")
     backup.add_argument("--include-gcodes", action="store_true")
     backup.add_argument("--include-logs", action="store_true")
     backup.add_argument("--include-environments", action="store_true")
@@ -2065,6 +2330,28 @@ def create_parser() -> argparse.ArgumentParser:
     clock_guard.add_argument("--confirm", required=True)
     clock_guard.set_defaults(func=install_box_output_clock_guard)
 
+    motion_guard = sub.add_parser(
+        "harden-box-motion-template",
+        help=(
+            "Persist use_irq=False in one stock QIDI box_detect cfg_with_N "
+            "template without restarting Klipper"
+        ),
+    )
+    add_connection(motion_guard)
+    motion_guard.add_argument("--box-count", required=True, type=int, choices=(1, 2, 3, 4))
+    motion_guard.add_argument("--confirm", required=True)
+    motion_guard.set_defaults(func=harden_box_motion_template)
+
+    klippee_variable = sub.add_parser(
+        "set-klippee-variable",
+        help="Set and validate one physical printer's folder-scoped Klippee variable",
+    )
+    add_connection(klippee_variable)
+    klippee_variable.add_argument("--name", required=True)
+    klippee_variable.add_argument("--value", required=True)
+    klippee_variable.add_argument("--confirm", required=True)
+    klippee_variable.set_defaults(func=set_klippee_variable)
+
     plr_deploy = sub.add_parser(
         "deploy-plr-hardening",
         help="Safely install source-bound PLR runtime assets and leave Klipper stopped",
@@ -2075,9 +2362,7 @@ def create_parser() -> argparse.ArgumentParser:
     plr_deploy.add_argument("--printer-data", default="/home/mks/printer_data")
     plr_deploy.add_argument("--scripts-dir", default="/home/mks/scripts/plr")
     plr_deploy.add_argument("--remote-python", default="/home/mks/klippy-env/bin/python")
-    plr_deploy.add_argument(
-        "--service", default=KLIPPER_SERVICE, choices=(KLIPPER_SERVICE,)
-    )
+    plr_deploy.add_argument("--service", default=KLIPPER_SERVICE, choices=(KLIPPER_SERVICE,))
     plr_deploy.set_defaults(func=deploy_plr_hardening)
 
     start_service = sub.add_parser(
@@ -2086,9 +2371,7 @@ def create_parser() -> argparse.ArgumentParser:
     )
     add_connection(start_service)
     start_service.add_argument("--confirm", required=True)
-    start_service.add_argument(
-        "--service", default=KLIPPER_SERVICE, choices=(KLIPPER_SERVICE,)
-    )
+    start_service.add_argument("--service", default=KLIPPER_SERVICE, choices=(KLIPPER_SERVICE,))
     start_service.add_argument(
         "--rollback-manifest",
         help="validated PLR backup path to include as a failure recovery hint",
@@ -2107,23 +2390,28 @@ def create_parser() -> argparse.ArgumentParser:
     rollback_plr.add_argument("--printer-data", default="/home/mks/printer_data")
     rollback_plr.add_argument("--scripts-dir", default="/home/mks/scripts/plr")
     rollback_plr.add_argument("--remote-python", default="/home/mks/klippy-env/bin/python")
-    rollback_plr.add_argument(
-        "--service", default=KLIPPER_SERVICE, choices=(KLIPPER_SERVICE,)
-    )
+    rollback_plr.add_argument("--service", default=KLIPPER_SERVICE, choices=(KLIPPER_SERVICE,))
     rollback_plr.set_defaults(func=rollback_plr_hardening)
 
     config = sub.add_parser(
         "render-config", help="Render a per-printer mainline config from a reviewed profile"
     )
     source = config.add_mutually_exclusive_group()
-    source.add_argument("--profile", default=DEFAULT_CONFIG_PROFILE,
-                        help="Bundled profile name (default: %(default)s)")
-    source.add_argument("--profile-dir", type=pathlib.Path,
-                        help="Exact external profile directory, for example from qidi-plus4-configs")
+    source.add_argument(
+        "--profile",
+        default=DEFAULT_CONFIG_PROFILE,
+        help="Bundled profile name (default: %(default)s)",
+    )
+    source.add_argument(
+        "--profile-dir",
+        type=pathlib.Path,
+        help="Exact external profile directory, for example from qidi-plus4-configs",
+    )
     config.add_argument("--beacon-serial", required=True)
     config.add_argument("--output", type=pathlib.Path, required=True)
     config.add_argument(
-        "--force", action="store_true",
+        "--force",
+        action="store_true",
         help=f"replace an existing output only when it has a recognized {RENDER_METADATA_FILE}",
     )
     config.set_defaults(func=render_config)
@@ -2133,8 +2421,12 @@ def create_parser() -> argparse.ArgumentParser:
         help="Validate a mainboard image and stage it as qd_mcu.bin for the microSD route",
     )
     sdcard.add_argument("--image", type=pathlib.Path, required=True)
-    sdcard.add_argument("--output", type=pathlib.Path, required=True,
-                        help="microSD card root or a staging directory")
+    sdcard.add_argument(
+        "--output",
+        type=pathlib.Path,
+        required=True,
+        help="microSD card root or a staging directory",
+    )
     sdcard.add_argument("--force", action="store_true")
     sdcard.set_defaults(func=stage_mainboard_sdcard)
 
@@ -2145,8 +2437,14 @@ def create_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--data-dir", default="/home/mks/printer_data")
     smoke.set_defaults(func=smoke_test)
 
-    for name in ("validate-mainboard", "validate-toolhead-katapult", "validate-toolhead",
-                 "flash-mainboard", "flash-toolhead-katapult", "flash-toolhead"):
+    for name in (
+        "validate-mainboard",
+        "validate-toolhead-katapult",
+        "validate-toolhead",
+        "flash-mainboard",
+        "flash-toolhead-katapult",
+        "flash-toolhead",
+    ):
         action = sub.add_parser(name)
         add_connection(action, image=True)
         if name.startswith("flash-"):
