@@ -494,12 +494,12 @@ reviewed X-7 V1.0 / Beacon profile with the target printer's exact by-id path:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py render-config `
-  --profile-dir ..\qidi-plus4-configs\printers\qidi2 `
+  --profile-dir ..\qidi-plus4-configs\printers\mainline-klipper-beacon `
   --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_CHANGE_ME-if00' `
   --output C:\printerlab-workspaces\qidi2
 ```
 
-`qidi-plus4-configs` is the preferred source for current runtime profiles.
+`qidi-plus4-configs` is the preferred source for reusable setup examples.
 Omit `--profile-dir` to use this repository's bundled compatibility fallback.
 Read the generated files and follow the selected profile's commissioning notes;
 the fallback is documented in
