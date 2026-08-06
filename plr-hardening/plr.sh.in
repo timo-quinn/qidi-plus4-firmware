@@ -1,0 +1,10 @@
+#!/bin/sh
+# Installed by qidi-plus4-firmware/plr-hardening.  Keep this path as the
+# POWER_LOSS_RESUME gcode_shell_command so existing printer.cfg remains valid.
+set -eu
+
+exec @PYTHON@ @GENERATOR@ \
+    --checkpoint @CHECKPOINT@ \
+    --gcode-root @GCODE_ROOT@ \
+    --output @OUTPUT@ \
+    --json

@@ -173,7 +173,10 @@ home = pathlib.Path.home()
 # account's home rather than the one used to connect.
 data_dir = pathlib.Path(sys.argv[1]) if sys.argv[1] else home / "printer_data"
 connect_sudo = sys.argv[2] == "yes" if len(sys.argv) > 2 else False
-errors: list[str] = []
+# This helper runs on the stock QIDI host's Python 3.7. Avoid built-in generic
+# annotations here: ``list[str]`` is evaluated at runtime and is only supported
+# by Python 3.9+.
+errors = []
 
 
 def guard(name, collect, default=None):

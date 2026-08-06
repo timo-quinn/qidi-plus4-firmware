@@ -151,6 +151,14 @@ even without a key you are prompted at most once per command. Re-run `setup-ssh`
 after the host OS is replaced, because the new Armbian install has its own host
 key and account.
 
+When Printerlab orchestrates this first login, configure the printer entry with
+a dedicated `identityFile` and a temporary `sshPasswordEnv` name, then run
+`plab mainline setup-ssh <printer> --generate`. Printerlab supplies the password
+only through its private randomized askpass gate; this utility accepts the
+environment variable name, never the password as an argument. Remove
+`sshPasswordEnv` and clear the environment variable immediately after the key
+is installed.
+
 ## 1. Back up and audit
 
 Use the cross-platform Python backup and audit commands:
@@ -486,11 +494,15 @@ reviewed X-7 V1.0 / Beacon profile with the target printer's exact by-id path:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py render-config `
+  --profile-dir ..\qidi-plus4-configs\printers\qidi2 `
   --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_CHANGE_ME-if00' `
-  --output .\artifacts\generated-configs\my-plus4
+  --output C:\printerlab-workspaces\qidi2
 ```
 
-Read the generated files and follow the profile-specific commissioning order in
+`qidi-plus4-configs` is the preferred source for current runtime profiles.
+Omit `--profile-dir` to use this repository's bundled compatibility fallback.
+Read the generated files and follow the selected profile's commissioning notes;
+the fallback is documented in
 [`../mainline-configs/plus4-x7-v1.0-beacon/README.md`](../mainline-configs/plus4-x7-v1.0-beacon/README.md).
 It excludes inherited calibration and movement outside the build envelope for
 the cutter, chute, and nozzle brush. Its mainline-native operating layer must

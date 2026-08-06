@@ -56,11 +56,11 @@ done
 [ -n "$existing" ] || { echo 'No expected backup paths found.' >&2; exit 3; }
 
 exclude_args="--exclude=home/mks/.cache --exclude=home/mks/printer_data/comms"
-[ "$include_gcodes" = 1 ] || exclude_args="$exclude_args --exclude=home/mks/printer_data/gcodes"
+[ "$include_gcodes" = 1 ] || exclude_args="$exclude_args --exclude=home/mks/printer_data/gcodes --exclude=home/mks/gcode_files"
 [ "$include_logs" = 1 ] || exclude_args="$exclude_args --exclude=home/mks/printer_data/logs --exclude=home/mks/printer_data/timelapse"
 if [ "$include_envs" != 1 ]; then
     exclude_args="$exclude_args --exclude=home/mks/klippy-env --exclude=home/mks/moonraker-env --exclude=home/mks/crowsnest-env --exclude=home/mks/*-env --exclude=home/mks/*_env"
 fi
 chmod 600 "$manifest"
 # shellcheck disable=SC2086
-$tar_command -C / -czf - --ignore-failed-read --warning=no-file-changed $exclude_args $existing
+$tar_command -C / -czf - --one-file-system --warning=no-file-changed $exclude_args $existing

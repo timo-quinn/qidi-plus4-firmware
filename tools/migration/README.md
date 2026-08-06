@@ -92,6 +92,31 @@ multiplexes one connection per phase, limiting keyless runs to a single prompt
 per command. Windows OpenSSH does not support multiplexing, so key setup is the
 way to avoid repeated prompts there.
 
+Printerlab also exposes a one-time non-interactive bootstrap for an existing
+printer account. Its inventory stores only `sshPasswordEnv`, the name of a
+temporary environment variable, alongside a dedicated `identityFile`.
+Printerlab launches this tool with `--password-env` and a private randomized,
+one-use
+`SSH_ASKPASS` gate. This tool then requires the named value and authenticated
+askpass channel, disables public-key fallback and multiplexing for the initial
+connection, and permits one password prompt. The password is never accepted as
+an argument. After `setup-ssh --generate` succeeds, remove `sshPasswordEnv` and
+use only the installed key.
+
+## Refreshing a stale Klippee agent
+
+The reviewed refresh operation restarts exactly the managed
+`klippee-moonraker.service` user unit and verifies it reaches `active`:
+
+```powershell
+python .\tools\migration\qidi_plus4.py refresh-klippee-agent `
+  --printer $Printer --confirm REFRESH-KLIPPEE-AGENT
+```
+
+It never restarts Klipper, deploys configuration, or reads printer files. It is
+intended for orchestration such as `plab klippee refresh-agent`, not as an
+implicit retry of a failed Klippee deployment.
+
 ## Staging the mainboard microSD image
 
 `stage-mainboard-sdcard` re-validates a built mainboard image, copies it to a
@@ -163,13 +188,24 @@ Read [`../../docs/MAINLINE-MIGRATION.md`](../../docs/MAINLINE-MIGRATION.md)
 before using any action other than `Audit` or `Validate*`.
 
 After both MCU links pass the inert smoke test, render a reviewed configuration
-with the target printer's exact Beacon serial path:
+with the target printer's exact Beacon serial path. The runtime profile can
+come directly from the companion config repository, which is the preferred
+source for current per-printer work:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py render-config `
+  --profile-dir ..\qidi-plus4-configs\printers\qidi2 `
   --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_CHANGE_ME-if00' `
-  --output .\artifacts\generated-configs\my-plus4
+  --output C:\printerlab-workspaces\qidi2
 ```
 
-The output is ignored by Git and must be reviewed before installation. See the
-profile's own README under [`../../mainline-configs/`](../../mainline-configs/).
+Omit `--profile-dir` to keep using the bundled compatibility profile selected
+by `--profile`. An output may be outside this repository. `--force` replaces
+only a directory carrying `render-config`'s recognized `RENDER-METADATA.json`
+marker; it refuses to recursively delete an arbitrary directory. A complete
+replacement is staged beside the destination before the old managed render is
+moved aside.
+
+Rendered output may contain hardware serials and must be reviewed before
+installation or publication. The bundled fallback remains documented under
+[`../../mainline-configs/`](../../mainline-configs/).

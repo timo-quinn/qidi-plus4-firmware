@@ -161,7 +161,8 @@ def _eval_reachable(facts: Any, _context: Context) -> ProbeResult:
 def _eval_stock_client(facts: Any, _context: Context) -> ProbeResult:
     probe = _PROBE_INDEX["host.stock-client"]
     paths = ("services.makerbase-client", "services_enabled.makerbase-client")
-    if (blocked := _needs(probe, facts, *paths)) is not None:
+    blocked = _needs(probe, facts, *paths)
+    if blocked is not None:
         return blocked
     active, enabled = (lookup(facts, path) for path in paths)
     evidence = _evidence(facts, *paths)
@@ -178,7 +179,8 @@ def _eval_stock_client(facts: Any, _context: Context) -> ProbeResult:
 
 def _eval_bootstrap_receipt(facts: Any, _context: Context) -> ProbeResult:
     probe = _PROBE_INDEX["bootstrap.receipt"]
-    if (blocked := _needs(probe, facts, "bootstrap_receipt.present")) is not None:
+    blocked = _needs(probe, facts, "bootstrap_receipt.present")
+    if blocked is not None:
         return blocked
     evidence = _evidence(
         facts,
@@ -200,7 +202,8 @@ def _eval_bootstrap_sources(facts: Any, _context: Context) -> ProbeResult:
     probe = _PROBE_INDEX["bootstrap.sources"]
     names = ("klipper", "moonraker", "katapult")
     paths = tuple(f"checkouts.{name}.present" for name in names)
-    if (blocked := _needs(probe, facts, *paths)) is not None:
+    blocked = _needs(probe, facts, *paths)
+    if blocked is not None:
         return blocked
     evidence = _evidence(
         facts, *paths, *(f"checkouts.{name}.head" for name in names)
@@ -218,7 +221,8 @@ def _eval_bootstrap_sources(facts: Any, _context: Context) -> ProbeResult:
 def _eval_bootstrap_services(facts: Any, _context: Context) -> ProbeResult:
     probe = _PROBE_INDEX["bootstrap.services"]
     paths = ("services_enabled.klipper", "services_enabled.moonraker")
-    if (blocked := _needs(probe, facts, *paths)) is not None:
+    blocked = _needs(probe, facts, *paths)
+    if blocked is not None:
         return blocked
     evidence = _evidence(facts, *paths, "services.klipper", "services.moonraker")
     installed = ("enabled", "enabled-runtime", "static", "indirect")
@@ -236,7 +240,8 @@ def _eval_bootstrap_uart(facts: Any, _context: Context) -> ProbeResult:
     probe = _PROBE_INDEX["bootstrap.uart-claimed"]
     ttys = ("ttyS0", "ttyS2")
     gettys = tuple(f"serial_getty.{tty}" for tty in ttys)
-    if (blocked := _needs(probe, facts, *gettys, "udev_rule")) is not None:
+    blocked = _needs(probe, facts, *gettys, "udev_rule")
+    if blocked is not None:
         return blocked
     evidence = _evidence(facts, *gettys, "udev_rule")
     # bootstrap-mainline.sh masks both login consoles and installs the dialout
@@ -259,7 +264,8 @@ def _eval_bootstrap_uart(facts: Any, _context: Context) -> ProbeResult:
 def _eval_host_tuning(facts: Any, _context: Context) -> ProbeResult:
     probe = _PROBE_INDEX["host-tuning.installed"]
     path = "services_enabled.qidi-plus4-host-tuning"
-    if (blocked := _needs(probe, facts, path)) is not None:
+    blocked = _needs(probe, facts, path)
+    if blocked is not None:
         return blocked
     evidence = _evidence(facts, path, "services.qidi-plus4-host-tuning",
                          "bootstrap_receipt.qidi_host_tuning_version")
@@ -278,7 +284,8 @@ def _eval_smoke_config(facts: Any, context: Context) -> ProbeResult:
     if context.smoke_test_sha256 is None:
         return _result(probe, INDETERMINATE,
                        "local smoke-test-printer.cfg could not be hashed")
-    if (blocked := _needs(probe, facts, "printer_cfg.present")) is not None:
+    blocked = _needs(probe, facts, "printer_cfg.present")
+    if blocked is not None:
         return blocked
     evidence = _evidence(facts, "printer_cfg.present", "printer_cfg.sha256")
     evidence["expected_sha256"] = context.smoke_test_sha256
@@ -298,7 +305,8 @@ def _eval_smoke_config(facts: Any, context: Context) -> ProbeResult:
 
 def _eval_config_installed(facts: Any, context: Context) -> ProbeResult:
     probe = _PROBE_INDEX["config.installed"]
-    if (blocked := _needs(probe, facts, "printer_cfg.present")) is not None:
+    blocked = _needs(probe, facts, "printer_cfg.present")
+    if blocked is not None:
         return blocked
     evidence = _evidence(facts, "printer_cfg.present", "printer_cfg.size",
                          "printer_cfg.sha256", "printer_cfg.mcu_sections")
@@ -328,7 +336,8 @@ def _eval_config_installed(facts: Any, context: Context) -> ProbeResult:
 
 def _eval_mcu_online(facts: Any, _context: Context) -> ProbeResult:
     probe = _PROBE_INDEX["mcu.online"]
-    if (blocked := _needs(probe, facts, "moonraker.reachable")) is not None:
+    blocked = _needs(probe, facts, "moonraker.reachable")
+    if blocked is not None:
         return blocked
     evidence = _evidence(facts, "moonraker.reachable", "moonraker.klippy_state",
                          "moonraker.klippy_message", "moonraker.mcu_objects")

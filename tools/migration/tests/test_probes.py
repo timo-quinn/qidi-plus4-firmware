@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import copy
 import hashlib
 import json
@@ -14,6 +15,11 @@ REMOTE_HELPER = pathlib.Path(__file__).resolve().parents[1] / "qidi-plus4-remote
 SMOKE_TEST_CONFIG = pathlib.Path(__file__).resolve().parents[1] / "smoke-test-printer.cfg"
 SMOKE_SHA = hashlib.sha256(SMOKE_TEST_CONFIG.read_bytes()).hexdigest()
 CONTEXT = probes.Context(smoke_test_sha256=SMOKE_SHA)
+
+
+def test_probe_module_parses_as_python_3_7() -> None:
+    source = pathlib.Path(probes.__file__).read_text(encoding="utf-8")
+    ast.parse(source, filename="probes.py", feature_version=(3, 7))
 
 
 def migrated_facts() -> dict:
