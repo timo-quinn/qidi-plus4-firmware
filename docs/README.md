@@ -23,5 +23,8 @@ Human-readable findings and practical integration guidance:
   safety boundary, and staged independent replacement for QIDI's `xindi`.
 - [LIVE-HARDWARE-INVENTORY.md](LIVE-HARDWARE-INVENTORY.md) records the
   sanitized runtime hardware, boot, MCU, USB, and service comparison.
+- [PLR-TIMER-TOO-CLOSE.md](PLR-TIMER-TOO-CLOSE.md) provides the standalone,
+  transactional repair and rollback procedure for the diagnosed QIDI
+  power-loss-recovery `Timer too close` failure.
 
 Generated evidence supporting these documents is under [`../analysis/`](../analysis/).
