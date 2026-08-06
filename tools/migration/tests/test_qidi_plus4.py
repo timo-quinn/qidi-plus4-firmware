@@ -616,9 +616,42 @@ def test_upgrade_klippee_agent_requires_confirmation_and_fixed_account(
         qidi_plus4.upgrade_klippee_agent(connection_args(
             "upgrade-klippee-agent",
             user="plab",
-            printer_user="mks",
+            printer_user="other",
             confirm="UPGRADE-KLIPPEE-AGENT",
         ))
+
+
+def test_upgrade_klippee_agent_runs_management_connection_as_fixed_mks(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: (["ssh", "plab@qidi1"], "plab@qidi1"),
+    )
+    expected = klippee_agent_upgrade_result()
+    calls: list[list[str]] = []
+
+    def fake_capture(command, input_data=None):
+        assert input_data is not None
+        calls.append(command)
+        return subprocess.CompletedProcess(
+            command, 0, json.dumps(expected).encode("utf-8"), b""
+        )
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    qidi_plus4.upgrade_klippee_agent(connection_args(
+        "upgrade-klippee-agent",
+        user="plab",
+        printer_user="mks",
+        confirm="UPGRADE-KLIPPEE-AGENT",
+    ))
+
+    assert json.loads(capsys.readouterr().out) == expected
+    assert calls[0][0:2] == ["ssh", "plab@qidi1"]
+    assert calls[0][-1].startswith(
+        "exec /usr/bin/sudo -n -u mks /usr/bin/env -i "
+    )
 
 
 def test_klippee_agent_upgrade_rejects_duplicate_or_unsafe_evidence() -> None:

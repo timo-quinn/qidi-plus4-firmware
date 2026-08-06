@@ -1163,9 +1163,9 @@ def upgrade_klippee_agent(args: argparse.Namespace) -> None:
             f"This action requires --confirm {KLIPPEE_AGENT_UPGRADE_ACTION}"
         )
     account = getattr(args, "printer_user", None) or args.user
-    if args.user != KLIPPEE_AGENT_ACCOUNT or account != KLIPPEE_AGENT_ACCOUNT:
+    if account != KLIPPEE_AGENT_ACCOUNT:
         raise SystemExit(
-            "Klippee agent upgrade requires the fixed mks SSH and printer account"
+            "Klippee agent upgrade requires the fixed mks printer account"
         )
     ssh, _target = ssh_base(args)
     helper = KLIPPEE_AGENT_UPGRADE_HELPER
@@ -1175,11 +1175,18 @@ def upgrade_klippee_agent(args: argparse.Namespace) -> None:
         or not 0 < helper.stat().st_size <= 128 * 1024
     ):
         raise SystemExit(f"Reviewed Klippee upgrade helper not found: {helper}")
+    isolated_python = (
+        "/usr/bin/env -i HOME=/home/mks USER=mks LOGNAME=mks "
+        "PATH=/usr/bin:/bin LANG=C LC_ALL=C /usr/bin/python3 -I -"
+    )
+    if args.user == KLIPPEE_AGENT_ACCOUNT:
+        remote_command = "exec " + isolated_python
+    else:
+        remote_command = (
+            "exec /usr/bin/sudo -n -u mks " + isolated_python
+        )
     completed = capture(
-        ssh + [
-            "exec /usr/bin/env -i HOME=/home/mks USER=mks LOGNAME=mks "
-            "PATH=/usr/bin:/bin LANG=C LC_ALL=C /usr/bin/python3 -I -"
-        ],
+        ssh + [remote_command],
         input_data=helper.read_bytes(),
     )
     if not completed.stdout and completed.returncode:

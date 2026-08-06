@@ -142,6 +142,10 @@ restarted Klipper nor deployed configuration. Printerlab exposes this as
 `plab klippee upgrade-agent` and first proves the current agent has no running
 operation.
 
+The SSH connection may use the dedicated management account created by this
+tool. In that case the fixed helper is run only as `mks` through noninteractive
+`sudo -u mks`; the management account cannot select another target user.
+
 ## Staging the mainboard microSD image
 
 `stage-mainboard-sdcard` re-validates a built mainboard image, copies it to a
