@@ -67,6 +67,7 @@ than searching the generated trees directly.
 - [QIDI Box vs. Cartographer compiled-Python conflict](docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md)
 - [Disabling the legacy QIDILink client on stock firmware](docs/DISABLE-QIDI-CLOUD.md)
 - [Manual PLR `Timer too close` repair](docs/PLR-TIMER-TOO-CLOSE.md)
+- [QIDI Box output clock guard](docs/QIDI-BOX-OUTPUT-CLOCK-GUARD.md)
 - [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)
 - [Install Happy Hare after mainline migration](docs/HAPPY-HARE-INSTALLATION.md)
 - [Stock touchscreen bridge research](docs/SCREEN-BRIDGE.md)

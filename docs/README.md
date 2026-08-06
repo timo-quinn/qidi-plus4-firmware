@@ -26,5 +26,8 @@ Human-readable findings and practical integration guidance:
 - [PLR-TIMER-TOO-CLOSE.md](PLR-TIMER-TOO-CLOSE.md) provides the standalone,
   transactional repair and rollback procedure for the diagnosed QIDI
   power-loss-recovery `Timer too close` failure.
+- [QIDI-BOX-OUTPUT-CLOCK-GUARD.md](QIDI-BOX-OUTPUT-CLOCK-GUARD.md) documents the
+  guarded stock-1.8.2 overlay that corrects QIDI Box output scheduling to use
+  the MCU that owns each output pin.
 
 Generated evidence supporting these documents is under [`../analysis/`](../analysis/).
