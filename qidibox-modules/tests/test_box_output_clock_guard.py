@@ -216,15 +216,14 @@ def test_incompatible_second_output_fails_before_changing_first(
     assert guard.get_status()["state"] == "error"
 
 
-def test_missing_box_extras_fails_clearly_without_side_effects() -> None:
+def test_missing_box_extras_defers_without_halting_klipper() -> None:
     printer = FakePrinter(None)
     guard = clock_guard.load_config(FakeConfig(printer))
 
-    with pytest.raises(ConfigError, match="cannot find box_extras"):
-        printer.connect()
+    printer.connect()
 
     assert guard.get_status() == {
-        "state": "error",
+        "state": "inactive-no-box",
         "corrected_count": 0,
         "corrected_outputs": [],
         "outputs": {},

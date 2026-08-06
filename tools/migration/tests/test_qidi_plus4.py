@@ -4,6 +4,7 @@ import argparse
 import importlib.util
 import io
 import json
+import os
 import pathlib
 import subprocess
 import tarfile
@@ -79,9 +80,7 @@ def test_parser_exposes_host_tuning_commands() -> None:
     parser = qidi_plus4.create_parser()
 
     audit = parser.parse_args(["audit-host-tuning", "--printer", "qidi2"])
-    tune = parser.parse_args(
-        ["tune-host", "--printer", "qidi2", "--confirm", "TUNE-HOST"]
-    )
+    tune = parser.parse_args(["tune-host", "--printer", "qidi2", "--confirm", "TUNE-HOST"])
 
     assert audit.func is qidi_plus4.host_tuning
     assert tune.func is qidi_plus4.host_tuning
@@ -103,9 +102,7 @@ def test_backup_publishes_only_after_partial_archive_is_verified(
     commands: list[list[str]] = []
     streamed_paths: list[pathlib.Path] = []
     payload = tiny_tar_gz()
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
 
     def fake_run(command: list[str], input_data: bytes | None = None) -> None:
@@ -150,9 +147,7 @@ def test_backup_publishes_only_after_partial_archive_is_verified(
     )
     with tarfile.open(archive, "r:gz") as bundle:
         assert bundle.getnames() == ["proof.txt"]
-    backup_commands = [
-        command for command in commands if command[:2] == ["ssh", "qidi1"]
-    ]
+    backup_commands = [command for command in commands if command[:2] == ["ssh", "qidi1"]]
     assert any(" 0 0 0" in command[-1] for command in backup_commands)
 
 
@@ -160,9 +155,7 @@ def test_failed_backup_removes_partial_and_never_publishes_archive(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
 ) -> None:
     payload = tiny_tar_gz()
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
     monkeypatch.setattr(qidi_plus4, "run", lambda command, input_data=None: None)
 
@@ -194,21 +187,21 @@ def test_failed_backup_removes_partial_and_never_publishes_archive(
 
 def test_parser_validates_password_environment_names() -> None:
     parser = qidi_plus4.create_parser()
-    args = parser.parse_args([
-        "setup-ssh",
-        "--printer", "qidi1",
-        "--password-env", "QIDI1_BOOTSTRAP_PASSWORD",
-    ])
+    args = parser.parse_args(
+        [
+            "setup-ssh",
+            "--printer",
+            "qidi1",
+            "--password-env",
+            "QIDI1_BOOTSTRAP_PASSWORD",
+        ]
+    )
     assert args.password_env == "QIDI1_BOOTSTRAP_PASSWORD"
 
     with pytest.raises(SystemExit):
-        parser.parse_args([
-            "setup-ssh", "--printer", "qidi1", "--password-env", "bad-name"
-        ])
+        parser.parse_args(["setup-ssh", "--printer", "qidi1", "--password-env", "bad-name"])
     with pytest.raises(SystemExit):
-        parser.parse_args([
-            "setup-ssh", "--printer", "qidi1", "--password-env", "SSH_ASKPASS"
-        ])
+        parser.parse_args(["setup-ssh", "--printer", "qidi1", "--password-env", "SSH_ASKPASS"])
 
 
 @pytest.mark.parametrize(
@@ -328,23 +321,35 @@ def test_default_key_authentication_options_remain_unchanged(
 
 def test_parser_exposes_guarded_plr_deploy_start_and_rollback_commands() -> None:
     parser = qidi_plus4.create_parser()
-    deploy = parser.parse_args([
-        "deploy-plr-hardening",
-        "--printer", "qidi1",
-        "--confirm", "DEPLOY-PLR-HARDENING",
-    ])
-    start = parser.parse_args([
-        "start-klipper",
-        "--printer", "qidi1",
-        "--confirm", "START-KLIPPER",
-    ])
-    rollback = parser.parse_args([
-        "rollback-plr-hardening",
-        "--printer", "qidi1",
-        "--confirm", "ROLLBACK-PLR-HARDENING",
-        "--backup-manifest",
-        "/home/mks/scripts/plr/backups/plr-hardening-20260806T000000Z-x/backup-manifest.json",
-    ])
+    deploy = parser.parse_args(
+        [
+            "deploy-plr-hardening",
+            "--printer",
+            "qidi1",
+            "--confirm",
+            "DEPLOY-PLR-HARDENING",
+        ]
+    )
+    start = parser.parse_args(
+        [
+            "start-klipper",
+            "--printer",
+            "qidi1",
+            "--confirm",
+            "START-KLIPPER",
+        ]
+    )
+    rollback = parser.parse_args(
+        [
+            "rollback-plr-hardening",
+            "--printer",
+            "qidi1",
+            "--confirm",
+            "ROLLBACK-PLR-HARDENING",
+            "--backup-manifest",
+            "/home/mks/scripts/plr/backups/plr-hardening-20260806T000000Z-x/backup-manifest.json",
+        ]
+    )
 
     assert deploy.func is qidi_plus4.deploy_plr_hardening
     assert start.func is qidi_plus4.start_klipper
@@ -384,17 +389,19 @@ def test_remote_json_preserves_structured_installer_error(
 def test_refresh_klippee_agent_restarts_only_fixed_user_unit(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    parsed = qidi_plus4.create_parser().parse_args([
-        "refresh-klippee-agent",
-        "--printer", "qidi1",
-        "--confirm", "REFRESH-KLIPPEE-AGENT",
-    ])
+    parsed = qidi_plus4.create_parser().parse_args(
+        [
+            "refresh-klippee-agent",
+            "--printer",
+            "qidi1",
+            "--confirm",
+            "REFRESH-KLIPPEE-AGENT",
+        ]
+    )
     assert parsed.func is qidi_plus4.refresh_klippee_agent
 
     calls: list[list[str]] = []
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
 
     def fake_capture(
         command: list[str], input_data: bytes | None = None
@@ -405,9 +412,7 @@ def test_refresh_klippee_agent_restarts_only_fixed_user_unit(
         return subprocess.CompletedProcess(command, 0, b"", b"")
 
     monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
-    args = connection_args(
-        "refresh-klippee-agent", confirm="REFRESH-KLIPPEE-AGENT"
-    )
+    args = connection_args("refresh-klippee-agent", confirm="REFRESH-KLIPPEE-AGENT")
 
     qidi_plus4.refresh_klippee_agent(args)
 
@@ -426,9 +431,7 @@ def test_refresh_klippee_agent_targets_printer_users_user_bus(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "plab@qidi1"], "plab@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "plab@qidi1"], "plab@qidi1"))
 
     def fake_capture(
         command: list[str], input_data: bytes | None = None
@@ -471,15 +474,407 @@ def test_refresh_klippee_agent_requires_exact_confirmation_before_ssh(
         qidi_plus4.refresh_klippee_agent(args)
 
 
+def test_parser_exposes_fixed_box_clock_guard_installer() -> None:
+    parsed = qidi_plus4.create_parser().parse_args(
+        [
+            "install-box-output-clock-guard",
+            "--printer",
+            "qidi1",
+            "--confirm",
+            "INSTALL-BOX-OUTPUT-CLOCK-GUARD",
+        ]
+    )
+
+    assert parsed.func is qidi_plus4.install_box_output_clock_guard
+    assert not hasattr(parsed, "source")
+    assert not hasattr(parsed, "target")
+    assert not hasattr(parsed, "mode")
+    assert not hasattr(parsed, "remote_python")
+
+
+def test_parser_exposes_fixed_box_motion_template_guard() -> None:
+    parsed = qidi_plus4.create_parser().parse_args(
+        [
+            "harden-box-motion-template",
+            "--printer",
+            "qidi1",
+            "--box-count",
+            "1",
+            "--confirm",
+            "HARDEN-BOX-MOTION-TEMPLATE",
+        ]
+    )
+
+    assert parsed.func is qidi_plus4.harden_box_motion_template
+    assert parsed.box_count == 1
+    assert not hasattr(parsed, "target")
+    assert not hasattr(parsed, "remote_python")
+
+
+def test_box_motion_template_guard_streams_fixed_helper_without_restart(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    transaction_id = "20260806T010203Z-0123456789abcdef"
+    before = "1" * 64
+    after = "2" * 64
+    remote_result = {
+        "schema": qidi_plus4.BOX_MOTION_GUARD_SCHEMA,
+        "ok": True,
+        "changed": True,
+        "verified": True,
+        "box_count": 1,
+        "transaction_id": transaction_id,
+        "target": {
+            "path": "/home/mks/cfg_with_1",
+            "before_sha256": before,
+            "after_sha256": after,
+            "mode": "0644",
+            "uid": 0,
+            "gid": 0,
+        },
+        "backup": {
+            "path": (f"/home/mks/.qidi-plus4-backups/box-motion-guard-{transaction_id}/cfg_with_1"),
+            "sha256": before,
+        },
+        "use_irq": False,
+        "debounce_us_present": False,
+        "active_config_changed": False,
+        "klipper_service_action": "none",
+        "klipper_restarted": False,
+        "activation_required": True,
+    }
+    calls: list[tuple[list[str], bytes | None]] = []
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: (["ssh", "qidi1"], "plab@qidi1"),
+    )
+    monkeypatch.setattr(
+        qidi_plus4,
+        "_box_clock_guard_transaction_id",
+        lambda: transaction_id,
+    )
+
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        calls.append((command, input_data))
+        return subprocess.CompletedProcess(command, 0, json.dumps(remote_result).encode(), b"")
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    qidi_plus4.harden_box_motion_template(
+        connection_args(
+            "harden-box-motion-template",
+            confirm="HARDEN-BOX-MOTION-TEMPLATE",
+            box_count=1,
+            user="plab",
+            printer_user="mks",
+        )
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["target"]["after_sha256"] == after
+    assert len(calls) == 1
+    command, helper = calls[0]
+    assert helper == qidi_plus4.BOX_MOTION_GUARD_REMOTE_INSTALLER.read_bytes()
+    assert "sudo -n /usr/bin/python3 -I -" in command[-1]
+    assert "--box-count 1" in command[-1]
+    assert transaction_id in command[-1]
+    assert "systemctl" not in command[-1]
+    assert "restart" not in command[-1]
+
+
+def test_set_klippee_variable_uses_fixed_cli_and_verifies_without_restart(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: (["ssh", "qidi1"], "plab@qidi1"),
+    )
+
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        assert input_data is None
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, b"verified\n", b"")
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    value = "/dev/serial/by-id/usb-QIDI_TEST"
+    qidi_plus4.set_klippee_variable(
+        connection_args(
+            "set-klippee-variable",
+            confirm="SET-KLIPPEE-VARIABLE",
+            name="qidi_box_serial",
+            value=value,
+            user="plab",
+            printer_user="mks",
+        )
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["ok"] is True
+    assert result["verified"] is True
+    assert result["name"] == "qidi_box_serial"
+    assert result["value_sha256"] == qidi_plus4.hashlib.sha256(value.encode()).hexdigest()
+    assert value not in json.dumps(result)
+    assert len(calls) == 2
+    assert qidi_plus4.KLIPPEE_VARIABLE_CLI in calls[0][-1]
+    assert "variables set qidi_box_serial" in calls[0][-1]
+    assert "variables doctor" in calls[1][-1]
+    assert "systemctl" not in "\n".join(call[-1] for call in calls)
+    assert "restart" not in "\n".join(call[-1] for call in calls)
+
+
+def test_set_klippee_variable_rejects_unsafe_name_before_ssh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: pytest.fail("invalid variable must not reach SSH"),
+    )
+    with pytest.raises(SystemExit, match="name is invalid"):
+        qidi_plus4.set_klippee_variable(
+            connection_args(
+                "set-klippee-variable",
+                confirm="SET-KLIPPEE-VARIABLE",
+                name="bad;name",
+                value="value",
+                printer_user="mks",
+            )
+        )
+
+
+def test_box_clock_guard_installer_requires_confirmation_and_fixed_owner_before_ssh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: pytest.fail("local safety checks must precede SSH construction"),
+    )
+
+    with pytest.raises(SystemExit, match="INSTALL-BOX-OUTPUT-CLOCK-GUARD"):
+        qidi_plus4.install_box_output_clock_guard(
+            connection_args("install-box-output-clock-guard", confirm="yes")
+        )
+
+    with pytest.raises(SystemExit, match="fixed stock Klipper account mks"):
+        qidi_plus4.install_box_output_clock_guard(
+            connection_args(
+                "install-box-output-clock-guard",
+                confirm="INSTALL-BOX-OUTPUT-CLOCK-GUARD",
+                printer_user="root",
+            )
+        )
+
+
+def test_box_clock_guard_installer_uploads_only_reviewed_asset_and_never_restarts(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    stage = "/tmp/qidi-box-clock-guard.A1b2C3d4"
+    transaction_id = "20260806T010203Z-0123456789abcdef"
+    digest = qidi_plus4.sha256(qidi_plus4.BOX_CLOCK_GUARD_SOURCE)
+    backup_path = (
+        "/home/mks/klipper/klippy/extras/.qidi-plus4-backups/"
+        f"box-output-clock-guard-{transaction_id}/box_output_clock_guard.py"
+    )
+    remote_result = {
+        "schema": qidi_plus4.BOX_CLOCK_GUARD_SCHEMA,
+        "ok": True,
+        "changed": True,
+        "applied": True,
+        "verified": True,
+        "account": "mks",
+        "transaction_id": transaction_id,
+        "source_sha256": digest,
+        "target": {
+            "path": qidi_plus4.BOX_CLOCK_GUARD_TARGET,
+            "sha256": digest,
+            "owner": "mks",
+            "group": "mks",
+            "mode": "0644",
+        },
+        "backup": {
+            "path": backup_path,
+            "sha256": "0" * 64,
+            "owner": "mks",
+            "group": "mks",
+            "mode": "0644",
+        },
+        "klipper_service_action": "none",
+        "klipper_restarted": False,
+        "config_changed": False,
+        "activation_required": True,
+        "required_config_section": "[box_output_clock_guard]",
+    }
+    calls: list[tuple[list[str], bytes | None]] = []
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: (["ssh", "qidi1"], "mks@qidi1"),
+    )
+    monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
+    monkeypatch.setattr(
+        qidi_plus4,
+        "_box_clock_guard_transaction_id",
+        lambda: transaction_id,
+    )
+
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        calls.append((command, input_data))
+        if command[-1] == "mktemp -d /tmp/qidi-box-clock-guard.XXXXXXXX":
+            return subprocess.CompletedProcess(command, 0, (stage + "\n").encode(), b"")
+        if input_data is not None:
+            return subprocess.CompletedProcess(command, 0, json.dumps(remote_result).encode(), b"")
+        return subprocess.CompletedProcess(command, 0, b"", b"")
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    args = connection_args(
+        "install-box-output-clock-guard",
+        confirm="INSTALL-BOX-OUTPUT-CLOCK-GUARD",
+        printer_user=None,
+    )
+
+    qidi_plus4.install_box_output_clock_guard(args)
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["ok"] is True
+    assert result["target"]["sha256"] == digest
+    assert result["backup"]["path"] == backup_path
+    assert result["klipper_service_action"] == "none"
+    assert result["klipper_restarted"] is False
+    assert result["config_changed"] is False
+    assert result["staging_cleanup_verified"] is True
+
+    scp_calls = [command for command, _input in calls if command[0] == "scp"]
+    assert scp_calls == [
+        [
+            "scp",
+            str(qidi_plus4.BOX_CLOCK_GUARD_SOURCE.resolve()),
+            f"mks@qidi1:{stage}/box_output_clock_guard.py",
+        ]
+    ]
+    streamed = [(command, data) for command, data in calls if data is not None]
+    assert len(streamed) == 1
+    remote_command, helper = streamed[0]
+    assert helper == qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER.read_bytes()
+    assert qidi_plus4.BOX_CLOCK_GUARD_REMOTE_PYTHON in remote_command[-1]
+    assert " -I - " in remote_command[-1]
+    assert digest in remote_command[-1]
+    assert transaction_id in remote_command[-1]
+    assert qidi_plus4.BOX_CLOCK_GUARD_TARGET not in remote_command[-1]
+    all_commands = "\n".join(" ".join(command) for command, _input in calls)
+    assert "systemctl" not in all_commands
+    assert "restart" not in all_commands
+
+
+def test_box_clock_guard_proof_rejects_wrong_remote_digest() -> None:
+    expected = "1" * 64
+    document = {
+        "schema": qidi_plus4.BOX_CLOCK_GUARD_SCHEMA,
+        "ok": True,
+        "changed": False,
+        "applied": False,
+        "verified": True,
+        "account": "mks",
+        "transaction_id": "20260806T010203Z-0123456789abcdef",
+        "source_sha256": expected,
+        "target": {
+            "path": qidi_plus4.BOX_CLOCK_GUARD_TARGET,
+            "sha256": "2" * 64,
+            "owner": "mks",
+            "group": "mks",
+            "mode": "0644",
+        },
+        "backup": None,
+        "klipper_service_action": "none",
+        "klipper_restarted": False,
+        "config_changed": False,
+        "activation_required": True,
+        "required_config_section": "[box_output_clock_guard]",
+    }
+    completed = subprocess.CompletedProcess(["ssh"], 0, json.dumps(document).encode(), b"")
+
+    with pytest.raises(
+        qidi_plus4.BoxClockGuardInstallError,
+        match="digest or metadata was not verified",
+    ):
+        qidi_plus4._validated_box_clock_guard_result(
+            completed,
+            expected_digest=expected,
+            transaction_id="20260806T010203Z-0123456789abcdef",
+        )
+
+
+def test_remote_box_clock_guard_helper_has_fixed_install_boundary() -> None:
+    helper = qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER.read_text(encoding="utf-8")
+
+    assert 'OWNER = "mks"' in helper
+    assert '"/home/mks/klipper/klippy/extras/box_output_clock_guard.py"' in helper
+    assert "MODE = 0o644" in helper
+    assert 'parser.add_argument("--target"' not in helper
+    assert 'parser.add_argument("--owner"' not in helper
+    assert 'parser.add_argument("--mode"' not in helper
+    assert "systemctl" not in helper
+    assert "subprocess" not in helper
+
+
+@pytest.mark.skipif(os.name == "nt", reason="remote helper targets a POSIX QIDI host")
+def test_remote_box_clock_guard_helper_preserves_timestamped_backup(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    helper_path = qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER
+    spec = importlib.util.spec_from_file_location("box_clock_guard_installer", helper_path)
+    assert spec and spec.loader
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    current_owner = helper.pwd.getpwuid(os.getuid()).pw_name
+    source = tmp_path / "source.py"
+    target = tmp_path / "extras" / "box_output_clock_guard.py"
+    target.parent.mkdir()
+    source.write_bytes(b"reviewed clock guard\n")
+    target.write_bytes(b"old clock guard\n")
+    target.chmod(0o600)
+    monkeypatch.setattr(helper.os, "chown", lambda _path, _uid, _gid: None)
+    transaction_id = "20260806T010203Z-0123456789abcdef"
+
+    result = helper.install(
+        source,
+        helper.sha256(source),
+        transaction_id,
+        target=target,
+        owner_name=current_owner,
+    )
+
+    assert result["ok"] is True
+    assert result["changed"] is True
+    assert result["target"]["sha256"] == helper.sha256(source)
+    assert result["target"]["mode"] == "0644"
+    backup = pathlib.Path(result["backup"]["path"])
+    assert transaction_id in str(backup)
+    assert backup.read_bytes() == b"old clock guard\n"
+    assert result["klipper_restarted"] is False
+
+
 def test_start_klipper_only_starts_exact_unit_and_verifies_active(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
 
-    def fake_capture(command: list[str], input_data: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
         calls.append(command)
         if "is-active" in command[-1]:
             return subprocess.CompletedProcess(command, 0, b"active\n", b"")
@@ -500,12 +895,12 @@ def test_start_klipper_only_starts_exact_unit_and_verifies_active(
     result = json.loads(capsys.readouterr().out)
     assert result["ok"] is True
     assert result["config_or_file_reads_performed"] is False
-    assert calls[0] == [
-        "ssh", "qidi1", "sudo -n systemctl start klipper.service"
-    ]
-    assert calls[1:] == [
-        ["ssh", "qidi1", "systemctl is-active klipper.service"]
-    ] * qidi_plus4.KLIPPER_START_STABILITY_CHECKS
+    assert calls[0] == ["ssh", "qidi1", "sudo -n systemctl start klipper.service"]
+    assert (
+        calls[1:]
+        == [["ssh", "qidi1", "systemctl is-active klipper.service"]]
+        * qidi_plus4.KLIPPER_START_STABILITY_CHECKS
+    )
     assert len(result["stability_samples"]) == qidi_plus4.KLIPPER_START_STABILITY_CHECKS
 
 
@@ -532,9 +927,7 @@ def test_start_klipper_rejects_service_that_dies_during_stability_window(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     state_reads = 0
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
 
     def fake_capture(
         command: list[str], input_data: bytes | None = None
@@ -554,8 +947,7 @@ def test_start_klipper_rejects_service_that_dies_during_stability_window(
         confirm="START-KLIPPER",
         service="klipper.service",
         rollback_manifest=(
-            "/home/mks/scripts/plr/backups/"
-            "plr-hardening-20260806T000000Z-test/backup-manifest.json"
+            "/home/mks/scripts/plr/backups/plr-hardening-20260806T000000Z-test/backup-manifest.json"
         ),
         scripts_dir="/home/mks/scripts/plr",
     )
@@ -578,25 +970,20 @@ def test_deploy_plr_hardening_stops_applies_verifies_and_never_restarts(
     installer_reads = 0
     paths = canonical_plr_paths()
     backup_manifest = (
-        "/home/mks/scripts/plr/backups/"
-        "plr-hardening-20260806T000000Z-test/backup-manifest.json"
+        "/home/mks/scripts/plr/backups/plr-hardening-20260806T000000Z-test/backup-manifest.json"
     )
-    monkeypatch.setattr(
-        qidi_plus4, "_plr_transaction_id", lambda: "20260806T000000Z-test"
-    )
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "_plr_transaction_id", lambda: "20260806T000000Z-test")
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
 
-    def fake_capture(command: list[str], input_data: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
         nonlocal installer_reads
         calls.append(command)
         joined = " ".join(command)
         if "mktemp -d" in joined:
-            return subprocess.CompletedProcess(
-                command, 0, b"/tmp/qidi-plr-hardening.ABC123\n", b""
-            )
+            return subprocess.CompletedProcess(command, 0, b"/tmp/qidi-plr-hardening.ABC123\n", b"")
         if command[0] == "scp" or "systemctl stop" in joined:
             return subprocess.CompletedProcess(command, 0, b"", b"")
         if "systemctl is-active" in joined:
@@ -678,16 +1065,11 @@ def test_deploy_plr_failure_preserves_backup_manifest_after_apply(
     calls: list[list[str]] = []
     installer_reads = 0
     backup_manifest = (
-        "/home/mks/scripts/plr/backups/"
-        "plr-hardening-20260806T000000Z-proof/backup-manifest.json"
+        "/home/mks/scripts/plr/backups/plr-hardening-20260806T000000Z-proof/backup-manifest.json"
     )
     paths = canonical_plr_paths()
-    monkeypatch.setattr(
-        qidi_plus4, "_plr_transaction_id", lambda: "20260806T000000Z-proof"
-    )
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "_plr_transaction_id", lambda: "20260806T000000Z-proof")
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
 
     def fake_capture(
@@ -697,9 +1079,7 @@ def test_deploy_plr_failure_preserves_backup_manifest_after_apply(
         calls.append(command)
         joined = " ".join(command)
         if "mktemp -d" in joined:
-            return subprocess.CompletedProcess(
-                command, 0, b"/tmp/qidi-plr-hardening.PROOF1\n", b""
-            )
+            return subprocess.CompletedProcess(command, 0, b"/tmp/qidi-plr-hardening.PROOF1\n", b"")
         if command[0] == "scp" or "systemctl stop" in joined:
             return subprocess.CompletedProcess(command, 0, b"", b"")
         if "systemctl is-active" in joined:
@@ -803,9 +1183,7 @@ def test_deploy_transport_loss_keeps_predeclared_backup_handle(
         "_plr_transaction_id",
         lambda: "20260806T000000Z-transport",
     )
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
 
     def fake_capture(
@@ -814,9 +1192,7 @@ def test_deploy_transport_loss_keeps_predeclared_backup_handle(
         nonlocal installer_reads
         joined = " ".join(command)
         if "mktemp -d" in joined:
-            return subprocess.CompletedProcess(
-                command, 0, b"/tmp/qidi-plr-hardening.LOST1\n", b""
-            )
+            return subprocess.CompletedProcess(command, 0, b"/tmp/qidi-plr-hardening.LOST1\n", b"")
         if command[0] == "scp" or "systemctl stop" in joined:
             return subprocess.CompletedProcess(command, 0, b"", b"")
         if "systemctl is-active" in joined:
@@ -836,9 +1212,7 @@ def test_deploy_transport_loss_keeps_predeclared_backup_handle(
                 return subprocess.CompletedProcess(
                     command, 0, json.dumps(document).encode("utf-8"), b""
                 )
-            return subprocess.CompletedProcess(
-                command, 255, b"", b"connection reset after apply\n"
-            )
+            return subprocess.CompletedProcess(command, 255, b"", b"connection reset after apply\n")
         raise AssertionError(command)
 
     monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
@@ -875,14 +1249,11 @@ def test_rollback_unchanged_echoes_validated_backup_manifest(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     backup_manifest = (
-        "/home/mks/scripts/plr/backups/"
-        "plr-hardening-20260806T000000Z-proof/backup-manifest.json"
+        "/home/mks/scripts/plr/backups/plr-hardening-20260806T000000Z-proof/backup-manifest.json"
     )
     paths = canonical_plr_paths()
     calls: list[list[str]] = []
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
 
     def fake_capture(
@@ -891,9 +1262,7 @@ def test_rollback_unchanged_echoes_validated_backup_manifest(
         calls.append(command)
         joined = " ".join(command)
         if "mktemp -d" in joined:
-            return subprocess.CompletedProcess(
-                command, 0, b"/tmp/qidi-plr-hardening.ROLL1\n", b""
-            )
+            return subprocess.CompletedProcess(command, 0, b"/tmp/qidi-plr-hardening.ROLL1\n", b"")
         if command[0] == "scp":
             return subprocess.CompletedProcess(command, 0, b"", b"")
         if "install.py" in joined:
@@ -944,18 +1313,14 @@ def test_rollback_partial_failure_preserves_both_transaction_handles(
     paths = canonical_plr_paths()
     transaction_id = "20260806T000000Z-rollback"
     backup_manifest = (
-        "/home/mks/scripts/plr/backups/"
-        "plr-hardening-20260806T000000Z-proof/backup-manifest.json"
+        "/home/mks/scripts/plr/backups/plr-hardening-20260806T000000Z-proof/backup-manifest.json"
     )
     safety_manifest = (
-        "/home/mks/scripts/plr/backups/"
-        f"plr-rollback-safety-{transaction_id}/safety-manifest.json"
+        f"/home/mks/scripts/plr/backups/plr-rollback-safety-{transaction_id}/safety-manifest.json"
     )
     installer_reads = 0
     monkeypatch.setattr(qidi_plus4, "_plr_transaction_id", lambda: transaction_id)
-    monkeypatch.setattr(
-        qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1")
-    )
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "mks@qidi1"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
 
     def fake_capture(
@@ -964,9 +1329,7 @@ def test_rollback_partial_failure_preserves_both_transaction_handles(
         nonlocal installer_reads
         joined = " ".join(command)
         if "mktemp -d" in joined:
-            return subprocess.CompletedProcess(
-                command, 0, b"/tmp/qidi-plr-hardening.ROLL2\n", b""
-            )
+            return subprocess.CompletedProcess(command, 0, b"/tmp/qidi-plr-hardening.ROLL2\n", b"")
         if command[0] == "scp" or "systemctl stop" in joined:
             return subprocess.CompletedProcess(command, 0, b"", b"")
         if "systemctl is-active" in joined:
@@ -980,9 +1343,7 @@ def test_rollback_partial_failure_preserves_both_transaction_handles(
                 "paths": paths,
                 "backup_manifest": backup_manifest,
                 "safety_manifest": safety_manifest,
-                "transaction_state": (
-                    "not_started" if installer_reads == 1 else "partial"
-                ),
+                "transaction_state": ("not_started" if installer_reads == 1 else "partial"),
                 "applied": None,
             }
             if installer_reads > 1:
@@ -1040,13 +1401,8 @@ def test_plr_layout_rejects_paths_from_a_different_account() -> None:
 
 
 def test_plr_rollback_manifest_path_is_strict() -> None:
-    valid = (
-        "/home/mks/scripts/plr/backups/"
-        "plr-hardening-20260806T000000Z-abc/backup-manifest.json"
-    )
-    assert qidi_plus4._validated_plr_backup_manifest(
-        valid, "/home/mks/scripts/plr"
-    ) == valid
+    valid = "/home/mks/scripts/plr/backups/plr-hardening-20260806T000000Z-abc/backup-manifest.json"
+    assert qidi_plus4._validated_plr_backup_manifest(valid, "/home/mks/scripts/plr") == valid
     with pytest.raises(SystemExit, match="exact PLR installer"):
         qidi_plus4._validated_plr_backup_manifest(
             "/tmp/backup-manifest.json", "/home/mks/scripts/plr"
@@ -1057,12 +1413,17 @@ def test_parser_accepts_exact_external_profile_directory(tmp_path: pathlib.Path)
     parser = qidi_plus4.create_parser()
     profile = tmp_path / "qidi2"
 
-    args = parser.parse_args([
-        "render-config",
-        "--profile-dir", str(profile),
-        "--beacon-serial", BEACON_SERIAL,
-        "--output", str(tmp_path / "rendered"),
-    ])
+    args = parser.parse_args(
+        [
+            "render-config",
+            "--profile-dir",
+            str(profile),
+            "--beacon-serial",
+            BEACON_SERIAL,
+            "--output",
+            str(tmp_path / "rendered"),
+        ]
+    )
 
     assert args.func is qidi_plus4.render_config
     assert args.profile_dir == profile
@@ -1071,11 +1432,15 @@ def test_parser_accepts_exact_external_profile_directory(tmp_path: pathlib.Path)
 def test_parser_preserves_bundled_profile_fallback(tmp_path: pathlib.Path) -> None:
     parser = qidi_plus4.create_parser()
 
-    args = parser.parse_args([
-        "render-config",
-        "--beacon-serial", BEACON_SERIAL,
-        "--output", str(tmp_path / "rendered"),
-    ])
+    args = parser.parse_args(
+        [
+            "render-config",
+            "--beacon-serial",
+            BEACON_SERIAL,
+            "--output",
+            str(tmp_path / "rendered"),
+        ]
+    )
 
     assert args.profile == qidi_plus4.DEFAULT_CONFIG_PROFILE
     assert args.profile_dir is None
@@ -1088,14 +1453,10 @@ def test_host_tuning_helper_contains_persistent_safety_controls() -> None:
     assert "CPUAffinity=1 2" in helper
     assert "CPUAffinity=0 3" in helper
     assert "Requires=qidi-plus4-host-tuning.service" in helper
-    assert (
-        "ExecStart=/bin/bash /usr/local/sbin/qidi-plus4-host-tuning apply-early"
-        in helper
-    )
+    assert "ExecStart=/bin/bash /usr/local/sbin/qidi-plus4-host-tuning apply-early" in helper
     assert (
         "ExecStartPost=+/bin/bash /usr/local/sbin/qidi-plus4-host-tuning "
-        "apply-late --wait-seconds 60 --settle-seconds 60"
-        in helper
+        "apply-late --wait-seconds 60 --settle-seconds 60" in helper
     )
     assert "systemctl status --no-pager --full" in helper
     assert "journalctl --no-pager -u qidi-plus4-host-tuning.service" in helper
@@ -1160,9 +1521,7 @@ def test_tune_host_uploads_installs_and_cleans_up(
         "run",
         lambda command, input_data=None: run_calls.append(command),
     )
-    qidi_plus4.host_tuning(
-        connection_args("tune-host", confirm="TUNE-HOST")
-    )
+    qidi_plus4.host_tuning(connection_args("tune-host", confirm="TUNE-HOST"))
 
     assert run_calls[0] == [
         "scp",
@@ -1211,9 +1570,7 @@ def test_render_config_supports_external_profile_and_output(tmp_path: pathlib.Pa
     qidi_plus4.render_config(render_args(profile, output))
 
     assert BEACON_SERIAL in (output / "printer.cfg").read_text(encoding="utf-8")
-    metadata = json.loads(
-        (output / qidi_plus4.RENDER_METADATA_FILE).read_text(encoding="utf-8")
-    )
+    metadata = json.loads((output / qidi_plus4.RENDER_METADATA_FILE).read_text(encoding="utf-8"))
     assert metadata["schema"] == qidi_plus4.RENDER_METADATA_SCHEMA
     assert metadata["managed_by"] == qidi_plus4.RENDER_METADATA_MANAGER
     assert metadata["profile"] == "qidi2"
@@ -1243,13 +1600,15 @@ def test_render_force_refuses_unrecognized_marker(tmp_path: pathlib.Path) -> Non
     sentinel = output / "keep-me.txt"
     sentinel.write_text("user data", encoding="utf-8")
     (output / qidi_plus4.RENDER_METADATA_FILE).write_text(
-        json.dumps({
-            "schema": qidi_plus4.RENDER_METADATA_SCHEMA,
-            "managed_by": "someone-else",
-            "profile": "qidi2",
-            "beacon_serial": BEACON_SERIAL,
-            "rendered_at_utc": "2026-07-14T00:00:00+00:00",
-        }),
+        json.dumps(
+            {
+                "schema": qidi_plus4.RENDER_METADATA_SCHEMA,
+                "managed_by": "someone-else",
+                "profile": "qidi2",
+                "beacon_serial": BEACON_SERIAL,
+                "rendered_at_utc": "2026-07-14T00:00:00+00:00",
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -1282,19 +1641,19 @@ def test_render_force_accepts_legacy_qidi_marker(tmp_path: pathlib.Path) -> None
     output = tmp_path / "legacy"
     output.mkdir()
     (output / qidi_plus4.RENDER_METADATA_FILE).write_text(
-        json.dumps({
-            "profile": "plus4-x7-v1.0-beacon",
-            "beacon_serial": BEACON_SERIAL,
-            "rendered_at_utc": "2026-07-14T00:00:00+00:00",
-        }),
+        json.dumps(
+            {
+                "profile": "plus4-x7-v1.0-beacon",
+                "beacon_serial": BEACON_SERIAL,
+                "rendered_at_utc": "2026-07-14T00:00:00+00:00",
+            }
+        ),
         encoding="utf-8",
     )
 
     qidi_plus4.render_config(render_args(profile, output, force=True))
 
-    metadata = json.loads(
-        (output / qidi_plus4.RENDER_METADATA_FILE).read_text(encoding="utf-8")
-    )
+    metadata = json.loads((output / qidi_plus4.RENDER_METADATA_FILE).read_text(encoding="utf-8"))
     assert metadata["schema"] == qidi_plus4.RENDER_METADATA_SCHEMA
 
 
