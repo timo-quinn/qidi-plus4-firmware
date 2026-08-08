@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Persist the QIDI Box polled motion-sensor path in one stock template."""
+"""Switch one stock QIDI Box template between polled and vendor IRQ paths."""
 
 import argparse
 import hashlib
@@ -93,6 +93,55 @@ def hardened_content(raw):
     return "".join(lines).encode("utf-8")
 
 
+def vendor_content(raw):
+    text = raw.decode("utf-8")
+    lines = text.splitlines(True)
+    section_indexes = [
+        index for index, line in enumerate(lines) if SECTION.match(line.rstrip("\r\n"))
+    ]
+    if len(section_indexes) != 1:
+        raise RuntimeError(
+            "template must contain exactly one [filament_motion_sensor box_motion_sensor] section"
+        )
+    start = section_indexes[0] + 1
+    end = len(lines)
+    for index in range(start, len(lines)):
+        if NEXT_SECTION.match(lines[index].rstrip("\r\n")):
+            end = index
+            break
+    use_indexes = []
+    debounce_indexes = []
+    for index in range(start, end):
+        body = lines[index].rstrip("\r\n")
+        if USE_IRQ.match(body):
+            use_indexes.append(index)
+        if DEBOUNCE.match(body):
+            debounce_indexes.append(index)
+    if len(use_indexes) != 1:
+        raise RuntimeError("motion-sensor section must contain exactly one use_irq option")
+    if len(debounce_indexes) > 1:
+        raise RuntimeError("motion-sensor section contains duplicate debounce_us options")
+
+    use_index = use_indexes[0]
+    original = lines[use_index]
+    newline = "\r\n" if original.endswith("\r\n") else "\n" if original.endswith("\n") else ""
+    match = USE_IRQ.match(original.rstrip("\r\n"))
+    indent = match.group(1)
+    lines[use_index] = "%suse_irq : True%s" % (indent, newline)
+    if debounce_indexes:
+        debounce_index = debounce_indexes[0]
+        debounce_original = lines[debounce_index]
+        debounce_newline = (
+            "\r\n"
+            if debounce_original.endswith("\r\n")
+            else "\n" if debounce_original.endswith("\n") else ""
+        )
+        lines[debounce_index] = "%sdebounce_us : 50%s" % (indent, debounce_newline)
+    else:
+        lines.insert(use_index + 1, "%sdebounce_us : 50%s" % (indent, newline))
+    return "".join(lines).encode("utf-8")
+
+
 def atomic_write(target, content, details):
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=".%s." % target.name,
@@ -120,7 +169,7 @@ def atomic_write(target, content, details):
             pass
 
 
-def install(box_count, transaction_id, target=None):
+def install(box_count, transaction_id, target=None, restore_vendor=False):
     if box_count not in (1, 2, 3, 4):
         raise RuntimeError("box count must be 1 through 4")
     if not TRANSACTION_ID.fullmatch(transaction_id):
@@ -133,8 +182,9 @@ def install(box_count, transaction_id, target=None):
     real_directory(target.parent, "QIDI Box template directory")
     before_digest = sha256(target)
     current = target.read_bytes()
-    hardened = hardened_content(current)
-    changed = hardened != current
+    transform = vendor_content if restore_vendor else hardened_content
+    desired = transform(current)
+    changed = desired != current
     backup = None
 
     if changed:
@@ -144,7 +194,8 @@ def install(box_count, transaction_id, target=None):
         else:
             backup_root.mkdir(mode=0o700)
             os.chown(str(backup_root), details.st_uid, details.st_gid)
-        backup_dir = backup_root / ("box-motion-guard-%s" % transaction_id)
+        prefix = "box-motion-vendor-" if restore_vendor else "box-motion-guard-"
+        backup_dir = backup_root / (prefix + transaction_id)
         backup_dir.mkdir(mode=0o700)
         os.chown(str(backup_dir), details.st_uid, details.st_gid)
         backup_path = backup_dir / target.name
@@ -163,11 +214,11 @@ def install(box_count, transaction_id, target=None):
             or current_details.st_dev != details.st_dev
         ):
             raise RuntimeError("QIDI Box template changed during installation")
-        atomic_write(target, hardened, details)
+        atomic_write(target, desired, details)
 
     after = regular_file(target, "hardened QIDI Box template")
     after_digest = sha256(target)
-    verified = hardened_content(target.read_bytes()) == target.read_bytes()
+    verified = transform(target.read_bytes()) == target.read_bytes()
     if not verified:
         raise RuntimeError("post-install QIDI Box template verification failed")
     return {
@@ -186,8 +237,8 @@ def install(box_count, transaction_id, target=None):
             "gid": after.st_gid,
         },
         "backup": backup,
-        "use_irq": False,
-        "debounce_us_present": False,
+        "use_irq": bool(restore_vendor),
+        "debounce_us_present": bool(restore_vendor),
         "active_config_changed": False,
         "klipper_service_action": "none",
         "klipper_restarted": False,
@@ -199,9 +250,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--box-count", required=True, type=int, choices=(1, 2, 3, 4))
     parser.add_argument("--transaction-id", required=True)
+    parser.add_argument("--restore-vendor", action="store_true")
     args = parser.parse_args()
     try:
-        result = install(args.box_count, args.transaction_id)
+        result = install(
+            args.box_count,
+            args.transaction_id,
+            restore_vendor=args.restore_vendor,
+        )
     except Exception as exc:
         result = {
             "schema": SCHEMA,
