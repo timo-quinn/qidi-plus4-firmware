@@ -41,6 +41,45 @@ def test_upgrader_source_is_python37_and_does_not_execute_installed_cli() -> Non
 
 
 @POSIX_ONLY
+def test_checked_parent_secures_only_the_fixed_owned_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    helper = load_helper()
+    directory = tmp_path / "bin"
+    directory.mkdir()
+    directory.chmod(0o777)
+    monkeypatch.setattr(helper, "CLI_PARENT", str(directory))
+    monkeypatch.setattr(
+        helper.pwd, "getpwnam", lambda _name: types.SimpleNamespace(pw_uid=os.getuid())
+    )
+
+    helper.checked_parent()
+
+    assert directory.stat().st_mode & 0o777 == 0o755
+
+
+@POSIX_ONLY
+def test_checked_parent_rejects_an_unowned_directory_before_chmod(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    helper = load_helper()
+    directory = tmp_path / "bin"
+    directory.mkdir()
+    directory.chmod(0o777)
+    monkeypatch.setattr(helper, "CLI_PARENT", str(directory))
+    monkeypatch.setattr(
+        helper.pwd,
+        "getpwnam",
+        lambda _name: types.SimpleNamespace(pw_uid=os.getuid() + 1),
+    )
+
+    with pytest.raises(helper.UpgradeError, match="unexpected owner or type"):
+        helper.checked_parent()
+
+    assert directory.stat().st_mode & 0o777 == 0o777
+
+
+@POSIX_ONLY
 def test_safe_environment_is_an_allowlist(monkeypatch: pytest.MonkeyPatch) -> None:
     helper = load_helper()
     monkeypatch.setattr(
@@ -107,6 +146,49 @@ RestartSec=5
 [Install]
 WantedBy=default.target
 """
+
+
+@POSIX_ONLY
+def test_unit_validation_secures_exact_owned_unit_metadata(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    helper = load_helper()
+    parent = tmp_path / "user"
+    parent.mkdir()
+    parent.chmod(0o777)
+    unit = parent / "klippee-moonraker.service"
+    unit.write_text(managed_unit_content(), encoding="utf-8")
+    unit.chmod(0o666)
+    monkeypatch.setattr(helper, "UNIT_PARENT", str(parent))
+    monkeypatch.setattr(helper, "UNIT_PATH", str(unit))
+    monkeypatch.setattr(
+        helper.pwd, "getpwnam", lambda _name: types.SimpleNamespace(pw_uid=os.getuid())
+    )
+
+    helper.read_unit()
+
+    assert parent.stat().st_mode & 0o777 == 0o755
+    assert unit.stat().st_mode & 0o777 == 0o600
+
+
+@POSIX_ONLY
+def test_unit_validation_does_not_chmod_unreviewed_content(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    helper = load_helper()
+    unit = tmp_path / "klippee-moonraker.service"
+    unit.write_text(managed_unit_content() + "ExecStartPre=/bin/false\n", encoding="utf-8")
+    unit.chmod(0o666)
+    monkeypatch.setattr(helper, "UNIT_PARENT", str(tmp_path))
+    monkeypatch.setattr(helper, "UNIT_PATH", str(unit))
+    monkeypatch.setattr(
+        helper.pwd, "getpwnam", lambda _name: types.SimpleNamespace(pw_uid=os.getuid())
+    )
+
+    with pytest.raises(helper.UpgradeError, match="directive count"):
+        helper.read_unit()
+
+    assert unit.stat().st_mode & 0o777 == 0o666
 
 
 @POSIX_ONLY

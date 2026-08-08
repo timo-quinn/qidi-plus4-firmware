@@ -58,28 +58,43 @@ def version_key(value: str) -> tuple:
     return tuple(int(part) for part in value.split("."))
 
 
-def checked_parent() -> None:
+def secure_owned_directory(path: str, label: str) -> None:
     account = pwd.getpwnam(ACCOUNT)
-    if os.path.realpath(CLI_PARENT) != CLI_PARENT:
-        raise UpgradeError("fixed Klippee CLI directory resolved outside its reviewed path")
-    metadata = os.lstat(CLI_PARENT)
-    if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != account.pw_uid:
-        raise UpgradeError("fixed Klippee CLI directory has an unexpected owner or type")
-    if stat.S_IMODE(metadata.st_mode) & 0o022:
-        raise UpgradeError("fixed Klippee CLI directory is group/world writable")
+    if os.path.realpath(path) != path:
+        raise UpgradeError(f"{label} resolved outside its reviewed path")
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
+        raise UpgradeError(f"host Python cannot enforce a non-symlink {label} open")
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_DIRECTORY
+    if hasattr(os, "O_CLOEXEC"):
+        flags |= os.O_CLOEXEC
+    descriptor = os.open(path, flags)
+    try:
+        metadata = os.fstat(descriptor)
+        named_metadata = os.lstat(path)
+        if (
+            stat.S_ISLNK(named_metadata.st_mode)
+            or not stat.S_ISDIR(metadata.st_mode)
+            or metadata.st_dev != named_metadata.st_dev
+            or metadata.st_ino != named_metadata.st_ino
+            or metadata.st_uid != account.pw_uid
+        ):
+            raise UpgradeError(f"{label} has an unexpected owner or type")
+        if stat.S_IMODE(metadata.st_mode) & 0o022:
+            os.fchmod(descriptor, 0o755)
+            metadata = os.fstat(descriptor)
+        if stat.S_IMODE(metadata.st_mode) & 0o022:
+            raise UpgradeError(f"{label} permissions could not be secured")
+    finally:
+        os.close(descriptor)
+
+
+def checked_parent() -> None:
+    secure_owned_directory(CLI_PARENT, "fixed Klippee CLI directory")
 
 
 def read_unit() -> None:
     account = pwd.getpwnam(ACCOUNT)
-    if os.path.realpath(UNIT_PARENT) != UNIT_PARENT:
-        raise UpgradeError("managed Klippee unit directory resolved outside its reviewed path")
-    parent = os.lstat(UNIT_PARENT)
-    if (
-        not stat.S_ISDIR(parent.st_mode)
-        or parent.st_uid != account.pw_uid
-        or stat.S_IMODE(parent.st_mode) & 0o022
-    ):
-        raise UpgradeError("managed Klippee unit directory has unsafe metadata")
+    secure_owned_directory(UNIT_PARENT, "managed Klippee unit directory")
     if os.path.realpath(UNIT_PATH) != UNIT_PATH:
         raise UpgradeError("managed Klippee unit resolved outside its reviewed path")
     flags = os.O_RDONLY | os.O_NOFOLLOW
@@ -95,41 +110,45 @@ def read_unit() -> None:
             or metadata.st_dev != named_metadata.st_dev
             or metadata.st_ino != named_metadata.st_ino
             or metadata.st_uid != account.pw_uid
-            or stat.S_IMODE(metadata.st_mode) & 0o022
             or not 0 < metadata.st_size <= 4096
         ):
             raise UpgradeError("managed Klippee unit has unsafe metadata")
         with os.fdopen(descriptor, "rb", closefd=False) as stream:
             raw = stream.read(4097)
+        try:
+            lines = raw.decode("utf-8").splitlines()
+        except UnicodeDecodeError as error:
+            raise UpgradeError("managed Klippee unit is not UTF-8") from error
+        nonempty = [line for line in lines if line]
+        if len(nonempty) != 12:
+            raise UpgradeError("managed Klippee unit has an unexpected directive count")
+        expected = (
+            "[Unit]",
+            "Description=Klippee Moonraker integration agent",
+            "After=network-online.target",
+            "[Service]",
+            "Type=simple",
+            None,
+            'Environment="KLIPPEE_MOONRAKER_SOCKET=/home/mks/printer_data/comms/moonraker.sock"',
+            'Environment="KLIPPEE_STATE_DIR=/home/mks/.klippee"',
+            "Restart=on-failure",
+            "RestartSec=5",
+            "[Install]",
+            "WantedBy=default.target",
+        )
+        for observed, required in zip(nonempty, expected):
+            if required is None:
+                if UNIT_EXEC.fullmatch(observed) is None:
+                    raise UpgradeError("managed Klippee unit has an unexpected ExecStart")
+            elif observed != required:
+                raise UpgradeError("managed Klippee unit has an unexpected directive")
+        if stat.S_IMODE(metadata.st_mode) & 0o022:
+            os.fchmod(descriptor, 0o600)
+            metadata = os.fstat(descriptor)
+        if stat.S_IMODE(metadata.st_mode) & 0o022:
+            raise UpgradeError("managed Klippee unit permissions could not be secured")
     finally:
         os.close(descriptor)
-    try:
-        lines = raw.decode("utf-8").splitlines()
-    except UnicodeDecodeError as error:
-        raise UpgradeError("managed Klippee unit is not UTF-8") from error
-    nonempty = [line for line in lines if line]
-    if len(nonempty) != 12:
-        raise UpgradeError("managed Klippee unit has an unexpected directive count")
-    expected = (
-        "[Unit]",
-        "Description=Klippee Moonraker integration agent",
-        "After=network-online.target",
-        "[Service]",
-        "Type=simple",
-        None,
-        'Environment="KLIPPEE_MOONRAKER_SOCKET=/home/mks/printer_data/comms/moonraker.sock"',
-        'Environment="KLIPPEE_STATE_DIR=/home/mks/.klippee"',
-        "Restart=on-failure",
-        "RestartSec=5",
-        "[Install]",
-        "WantedBy=default.target",
-    )
-    for observed, required in zip(nonempty, expected):
-        if required is None:
-            if UNIT_EXEC.fullmatch(observed) is None:
-                raise UpgradeError("managed Klippee unit has an unexpected ExecStart")
-        elif observed != required:
-            raise UpgradeError("managed Klippee unit has an unexpected directive")
 
 
 def read_cli() -> dict:

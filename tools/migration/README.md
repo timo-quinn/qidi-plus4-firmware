@@ -135,8 +135,13 @@ upgrade authority. The helper downloads only
 validates the marker, version, size, UTF-8, and printer-Python syntax, then
 atomically replaces only `/home/mks/.local/bin/klippee`. It validates the exact
 managed user-unit directives, rejects systemd drop-ins, and proves both the old
-and new PIDs run that fixed CLI as `mks`. A failed changed-artifact activation
-rolls the CLI back and recovers the old agent. Its JSON result includes the
+and new PIDs run that fixed CLI as `mks`. When the fixed, non-symlink CLI
+or unit directory is owned by `mks` but is group/world writable, the helper
+normalizes that directory to `0755`. It also normalizes the fixed unit to `0600`
+only after its complete contents pass validation. Unexpected ownership, type,
+path resolution, inode changes, or unit directives still fail closed. A failed
+changed-artifact activation rolls the CLI back and recovers the old agent. Its
+JSON result includes the
 before/after CLI versions and SHA-256 digests and explicit proof that it neither
 restarted Klipper nor deployed configuration. Printerlab exposes this as
 `plab klippee upgrade-agent` and first proves the current agent has no running
