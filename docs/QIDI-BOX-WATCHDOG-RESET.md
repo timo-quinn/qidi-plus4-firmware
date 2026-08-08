@@ -136,9 +136,12 @@ motion monitoring enabled.
 
 Also quarantine automatic insertion while validating the change. QIDI's lane
 callback invokes `RELOAD_ALL RFID=1`, starts RFID work and may run a lane home
-of up to 3000 mm at 80 mm/s while PB0 is active. A managed
-`rename_existing` wrapper should reject only those automatic `RFID=1` calls
-and pass explicit/manual calls to the original command. Do not rely on
+of up to 3000 mm at 80 mm/s while PB0 is active. QIDI registers `RELOAD_ALL`
+dynamically from `box_extras`, so a G-code macro with `rename_existing` cannot
+wrap it during configuration parsing and will prevent Klipper from starting.
+The managed `box_output_clock_guard` post-load overlay instead replaces the
+registered callback at `klippy:connect`, rejects only automatic `RFID=1` calls,
+and passes explicit/manual calls to the original command. Do not rely on
 `enable_box` or `auto_read_rfid=0` alone: neither removes the automatic lane
 motion that exposed this failure. Use the established guarded manual load
 commands until deliberate testing shows the Box stable.

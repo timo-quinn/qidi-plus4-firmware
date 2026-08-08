@@ -68,8 +68,10 @@ firmware 1.7.2. Build it from the same source with the recipe below if needed.
 For an otherwise stock QIDI 1.8.2 installation, the companion
 [`box_output_clock_guard.py`](box_output_clock_guard.py) fixes the cross-MCU
 clock reference used by `b_output` and `e_output` without replacing QIDI's
-compiled `box_extras.so`. It validates both outputs before changing either and
-reports the selected MCU in the Klippy log and printer-object status. Read the
+compiled `box_extras.so`. After QIDI registers its commands, it also wraps
+`RELOAD_ALL` to quarantine automatic insertion while preserving explicit calls.
+It validates both outputs before changing either and reports the selected MCU
+and insertion-guard state in the Klippy log and printer-object status. Read the
 full [integration and safety boundary](../docs/QIDI-BOX-OUTPUT-CLOCK-GUARD.md):
 this addresses one `Timer too close` path, but does not establish or cure a Box
 USB/power reset.
