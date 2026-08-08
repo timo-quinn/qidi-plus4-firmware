@@ -25,6 +25,17 @@ def test_hardened_content_disables_irq_and_removes_debounce() -> None:
     assert guard.hardened_content(hardened) == hardened
 
 
+def test_vendor_content_restores_irq_and_debounce_and_is_idempotent() -> None:
+    raw = b"""[include box1.cfg]\n\n[filament_motion_sensor box_motion_sensor]\nuse_irq : False\nswitch_pin : ^mcu_box1:PB0\n\n[mcu mcu_box1]\nserial : example\n"""
+
+    restored = guard.vendor_content(raw)
+
+    assert b"use_irq : True\n" in restored
+    assert b"debounce_us : 50\n" in restored
+    assert restored.index(b"debounce_us") < restored.index(b"switch_pin")
+    assert guard.vendor_content(restored) == restored
+
+
 @pytest.mark.parametrize(
     "raw",
     [

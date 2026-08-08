@@ -48,6 +48,7 @@ BOX_CLOCK_GUARD_CONFIRMATION = "INSTALL-BOX-OUTPUT-CLOCK-GUARD"
 BOX_CLOCK_GUARD_SCHEMA = "qidi-plus4-box-output-clock-guard-install/v1"
 BOX_MOTION_GUARD_REMOTE_INSTALLER = SCRIPT_DIR / "box_motion_template_guard.py"
 BOX_MOTION_GUARD_CONFIRMATION = "HARDEN-BOX-MOTION-TEMPLATE"
+BOX_MOTION_VENDOR_CONFIRMATION = "RESTORE-BOX-MOTION-VENDOR"
 BOX_MOTION_GUARD_SCHEMA = "qidi-plus4-box-motion-template-guard/v1"
 KLIPPEE_VARIABLE_CONFIRMATION = "SET-KLIPPEE-VARIABLE"
 KLIPPEE_VARIABLE_SCHEMA = "qidi-plus4-klippee-variable-set/v1"
@@ -1273,6 +1274,7 @@ def _validated_box_motion_guard_result(
     completed: subprocess.CompletedProcess[bytes],
     box_count: int,
     transaction_id: str,
+    restore_vendor: bool = False,
 ) -> dict:
     stdout = completed.stdout.decode("utf-8", errors="strict").strip()
     stderr = completed.stderr.decode("utf-8", errors="replace").strip()
@@ -1324,8 +1326,8 @@ def _validated_box_motion_guard_result(
         and re.fullmatch(r"0[0-7]{3}", target.get("mode", ""))
         and isinstance(target.get("uid"), int)
         and isinstance(target.get("gid"), int)
-        and document.get("use_irq") is False
-        and document.get("debounce_us_present") is False
+        and document.get("use_irq") is restore_vendor
+        and document.get("debounce_us_present") is restore_vendor
         and document.get("active_config_changed") is False
         and document.get("klipper_service_action") == "none"
         and document.get("klipper_restarted") is False
@@ -1339,8 +1341,9 @@ def _validated_box_motion_guard_result(
             or set(backup) != {"path", "sha256"}
             or backup.get("path")
             != (
-                "/home/mks/.qidi-plus4-backups/box-motion-guard-"
-                f"{transaction_id}/cfg_with_{box_count}"
+                "/home/mks/.qidi-plus4-backups/"
+                + ("box-motion-vendor-" if restore_vendor else "box-motion-guard-")
+                + f"{transaction_id}/cfg_with_{box_count}"
             )
             or backup.get("sha256") != target.get("before_sha256")
         ):
@@ -1355,8 +1358,22 @@ def _validated_box_motion_guard_result(
 def harden_box_motion_template(args: argparse.Namespace) -> None:
     """Persist use_irq=False in the active stock box_detect template."""
 
-    if args.confirm != BOX_MOTION_GUARD_CONFIRMATION:
-        raise SystemExit(f"This action requires --confirm {BOX_MOTION_GUARD_CONFIRMATION}")
+    _set_box_motion_template(args, restore_vendor=False)
+
+
+def restore_box_motion_template(args: argparse.Namespace) -> None:
+    """Restore QIDI's use_irq=True and debounce_us=50 template settings."""
+
+    _set_box_motion_template(args, restore_vendor=True)
+
+
+def _set_box_motion_template(args: argparse.Namespace, restore_vendor: bool) -> None:
+    confirmation = (
+        BOX_MOTION_VENDOR_CONFIRMATION if restore_vendor else BOX_MOTION_GUARD_CONFIRMATION
+    )
+
+    if args.confirm != confirmation:
+        raise SystemExit(f"This action requires --confirm {confirmation}")
     _validate_box_clock_guard_account(args)
     if args.box_count not in (1, 2, 3, 4):
         raise SystemExit("Box count must be 1 through 4")
@@ -1370,20 +1387,20 @@ def harden_box_motion_template(args: argparse.Namespace) -> None:
         )
     transaction_id = _box_clock_guard_transaction_id()
     ssh, _target = ssh_base(args)
-    remote_command = " ".join(
-        shlex.quote(part)
-        for part in (
-            "sudo",
-            "-n",
-            BOX_CLOCK_GUARD_REMOTE_PYTHON,
-            "-I",
-            "-",
-            "--box-count",
-            str(args.box_count),
-            "--transaction-id",
-            transaction_id,
-        )
-    )
+    remote_parts = [
+        "sudo",
+        "-n",
+        BOX_CLOCK_GUARD_REMOTE_PYTHON,
+        "-I",
+        "-",
+        "--box-count",
+        str(args.box_count),
+        "--transaction-id",
+        transaction_id,
+    ]
+    if restore_vendor:
+        remote_parts.append("--restore-vendor")
+    remote_command = " ".join(shlex.quote(part) for part in remote_parts)
     completed = capture(
         ssh + [remote_command],
         input_data=BOX_MOTION_GUARD_REMOTE_INSTALLER.read_bytes(),
@@ -1392,6 +1409,7 @@ def harden_box_motion_template(args: argparse.Namespace) -> None:
         completed,
         args.box_count,
         transaction_id,
+        restore_vendor,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
 
@@ -2341,6 +2359,18 @@ def create_parser() -> argparse.ArgumentParser:
     motion_guard.add_argument("--box-count", required=True, type=int, choices=(1, 2, 3, 4))
     motion_guard.add_argument("--confirm", required=True)
     motion_guard.set_defaults(func=harden_box_motion_template)
+
+    motion_vendor = sub.add_parser(
+        "restore-box-motion-template",
+        help=(
+            "Restore use_irq=True and debounce_us=50 in one stock QIDI "
+            "box_detect cfg_with_N template without restarting Klipper"
+        ),
+    )
+    add_connection(motion_vendor)
+    motion_vendor.add_argument("--box-count", required=True, type=int, choices=(1, 2, 3, 4))
+    motion_vendor.add_argument("--confirm", required=True)
+    motion_vendor.set_defaults(func=restore_box_motion_template)
 
     klippee_variable = sub.add_parser(
         "set-klippee-variable",

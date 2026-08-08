@@ -146,6 +146,20 @@ commands until deliberate testing shows the Box stable.
 Apply both containment changes through the canonical managed configuration so
 QIDI's `box_detect` regeneration cannot silently restore `use_irq: True`.
 
+### Controlled vendor-path comparison
+
+To test whether the original cable/hub path was the actual reset cause, the
+reviewed migration utility also exposes `restore-box-motion-template`. It
+backs up only the detected `/home/mks/cfg_with_N` template and restores the
+stock pair `use_irq: True` and `debounce_us: 50` without touching active config
+or restarting Klipper. The matching active `box.cfg` must still be deployed
+through the normal managed-config workflow.
+
+Keep the output-clock and automatic-insertion guards enabled during this
+comparison so only the motion IRQ/debounce variable changes. Treat the vendor
+path as an experiment: rapid PB0 activity again runs the IRQ implementation
+identified in this analysis.
+
 ## Safe isolation procedure
 
 1. Do not reproduce this during a print. Confirm the hotend and Box heater are
