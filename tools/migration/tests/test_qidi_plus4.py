@@ -1873,3 +1873,85 @@ def test_remote_box_clock_guard_helper_preserves_timestamped_backup(
     assert transaction_id in str(backup)
     assert backup.read_bytes() == b"old clock guard\n"
     assert result["klipper_restarted"] is False
+
+
+def test_parser_exposes_fixed_box_motion_vendor_restore() -> None:
+    parsed = qidi_plus4.create_parser().parse_args(
+        [
+            "restore-box-motion-template",
+            "--printer",
+            "qidi1",
+            "--box-count",
+            "1",
+            "--confirm",
+            "RESTORE-BOX-MOTION-VENDOR",
+        ]
+    )
+
+    assert parsed.func is qidi_plus4.restore_box_motion_template
+    assert parsed.box_count == 1
+    assert not hasattr(parsed, "target")
+    assert not hasattr(parsed, "remote_python")
+
+
+def test_box_motion_vendor_restore_streams_fixed_helper_without_restart(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    transaction_id = "20260806T010203Z-0123456789abcdef"
+    before = "1" * 64
+    remote_result = {
+        "schema": qidi_plus4.BOX_MOTION_GUARD_SCHEMA,
+        "ok": True,
+        "changed": True,
+        "verified": True,
+        "box_count": 1,
+        "transaction_id": transaction_id,
+        "target": {
+            "path": "/home/mks/cfg_with_1",
+            "before_sha256": before,
+            "after_sha256": "2" * 64,
+            "mode": "0644",
+            "uid": 0,
+            "gid": 0,
+        },
+        "backup": {
+            "path": f"/home/mks/.qidi-plus4-backups/box-motion-vendor-{transaction_id}/cfg_with_1",
+            "sha256": before,
+        },
+        "use_irq": True,
+        "debounce_us_present": True,
+        "active_config_changed": False,
+        "klipper_service_action": "none",
+        "klipper_restarted": False,
+        "activation_required": True,
+    }
+    calls: list[tuple[list[str], bytes | None]] = []
+    monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi1"], "plab@qidi1"))
+    monkeypatch.setattr(qidi_plus4, "_box_clock_guard_transaction_id", lambda: transaction_id)
+
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        calls.append((command, input_data))
+        return subprocess.CompletedProcess(command, 0, json.dumps(remote_result).encode(), b"")
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    qidi_plus4.restore_box_motion_template(
+        connection_args(
+            "restore-box-motion-template",
+            confirm="RESTORE-BOX-MOTION-VENDOR",
+            box_count=1,
+            user="plab",
+            printer_user="mks",
+        )
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["use_irq"] is True
+    assert result["debounce_us_present"] is True
+    command, helper = calls[0]
+    assert helper == qidi_plus4.BOX_MOTION_GUARD_REMOTE_INSTALLER.read_bytes()
+    assert "--restore-vendor" in command[-1]
+    assert "systemctl" not in command[-1]
+    assert "restart" not in command[-1]

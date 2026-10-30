@@ -136,15 +136,32 @@ motion monitoring enabled.
 
 Also quarantine automatic insertion while validating the change. QIDI's lane
 callback invokes `RELOAD_ALL RFID=1`, starts RFID work and may run a lane home
-of up to 3000 mm at 80 mm/s while PB0 is active. A managed
-`rename_existing` wrapper should reject only those automatic `RFID=1` calls
-and pass explicit/manual calls to the original command. Do not rely on
+of up to 3000 mm at 80 mm/s while PB0 is active. QIDI registers `RELOAD_ALL`
+dynamically from `box_extras`, so a G-code macro with `rename_existing` cannot
+wrap it during configuration parsing and will prevent Klipper from starting.
+The managed `box_output_clock_guard` post-load overlay instead replaces the
+registered callback at `klippy:connect`, rejects only automatic `RFID=1` calls,
+and passes explicit/manual calls to the original command. Do not rely on
 `enable_box` or `auto_read_rfid=0` alone: neither removes the automatic lane
 motion that exposed this failure. Use the established guarded manual load
 commands until deliberate testing shows the Box stable.
 
 Apply both containment changes through the canonical managed configuration so
 QIDI's `box_detect` regeneration cannot silently restore `use_irq: True`.
+
+### Controlled vendor-path comparison
+
+To test whether the original cable/hub path was the actual reset cause, the
+reviewed migration utility also exposes `restore-box-motion-template`. It
+backs up only the detected `/home/mks/cfg_with_N` template and restores the
+stock pair `use_irq: True` and `debounce_us: 50` without touching active config
+or restarting Klipper. The matching active `box.cfg` must still be deployed
+through the normal managed-config workflow.
+
+Keep the output-clock and automatic-insertion guards enabled during this
+comparison so only the motion IRQ/debounce variable changes. Treat the vendor
+path as an experiment: rapid PB0 activity again runs the IRQ implementation
+identified in this analysis.
 
 ## Safe isolation procedure
 

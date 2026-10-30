@@ -12,8 +12,11 @@ small post-load Klipper extra. At `klippy:connect` it:
 1. finds the already-loaded stock `box_extras` object;
 2. validates both known `BoxOutput` objects and their digital-output APIs;
 3. asks each digital output for its owning MCU with `get_mcu()`;
-4. changes only the stale `BoxOutput.mcu` reference; and
-5. logs and publishes status for each corrected output.
+4. changes only the stale `BoxOutput.mcu` reference;
+5. preserves and post-load wraps QIDI's dynamically registered `RELOAD_ALL`;
+6. blocks automatic `RFID=1` insertion unless `qidi_box_auto_insert=1`, while
+   forwarding explicit/manual calls to QIDI's original callback; and
+7. logs and publishes status for each correction and the insertion guard.
 
 It does not replace `box_extras.so`, wrap `set_pin()`, alter the 10 ms scheduling
 lead time, move a motor, or issue any MCU command during installation. Both
@@ -73,19 +76,23 @@ example:
 ```text
 QIDI Box output clock guard: b_output corrected (mcu -> mcu_box1)
 QIDI Box output clock guard: e_output corrected (mcu -> mcu_box1)
-QIDI Box output clock guard: active; corrected=2 already-correct=0
+QIDI Box output clock guard: active; corrected=2 already-correct=0 reload-all-guarded=True
 ```
 
 Moonraker exposes the same proof under the `box_output_clock_guard` printer
-object. Its `state` is `corrected` or `already-correct`, and `outputs` records
-the previous and pin MCU name for `b_output` and `e_output`.
+object. Its `state` is `corrected` or `already-correct`, `outputs` records the
+previous and pin MCU name for `b_output` and `e_output`, and
+`reload_all_guarded` proves the post-load insertion guard is active.
 
 For Klippee/Printerlab integration, treat the module and config section as one
 versioned deployment: run the guarded installer, preserve its structured
 rollback handle, activate the section through the normal managed-config path,
-restart once, and require both output statuses before reporting success.
+restart `klipper.service` so Python imports the installed source, and require
+both output statuses plus `reload_all_guarded: true` before reporting success.
+A G-code `RESTART` or `FIRMWARE_RESTART` may retain the already imported module
+inside QIDI's host process and is not sufficient after changing this file.
 Removal is the reverse: remove the managed section, restore/remove the extra,
-and restart Klipper.
+and restart `klipper.service`.
 
 ## Safety boundary
 

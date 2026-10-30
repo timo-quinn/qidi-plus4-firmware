@@ -1,9 +1,11 @@
-"""Correct the QIDI Box output scheduler to use each pin's owning MCU.
+"""Apply post-load guards to QIDI's dynamically registered Box objects.
 
 This module is a post-load compatibility overlay for QIDI's stock
-``box_extras`` module.  It deliberately does not replace or wrap vendor
-methods: it only corrects the ``mcu`` reference consumed by
-``BoxOutput.set_pin()`` after validating both known Box outputs.
+``box_extras`` module. It corrects the ``mcu`` reference consumed by
+``BoxOutput.set_pin()`` and wraps the dynamically registered ``RELOAD_ALL``
+command only after the vendor module has created it. Automatic ``RFID=1``
+insertion is quarantined by default; explicit calls still reach QIDI's
+original callback.
 """
 
 import logging
@@ -20,6 +22,9 @@ class BoxOutputClockGuard:
         self._state = "pending"
         self._corrected_outputs = []
         self._output_status = {}
+        self._box_extras = None
+        self._original_reload_all = None
+        self._reload_all_guarded = False
         self._applied = False
         self._printer.register_event_handler("klippy:connect", self._handle_connect)
         logging.info("%s: waiting for klippy:connect", _LOG_PREFIX)
@@ -84,6 +89,42 @@ class BoxOutputClockGuard:
             "needs_correction": source_mcu is not target_mcu,
         }
 
+    def _install_reload_all_guard(self, box_extras):
+        get_value = getattr(box_extras, "get_value_by_key", None)
+        if not callable(get_value):
+            raise TypeError("box_extras has no callable get_value_by_key()")
+        gcode = self._printer.lookup_object("gcode")
+        register = getattr(gcode, "register_command", None)
+        if not callable(register):
+            raise TypeError("gcode has no callable register_command()")
+
+        original = register("RELOAD_ALL", None)
+        if not callable(original):
+            raise TypeError("QIDI RELOAD_ALL command is not registered")
+        try:
+            register(
+                "RELOAD_ALL",
+                self._cmd_reload_all,
+                desc="Guard automatic QIDI Box insertion",
+            )
+        except Exception:
+            register("RELOAD_ALL", original)
+            raise
+        self._box_extras = box_extras
+        self._original_reload_all = original
+        self._reload_all_guarded = True
+
+    def _cmd_reload_all(self, gcmd):
+        automatic = gcmd.get_int("RFID", 0) == 1
+        enabled = int(self._box_extras.get_value_by_key("qidi_box_auto_insert", 0)) == 1
+        if automatic and not enabled:
+            gcmd.respond_info(
+                "QIDI Box automatic insertion is disabled after a Box MCU watchdog reset. "
+                "Use LOAD_Tn or enable it explicitly."
+            )
+            return
+        self._original_reload_all(gcmd)
+
     def _handle_connect(self):
         if self._applied:
             logging.info("%s: already applied; no changes made", _LOG_PREFIX)
@@ -124,6 +165,7 @@ class BoxOutputClockGuard:
                     item["output"].mcu = item["target_mcu"]
                     if item["output"].mcu is not item["target_mcu"]:
                         raise TypeError("box_extras.%s.mcu rejected the pin MCU" % item["name"])
+            self._install_reload_all_guard(box_extras)
         except Exception as exc:
             # Attribute assignment is expected to be writable on QIDI's
             # Cython class.  Roll back earlier assignments if that expectation
@@ -161,10 +203,11 @@ class BoxOutputClockGuard:
                 item["target_name"],
             )
         logging.info(
-            "%s: active; corrected=%d already-correct=%d",
+            "%s: active; corrected=%d already-correct=%d reload-all-guarded=%s",
             _LOG_PREFIX,
             len(changed),
             len(inspected) - len(changed),
+            self._reload_all_guarded,
         )
 
     def get_status(self, eventtime=None):
@@ -173,6 +216,7 @@ class BoxOutputClockGuard:
             "corrected_count": len(self._corrected_outputs),
             "corrected_outputs": list(self._corrected_outputs),
             "outputs": dict(self._output_status),
+            "reload_all_guarded": self._reload_all_guarded,
         }
 
 
