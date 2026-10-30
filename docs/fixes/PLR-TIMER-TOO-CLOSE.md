@@ -346,5 +346,5 @@ that `main` contains them:
 - [Firmware commit `97c0b91`](https://github.com/timo-quinn/qidi-plus4-firmware/commit/97c0b91f55346acfb0392563ef552bc9f081fd79)
 - [Configuration PR #1: QIDI1 purge/recovery hardening](https://github.com/cl-tim/qidi-plus4-configs/pull/1)
 - [Configuration commit `2a7d418`](https://github.com/cl-tim/qidi-plus4-configs/commit/2a7d4182a614c034203bb2a481b1c958b009605e)
-- [`plr-hardening/README.md`](../plr-hardening/README.md) for implementation,
+- [`plr-hardening/README.md`](../../plr-hardening/README.md) for implementation,
   durability-boundary, and managed-deployment details

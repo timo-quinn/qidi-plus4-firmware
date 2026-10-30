@@ -329,8 +329,28 @@ def _eval_config_installed(facts: Any, context: Context) -> ProbeResult:
         return _result(probe, UNSATISFIED,
                        f"printer.cfg declares {len(sections)} mcu section(s); "
                        "the Plus4 needs both mainboard and toolhead", evidence)
+    blocked = _needs(probe, facts, "printer_cfg.size", "printer_cfg.sha256",
+                     "printer_cfg.mcu_sections", "bootstrap_receipt.present")
+    if blocked is not None:
+        return blocked
+    evidence.update(_evidence(facts, "bootstrap_receipt.present"))
+    if lookup(facts, "bootstrap_receipt.present") is not True:
+        return _result(probe, UNSATISFIED,
+                       "no completed mainline bootstrap receipt; stock configs do not qualify",
+                       evidence)
+    online = _eval_mcu_online(facts, context)
+    evidence.update(online.evidence)
+    if online.status != SATISFIED:
+        return _result(probe, online.status,
+                       "installed config has not passed the live MCU check: " + online.detail,
+                       evidence)
+    objects = lookup(facts, "moonraker.mcu_objects")
+    if not ({"mcu", "mcu toolhead"}.issubset(set(objects)) or
+            {"mcu", "mcu U_1"}.issubset(set(objects))):
+        return _result(probe, UNSATISFIED,
+                       "live MCU names do not match the Plus4 mainline profile", evidence)
     return _result(probe, SATISFIED,
-                   "a non-placeholder printer.cfg with both MCUs is installed",
+                   "a mainline config is ready with mainboard and toolhead connected",
                    evidence)
 
 

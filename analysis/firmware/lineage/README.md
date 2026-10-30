@@ -6,7 +6,7 @@ Generated, publishable evidence for the ordered QIDI Plus4 comparison:
 2. firmware 1.7.3 / UI V173;
 3. firmware 1.8.2 / UI V182 with QIDI Box.
 
-Start with [`../../../docs/FIRMWARE-LINEAGE.md`](../../../docs/FIRMWARE-LINEAGE.md).
+Start with [`../../../docs/firmware/FIRMWARE-LINEAGE.md`](../../../docs/firmware/FIRMWARE-LINEAGE.md).
 
 - `file-lineage.csv` contains changed path metadata and both transitions.
 - `transition-summary.json` includes changed and unchanged counts per area.

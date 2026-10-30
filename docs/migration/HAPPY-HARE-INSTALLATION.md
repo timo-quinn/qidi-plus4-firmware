@@ -15,6 +15,15 @@ The commands below are based on Happy Hare 3.4.2 at upstream commit
 changes regularly, so read its current upgrade notice before updating an
 existing installation.
 
+**2026-10-04 update:** Upstream v4 now includes a QIDI Box preset, introduced
+on 2026-08-30. Its v2/Q2 defaults and stock MCU path are not yet validated on
+our Plus4/Box revision, and factory RFID parity is not established. See the
+[upstream review](../history/QIDI1-UPSTREAM-REVIEW-2026-10-04.md#qidi-box-after-single-material-commissioning)
+for the new evaluation route. The commands in this document remain a v3
+baseline; v4 config formats are incompatible. Pin the reviewed v3 version if
+following these commands, or deliberately use the current v4 installation
+instructions for a fresh v4 evaluation.
+
 ## 1. Choose the applicable path
 
 ### Supported third-party MMU
@@ -31,7 +40,7 @@ does not replace board-specific bootloader, CAN, USB or firmware guidance.
 
 Do not use this guide to make the QIDI Box operational yet. Leave the Box MCU
 on its retained stock image and leave its config excluded from `printer.cfg`.
-Continue with [HAPPY-HARE-INTEGRATION.md](HAPPY-HARE-INTEGRATION.md), which
+Continue with [HAPPY-HARE-INTEGRATION.md](../integrations/HAPPY-HARE-INTEGRATION.md), which
 records the recovered pin map and the remaining host/MCU compatibility work.
 
 Once that port has passed hardware testing, its expected Happy Hare shape is a

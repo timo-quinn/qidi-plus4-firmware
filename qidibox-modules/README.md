@@ -8,7 +8,7 @@ Prebuilt QIDI Box Klipper extension modules compiled from QIDI's own Box source
 | [`cp312-aarch64/`](cp312-aarch64/) | CPython 3.12, aarch64 | Keeping the Box working after `klippy-env` is moved to Python 3.12 for a Cartographer/Survey probe |
 | [`cp37-aarch64/`](cp37-aarch64/) | CPython 3.7, aarch64 (glibc 2.28) | An open, rebuildable equivalent of the modules QIDI already ships on the stock Debian 10 host |
 
-Read [`../docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md`](../docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md)
+Read [`../docs/integrations/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md`](../docs/integrations/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md)
 first for the full background. In short: QIDI ships these modules as compiled
 Cython `.so` files locked to **Python 3.7**; installing Cartographer forces a
 Python 3.12 environment; the 3.7 binaries then refuse to load. The `cp312`
@@ -63,6 +63,13 @@ Klipper variable used by the macros.
 `buttons_irq` is not included; the community procedure only replaces it on
 firmware 1.7.2. Build it from the same source with the recipe below if needed.
 
+## Stock 1.8.2 status compatibility (no module replacement)
+
+For the recurring `ToolChange.is_tool_change` status exception on stock 1.8.2,
+[`box_status_compat.py`](box_status_compat.py) provides a smaller correction that
+retains the installed vendor module and its native commands. See
+[status compatibility integration](../docs/fixes/QIDI-BOX-STATUS-COMPAT.md).
+
 ## Stock 1.8.2 output-clock guard (no module replacement)
 
 For an otherwise stock QIDI 1.8.2 installation, the companion
@@ -70,7 +77,7 @@ For an otherwise stock QIDI 1.8.2 installation, the companion
 clock reference used by `b_output` and `e_output` without replacing QIDI's
 compiled `box_extras.so`. It validates both outputs before changing either and
 reports the selected MCU in the Klippy log and printer-object status. Read the
-full [integration and safety boundary](../docs/QIDI-BOX-OUTPUT-CLOCK-GUARD.md):
+full [integration and safety boundary](../docs/fixes/QIDI-BOX-OUTPUT-CLOCK-GUARD.md):
 this addresses one `Timer too close` path, but does not establish or cure a Box
 USB/power reset.
 

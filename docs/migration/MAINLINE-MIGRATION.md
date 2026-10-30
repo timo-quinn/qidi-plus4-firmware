@@ -11,6 +11,12 @@ dependencies, and keeps a straightforward stock recovery path.
 > microSD bootloader route; destructive toolhead commands still require exact
 > confirmation phrases and validate their inputs before touching an MCU.
 
+The [2026-10-04 QIDI1 review](../history/QIDI1-MIGRATION-REVIEW-2026-10-04.md) records
+current upstream changes and local preparation gaps. In particular, do not use
+Printerlab's automatic resume as proof that a stock configuration is already a
+commissioned mainline configuration. Use explicit stages until that probe is
+corrected.
+
 ## Recommended route
 
 1. Back up the printer and retain complete MCU dumps.
@@ -38,7 +44,7 @@ host OS still means swapping the eMMC.
 Read-only SSH checks were run on 2026-07-13.
 
 The extended hardware, USB, boot, screen, and runtime comparison is recorded in
-[LIVE-HARDWARE-INVENTORY.md](LIVE-HARDWARE-INVENTORY.md).
+[LIVE-HARDWARE-INVENTORY.md](../firmware/LIVE-HARDWARE-INVENTORY.md).
 
 | Property | Verified reference finding |
 |---|---|
@@ -61,11 +67,12 @@ release differences primarily live in untracked/compiled components and update
 payloads. Debian 10 and Python 3.7 are not a sensible foundation for a current
 Moonraker installation, so this guide does not attempt an in-place OS upgrade.
 
-The official Armbian Qidi X-6 image has not yet been boot-tested on the
-reference hardware used for this guide. Its upstream board definition explicitly
-lists the Plus4, but the new-host UART and network checks remain a mandatory
-gate before MCU work. Audit every target printer rather than assuming it matches
-this baseline.
+Armbian is now boot-tested on the migrated reference printer. A read-only check
+on 2026-10-04 found Debian 13, Armbian 26.11.0-trunk.68, kernel
+6.18.54-current-rockchip64, both UART MCUs connected, and Klipper ready. This
+is a working nightly installation, not a qualification of every downloadable
+image. Check the replacement host's UARTs and network before toolhead work, and
+audit every target printer against the retained hardware baseline.
 
 ## Compatibility boundaries
 
@@ -75,13 +82,15 @@ Leave the QIDI Box MCU on stock firmware. Its host integration depends on
 QIDI's compiled Klipper extensions, which cannot be copied into mainline.
 A printer currently using a QIDI Box will therefore lose Box functionality
 until the open backend described in
-[HAPPY-HARE-INTEGRATION.md](HAPPY-HARE-INTEGRATION.md) is ready. Do not flash a
+[HAPPY-HARE-INTEGRATION.md](../integrations/HAPPY-HARE-INTEGRATION.md) is ready. Do not flash a
 generic Klipper image to the Box; its stock application includes RFID and
 protocol behavior that mainline does not provide.
 
-### MCU names change
+### MCU names
 
-Stock calls the toolhead `[mcu]` and mainboard `[mcu U_1]`. Mainline should use:
+The reviewed full profile retains QIDI's conventional names: toolhead `[mcu]`
+on `/dev/ttyS2` and mainboard `[mcu U_1]` on `/dev/ttyS0`. The inert smoke test
+uses different names to isolate the connectivity check:
 
 ```ini
 [mcu]
@@ -89,13 +98,15 @@ serial: /dev/ttyS0
 baud: 500000
 restart_method: command
 
-[mcu Toolhead]
+[mcu toolhead]
 serial: /dev/ttyS2
 baud: 500000
 restart_method: command
 ```
 
-Do not copy stock pin references unchanged without accounting for that rename.
+Use the full profile's names consistently with its pin references. The smoke
+test has no pin definitions and must not be extended into the full profile by
+copying hardware sections without reviewing their MCU prefixes.
 
 ### Touchscreen
 
@@ -104,7 +115,7 @@ dependency-minimal path is initially headless: use Moonraker with a web UI or a
 network-connected KlipperScreen. FreeDi display support remains an optional
 later choice, not a migration prerequisite, and this workflow does not alter
 display firmware. An independent, non-critical-path replacement for QIDI's
-`xindi` daemon is scaffolded in [SCREEN-BRIDGE.md](SCREEN-BRIDGE.md).
+`xindi` daemon is scaffolded in [SCREEN-BRIDGE.md](../integrations/SCREEN-BRIDGE.md).
 
 ## Equipment
 
@@ -179,6 +190,12 @@ The Qidi X-6 controller became an official Armbian community board in March
 2026. Its upstream definition explicitly lists the Plus4, so the host no longer
 depends on FreeDi or an old Armbian fork.
 
+The board was promoted to standard support on 2026-08-13; its definition is
+now `config/boards/qidi-x6.conf`. Record the resolved image filename and kernel
+version as well as its checksum. The download alias may resolve to an older
+kernel than the working reference printer; see the dated review before choosing
+an image.
+
 Download the current official Debian 13 minimal image and verify Armbian's
 published SHA-256:
 
@@ -186,6 +203,12 @@ published SHA-256:
 python .\tools\migration\qidi_plus4.py armbian-image --list-only
 python .\tools\migration\qidi_plus4.py armbian-image
 ```
+
+The downloader resolves the alias before transfer, preserves the exact image
+filename, and rejects kernels older than the reviewed default `6.18.54`.
+Use `--url <exact-HTTPS-image>` for a selected build. Its checksum and kernel
+record establish download integrity; boot, device-tree and UART checks on the
+replacement eMMC remain required.
 
 Alternatively, reproduce it from the official build framework:
 
@@ -223,6 +246,8 @@ Then clone the upstream sources and build the three MCU images:
 ```bash
 git clone https://github.com/Klipper3d/klipper.git ~/klipper-mainline
 git clone https://github.com/Arksine/katapult.git ~/katapult
+git -C ~/klipper-mainline checkout --detach 214fdb2877ff4640e9316a663c1b8b2e232c86fd
+git -C ~/katapult checkout --detach ec59b9bb9ad6c2ec8d4dc6831fbc77f0b308e29e
 
 python3 tools/migration/qidi_plus4.py build \
   --klipper-dir ~/klipper-mainline \
@@ -332,6 +357,25 @@ For a repeatable install, pass commit IDs with `--klipper-ref`,
 `--moonraker-ref`, and `--katapult-ref`; the installed commits are always
 recorded in `~/printer_data/mainline-bootstrap.txt`.
 
+Use the same Klipper commit recorded in the MCU build's `BUILD-METADATA.txt` for
+`--klipper-ref`, and likewise pin Katapult. Build and bootstrap default to the
+reviewed full commits recorded in the October 2026 fix report. Moving refs and
+abbreviated SHAs are rejected. Pass `--artifacts <build-directory>` to verify
+all three hashes and require bootstrap commits to match the MCU build.
+Printerlab bootstrap and resume pass this directory automatically.
+`--printer-user mks --user plab` now executes bootstrap as `mks` through sudo
+and streams its helpers without placing files in the management account's home.
+
+Bootstrap performs `audit-early` while Klipper is stopped. Smoke-test performs
+the full runtime tuning audit after both UARTs connect; neither a short log tail
+nor an early IRQ assignment substitutes for that check.
+
+Use `--beacon-ref <full-commit>` to install the Beacon host plugin. This option
+installs requirements and its Klipper module without invoking upstream
+`install.sh`, which also updates probe firmware. Probe firmware remains a
+separate hardware operation. Shake&Tune and the web frontend remain optional
+host setup steps. Existing companion screens can continue to use Moonraker.
+
 Log out and back in, then verify:
 
 ```bash
@@ -403,8 +447,11 @@ python .\tools\migration\qidi_plus4.py flash-toolhead-katapult `
   --confirm ERASE-TOOLHEAD
 ```
 
-The helper requires an STM32F1 probe and reads the existing 64 KiB flash to a
-timestamped backup. It then erases the chip, writes Katapult, verifies its
+The wrapper requires an STM32F1 probe, reads the existing 64 KiB flash, and
+copies it with a verified checksum to workstation `data/printer-backups/`
+(or `--backup-output`). It refuses erase if transfer, size or checksum checks
+fail. The helper reads the attached board again and requires it to match that
+workstation dump before it erases the chip, writes Katapult, verifies its
 read-back, and confirms that Katapult's application vector at `0x08002000` is
 blank. The erase is necessary because stock QIDI Klipper is linked at
 `0x08000000`; leaving its old bytes in the new application slot makes Katapult
@@ -494,19 +541,23 @@ reviewed X-7 V1.0 / Beacon profile with the target printer's exact by-id path:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py render-config `
-  --profile-dir ..\qidi-plus4-configs\printers\qidi2 `
+  --commissioning `
+  --profile-dir ..\qidi-plus4-configs\printers\mainline-klipper-beacon `
   --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_CHANGE_ME-if00' `
-  --output C:\printerlab-workspaces\qidi2
+  --output C:\printerlab-workspaces\my-plus4-mainline
 ```
 
-`qidi-plus4-configs` is the preferred source for current runtime profiles.
+`qidi-plus4-configs` is the preferred source for sanitized setup profiles;
+per-printer state belongs in Klippee and that printer's workspace.
 Omit `--profile-dir` to use this repository's bundled compatibility fallback.
 Read the generated files and follow the selected profile's commissioning notes;
 the fallback is documented in
-[`../mainline-configs/plus4-x7-v1.0-beacon/README.md`](../mainline-configs/plus4-x7-v1.0-beacon/README.md).
-It excludes inherited calibration and movement outside the build envelope for
-the cutter, chute, and nozzle brush. Its mainline-native operating layer must
-not be used until the hardware checks below pass.
+[`../../mainline-configs/plus4-x7-v1.0-beacon/README.md`](../../mainline-configs/plus4-x7-v1.0-beacon/README.md).
+The bundled fallback excludes inherited calibration and movement outside the
+build envelope for the cutter, chute, and nozzle brush. The current full example
+includes source-printer tuning and service-area moves; the renderer substitutes
+the Beacon serial but does not remove those tuning values. Follow the selected
+profile's notes and recalibrate the target printer before normal printing.
 
 Before enabling heaters or normal-speed movement:
 
@@ -543,7 +594,7 @@ Box remains behind the compatibility boundary described above.
 The profile's `operations.cfg` supplies the normal single-material print,
 pause/resume/cancel, fan and chamber contract. Additional dependency-free
 macros and separate Beacon/Happy Hare templates are scaffolded under
-[`../mainline-addons/`](../mainline-addons/). Enable those one at a time only
+[`../../mainline-addons/`](../../mainline-addons/). Enable those one at a time only
 after the base printer is commissioned.
 
 ## Rollback
@@ -561,7 +612,7 @@ from another hardware batch is interchangeable.
 ## Sources and freshness
 
 - [Official Armbian Qidi X-6 page](https://www.armbian.com/boards/qidi-x6)
-- [Official Armbian Qidi X-6 board definition](https://github.com/armbian/build/blob/main/config/boards/qidi-x6.csc)
+- [Official Armbian Qidi X-6 board definition](https://github.com/armbian/build/blob/main/config/boards/qidi-x6.conf)
 - [plus4_kalico at reviewed commit 00fc3e5](https://github.com/phrac/plus4_kalico/tree/00fc3e54bdf2ac5db72b34dc63c63063be804fdb)
 - [FreeDi reference at facb670](https://github.com/Phil1988/FreeDi/tree/facb6707e22d1194ed3a4f6c84ea549732a99da3)
 - [Plus4 mainline configuration reference at e355154](https://github.com/cgarwood82/plus4MainlineKlipperConfig/tree/e3551541f66860658de280b99f8c915a2bff5d34)

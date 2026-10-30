@@ -1370,30 +1370,37 @@ def test_tune_host_uploads_installs_and_cleans_up(
     assert "sudo -n bash /tmp/qidi-host-tuning.sh install --printer-user mks" in run_calls[1][2]
 
 
-def test_bootstrap_uploads_and_passes_host_tuning_helper(
+def test_bootstrap_streams_helpers_as_printer_owner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    calls: list[list[str]] = []
+    calls: list[tuple[list[str], bytes | None]] = []
     monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi2"], "mks@qidi2"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
     monkeypatch.setattr(
         qidi_plus4,
         "run",
-        lambda command, input_data=None: calls.append(command),
+        lambda command, input_data=None: calls.append((command, input_data)),
     )
     args = connection_args(
         "bootstrap-host",
+        user="plab",
+        printer_user="mks",
         confirm="BOOTSTRAP-HOST",
-        klipper_ref="klipper-ref",
-        moonraker_ref="moonraker-ref",
-        katapult_ref="katapult-ref",
+        klipper_ref=qidi_plus4.KLIPPER_REF,
+        moonraker_ref=qidi_plus4.MOONRAKER_REF,
+        katapult_ref=qidi_plus4.KATAPULT_REF,
     )
 
     qidi_plus4.bootstrap_host(args)
 
-    assert calls[0][1] == str(qidi_plus4.BOOTSTRAP_HELPER)
-    assert calls[1][1] == str(qidi_plus4.HOST_TUNING_HELPER)
-    assert "QIDI_HOST_TUNING_HELPER=/home/mks/qidi-host-tuning.sh" in calls[2][2]
+    assert len(calls) == 1
+    command, payload = calls[0]
+    assert "sudo -n -u mks -H env" in command[-1]
+    assert f"KLIPPER_REF={qidi_plus4.KLIPPER_REF}" in command[-1]
+    assert "bash -s" in command[-1]
+    assert qidi_plus4.BOOTSTRAP_HELPER.read_bytes() in payload
+    assert qidi_plus4.HOST_TUNING_HELPER.read_bytes() in payload
+    assert b"mktemp" in payload and b"trap" in payload
 
 
 def test_render_config_supports_external_profile_and_output(tmp_path: pathlib.Path) -> None:

@@ -94,7 +94,7 @@ Everything backend-specific is confined to two places:
 
 The dialog macros never name a vendor object anywhere else, so pointing the
 panel at an open Box reimplementation — or at Happy Hare's `mmu` object per
-[HAPPY-HARE-INTEGRATION.md](../../../docs/HAPPY-HARE-INTEGRATION.md) — means
+[HAPPY-HARE-INTEGRATION.md](../../../docs/integrations/HAPPY-HARE-INTEGRATION.md) — means
 editing those two places only.
 
 ## Backend semantics

@@ -7,7 +7,7 @@ behavior from later QIDI Box, cloud, and UI additions.
 QIDI also published tagged source releases (1.3.2 through 1.7.1) to
 <https://github.com/QIDITECH/QIDI_PLUS4>. Those intermediate versions are
 analyzed from source — not decompilation — in
-[`../analysis/github-releases/`](../analysis/github-releases/), which fills the
+[`../../analysis/github-releases/`](../../analysis/github-releases/), which fills the
 gap between the 1.1.2 factory image and the 1.7.3 backup. Its headline result:
 the QIDI Box Klipper modules were shipped as **open `.py` source at 1.7.0 and
 compiled to `.so` at 1.7.1**, pinpointing when QIDI closed that source.
@@ -205,7 +205,7 @@ so page/component mapping still requires TJC project data or UART capture.
 
 ## Generated evidence
 
-The publishable artifacts under [`../analysis/firmware/lineage/`](../analysis/firmware/lineage/)
+The publishable artifacts under [`../../analysis/firmware/lineage/`](../../analysis/firmware/lineage/)
 include:
 
 - an ordered file hash/mode/size lineage and transition summary;

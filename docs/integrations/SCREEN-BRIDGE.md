@@ -1,7 +1,7 @@
 # Reusing the QIDI Plus4 stock touchscreen
 
 > **Status:** research scaffold. Nothing here should replace `xindi` on a
-> working printer yet. The code under [`../screen-bridge/`](../screen-bridge/)
+> working printer yet. The code under [`../../screen-bridge/`](../../screen-bridge/)
 > cannot currently control the screen or printer.
 
 ## Goal

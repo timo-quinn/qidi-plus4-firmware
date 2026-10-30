@@ -1,7 +1,7 @@
 # Happy Hare hooks
 
 Install and commission Happy Hare using
-[`../../docs/HAPPY-HARE-INSTALLATION.md`](../../../docs/HAPPY-HARE-INSTALLATION.md)
+[`../../docs/migration/HAPPY-HARE-INSTALLATION.md`](../../../docs/migration/HAPPY-HARE-INSTALLATION.md)
 before adding Plus4-specific hooks.
 
 `plus4-hooks.cfg.example` is deliberately inert. It names the future cutter

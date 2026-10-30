@@ -58,7 +58,7 @@ sudo qidi-screen-bridge capture \
 ```
 
 This command only reads. It cannot passively observe bytes that `xindi` writes
-to the same UART. See [the research guide](../docs/SCREEN-BRIDGE.md) for safe
+to the same UART. See [the research guide](../docs/integrations/SCREEN-BRIDGE.md) for safe
 bidirectional capture approaches.
 
 ## Publication boundary

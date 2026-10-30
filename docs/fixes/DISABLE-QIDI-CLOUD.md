@@ -9,7 +9,7 @@ components. Those components are separate from the legacy launcher and are not
 disabled by the steps below. A printer that has been linked to QIDI Cloud may
 therefore retain an outbound MQTT connection or allow the FRP service to be
 re-enabled. Mainline Klipper/Moonraker omits these QIDI-specific components; see
-[MAINLINE-MIGRATION.md](MAINLINE-MIGRATION.md).
+[MAINLINE-MIGRATION.md](../migration/MAINLINE-MIGRATION.md).
 
 ## Firmware scope
 

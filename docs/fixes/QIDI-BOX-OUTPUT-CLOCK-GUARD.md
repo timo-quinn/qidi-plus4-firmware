@@ -6,7 +6,7 @@ primary printer MCU's `estimated_print_time()`. The clocks normally track each
 other, but they are not interchangeable. Using one MCU's print-time estimate
 for a command queued on another MCU can produce a `Timer too close` shutdown.
 
-[`box_output_clock_guard.py`](../qidibox-modules/box_output_clock_guard.py) is a
+[`box_output_clock_guard.py`](../../qidibox-modules/box_output_clock_guard.py) is a
 small post-load Klipper extra. At `klippy:connect` it:
 
 1. finds the already-loaded stock `box_extras` object;

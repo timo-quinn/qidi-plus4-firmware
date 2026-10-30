@@ -459,21 +459,39 @@ flash_mainboard() {
     # never acknowledged the serial bootloader request, and the flasher returned
     # a false-success status without transferring a firmware page. The supported
     # mainboard route is the resident microSD bootloader. See
-    # docs/MAINLINE-MIGRATION.md and docs/FIRMWARE-FLASHING.md; the historical
+    # docs/migration/MAINLINE-MIGRATION.md and docs/firmware/FIRMWARE-FLASHING.md; the historical
     # implementation is preserved in Git history.
     die 'Direct SSH mainboard flashing is disabled: the stock Plus4 UART loader did
 not enter the bootloader in live testing and no firmware pages transferred. Stage
 plus4-mainboard-klipper.bin as qd_mcu.bin (qidi_plus4.py stage-mainboard-sdcard)
-and flash it through the resident microSD bootloader per docs/MAINLINE-MIGRATION.md.'
+and flash it through the resident microSD bootloader per docs/migration/MAINLINE-MIGRATION.md.'
+}
+
+backup_toolhead() {
+    local backup="$1" probe
+    need_sudo; need st-info; need st-flash
+    probe="$(sudo -n st-info --probe 2>&1)"
+    printf '%s\n' "$probe"
+    grep -Eqi 'chipid:[[:space:]]*0x0?414|STM32F1' <<<"$probe" ||
+        die 'ST-Link target is not an STM32F1 toolhead.'
+    mkdir -p "$(dirname "$backup")"
+    sudo -n systemctl stop klipper
+    sudo -n st-flash read "$backup" 0x08000000 0x10000
+    sudo -n chown "$(id -un):$(id -gn)" "$backup"
+    [[ $(stat -c %s "$backup") == 65536 ]] || die 'Incomplete toolhead backup.'
+    sha256sum "$backup"
 }
 
 flash_toolhead_katapult() {
     local image="$1" expected_sha="$2" confirmation="$3" backup_dir="$4"
+    local saved_sha="${5:-}"
+    [[ $saved_sha =~ ^[0-9a-f]{64}$ ]] ||
+        die 'Workstation-verified pre-erase backup hash is required; use the workstation wrapper.'
     [[ "$confirmation" == 'ERASE-TOOLHEAD' ]] || die 'Explicit ERASE-TOOLHEAD confirmation missing.'
     need_sudo; need st-info; need st-flash
     validate_image toolhead-katapult "$image"
     assert_hash "$image" "$expected_sha"
-    probe="$(st-info --probe 2>&1)"
+    probe="$(sudo -n st-info --probe 2>&1)"
     printf '%s\n' "$probe"
     # The toolhead is an STM32F103xE (device/chip id 0x414). Match the chip id or
     # an explicit STM32F1 descriptor, not a bare "F1" that can occur elsewhere.
@@ -482,20 +500,24 @@ flash_toolhead_katapult() {
     mkdir -p "$backup_dir"
     backup="$backup_dir/toolhead-pre-katapult-$(date -u +%Y%m%dT%H%M%SZ).bin"
     sudo -n systemctl stop klipper || true
-    st-flash read "$backup" 0x08000000 0x10000
+    sudo -n st-flash read "$backup" 0x08000000 0x10000
+    sudo -n chown "$(id -un):$(id -gn)" "$backup"
+    assert_hash "$backup" "$saved_sha"
     sha256sum "$backup"
     # Stock QIDI Klipper is linked at 0x08000000. Merely overwriting its first
     # pages leaves non-blank data at Katapult's 0x08002000 application vector.
     # Katapult then jumps into stale stock code instead of waiting on UART.
     # Preserve the read-back above, then erase the target before installing it.
-    st-flash erase
-    st-flash write "$image" 0x08000000
+    sudo -n st-flash erase
+    sudo -n st-flash write "$image" 0x08000000
     verify="$backup_dir/toolhead-katapult-verify.bin"
-    st-flash read "$verify" 0x08000000 "$(stat -c %s "$image")"
+    sudo -n st-flash read "$verify" 0x08000000 "$(stat -c %s "$image")"
+    sudo -n chown "$(id -un):$(id -gn)" "$verify"
     cmp -n "$(stat -c %s "$image")" "$image" "$verify" || die 'Katapult read-back differs.'
     rm -f "$verify"
     app_vector="$backup_dir/toolhead-app-vector-verify.bin"
-    st-flash read "$app_vector" 0x08002000 8
+    sudo -n st-flash read "$app_vector" 0x08002000 8
+    sudo -n chown "$(id -un):$(id -gn)" "$app_vector"
     python3 - "$app_vector" <<'PY'
 import pathlib, sys
 
@@ -531,7 +553,8 @@ case "${1:-}" in
     setup-management-user) setup_management_user "$2" "$3" "${4:-}" ;;
     validate) validate_image "$2" "$3" ;;
     flash-mainboard) flash_mainboard "$2" "$3" "${4:-}" ;;
-    flash-toolhead-katapult) flash_toolhead_katapult "$2" "$3" "${4:-}" "${5:-/home/mks/qidi-mainline-migration/backups}" ;;
+    backup-toolhead) backup_toolhead "$2" ;;
+    flash-toolhead-katapult) flash_toolhead_katapult "$2" "$3" "${4:-}" "${5:-/home/mks/qidi-mainline-migration/backups}" "${6:-}" ;;
     flash-toolhead) flash_toolhead_app "$2" "$3" "${4:-}" "${5:-/home/mks/katapult}" ;;
     *) die 'Usage: qidi-plus4-remote.sh {audit|probe|setup-management-user|validate|flash-mainboard|flash-toolhead-katapult|flash-toolhead} ...' ;;
 esac

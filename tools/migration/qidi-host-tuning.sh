@@ -185,6 +185,7 @@ service_cpu_list() {
 }
 
 audit_tuning() {
+    local mode="${1:-runtime}"
     local failed=0 policy governor irq requested effective cpus policies=0 service
     local tuning_state klipper_state deadline
     printf 'QIDI Plus4 host tuning audit v%s\n' "$version"
@@ -217,6 +218,7 @@ audit_tuning() {
         failed=1
     }
 
+    if [[ $mode == runtime ]]; then
     for tty_address_cpu in 'ttyS2 ff130000 1' 'ttyS0 ff110000 2'; do
         read -r tty address cpu <<<"$tty_address_cpu"
         if ! irq=$(irq_for_tty "$tty" "$address"); then
@@ -232,6 +234,7 @@ audit_tuning() {
             "$tty" "$irq" "$requested" "$effective"
         [[ $requested == "$cpu" && $effective == "$cpu" ]] || failed=1
     done
+    fi
 
     cpus=$(service_cpu_list klipper.service)
     printf 'klipper_cpus=%s\n' "$cpus"
@@ -274,7 +277,7 @@ audit_tuning() {
         printf 'result=not-tuned\n'
         return 1
     fi
-    printf 'result=tuned\n'
+    printf 'result=%s\n' "$([[ $mode == runtime ]] && echo tuned || echo early-tuned)"
 }
 
 ensure_printer_idle() {
@@ -439,6 +442,7 @@ Usage:
   qidi-host-tuning.sh audit
   qidi-host-tuning.sh apply-early
   qidi-host-tuning.sh apply-late [--wait-seconds SECONDS] [--settle-seconds SECONDS]
+  qidi-host-tuning.sh audit-early
   qidi-host-tuning.sh install --printer-user USER [--no-restart]
 EOF
 }
@@ -451,6 +455,10 @@ action="${1:-}"
 shift
 
 case "$action" in
+    audit-early)
+        (($# == 0)) || die 'audit-early accepts no options'
+        audit_tuning early
+        ;;
     audit)
         (($# == 0)) || die 'audit accepts no options'
         audit_tuning

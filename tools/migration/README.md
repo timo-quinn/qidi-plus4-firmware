@@ -189,9 +189,9 @@ The installer does not change Klipper's baud rate, timer thresholds, MCU
 firmware, or `printer.cfg`.
 
 `smoke-test` installs the inert two-MCU `smoke-test-printer.cfg` (backing up any
-existing `printer.cfg`), restarts mainline Klipper, and prints the recent
-`klippy.log` so both MCUs can be seen reaching `Ready` before the real
-configuration is installed:
+existing `printer.cfg`), restarts mainline Klipper, waits for both MCU objects
+to reach `Ready`, and requires the full runtime tuning audit to pass. Failed
+checks return a nonzero exit status and leave the inert config installed:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py smoke-test --printer $Printer
@@ -218,19 +218,20 @@ python .\tools\migration\image_factory_emmc.py `
 The tool validates the exact disk size and MBR layout before copying. Never
 change the disk number without repeating `Get-Disk` and checking its size.
 
-Read [`../../docs/MAINLINE-MIGRATION.md`](../../docs/MAINLINE-MIGRATION.md)
+Read [`../../docs/migration/MAINLINE-MIGRATION.md`](../../docs/migration/MAINLINE-MIGRATION.md)
 before using any action other than `Audit` or `Validate*`.
 
 After both MCU links pass the inert smoke test, render a reviewed configuration
 with the target printer's exact Beacon serial path. The runtime profile can
 come directly from the companion config repository, which is the preferred
-source for current per-printer work:
+source for sanitized setup profiles. Per-printer state stays in Klippee:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py render-config `
-  --profile-dir ..\qidi-plus4-configs\printers\qidi2 `
+  --commissioning `
+  --profile-dir ..\qidi-plus4-configs\printers\mainline-klipper-beacon `
   --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_CHANGE_ME-if00' `
-  --output C:\printerlab-workspaces\qidi2
+  --output C:\printerlab-workspaces\my-plus4-mainline
 ```
 
 Omit `--profile-dir` to keep using the bundled compatibility profile selected
@@ -243,3 +244,22 @@ moved aside.
 Rendered output may contain hardware serials and must be reviewed before
 installation or publication. The bundled fallback remains documented under
 [`../../mainline-configs/`](../../mainline-configs/).
+
+`--commissioning` enables only the hardware and Beacon homing includes, uses
+watermark heater control and conservative motion limits, clears source input
+shaping and pressure advance, and leaves production/Box/Shake&Tune inactive.
+Review PB4 fan wiring, Beacon offsets and accelerometer orientation before
+installing it. Calibrate heaters, probe and motion on the target printer before
+rendering/enabling the production profile. Printerlab resume uses this mode.
+
+Build and bootstrap use immutable reviewed commits, and build rejects changed
+source trees. On Windows, `build --wsl-distro Ubuntu` accepts Linux source
+paths and translates absolute Windows output paths. The default install set is
+listed in [the fix report](../../docs/history/QIDI1-MIGRATION-FIXES-2026-10-04.md).
+`bootstrap-host --artifacts <directory>` checks the complete image manifest and
+source pins before any SSH mutation. `--printer-user` selects the actual owner.
+`--beacon-ref` installs only the pinned host module and never flashes a probe.
+
+The toolhead Katapult wrapper saves a 64 KiB recovery dump on the workstation
+before erase. It requires a second read from the attached target to match that
+dump; failed download or verification leaves the chip unerased.
