@@ -93,8 +93,7 @@ def quote_text(value: str) -> str:
 def decode_packet(packet: bytes) -> ScreenEvent:
     """Decode a packet body (with or without its trailing terminator)."""
 
-    if packet.endswith(TERMINATOR):
-        packet = packet[: -len(TERMINATOR)]
+    packet = packet.removesuffix(TERMINATOR)
     if not packet:
         return ScreenEvent(EventKind.UNKNOWN, packet)
 

@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 MODULE_PATH = Path(__file__).resolve().parents[1] / "box_output_clock_guard.py"
 SPEC = importlib.util.spec_from_file_location("box_output_clock_guard", MODULE_PATH)
 assert SPEC and SPEC.loader
@@ -277,7 +276,7 @@ def test_missing_box_extras_defers_without_halting_klipper() -> None:
 def test_automatic_reload_is_quarantined_but_manual_reload_is_forwarded() -> None:
     primary = FakeMCU("mcu")
     pin_mcu = FakeMCU("mcu_box1")
-    guard, printer, extras = make_guard(primary, pin_mcu, primary, pin_mcu)
+    guard, printer, _extras = make_guard(primary, pin_mcu, primary, pin_mcu)
     printer.connect()
     guarded_reload = printer.gcode.commands["RELOAD_ALL"]
     assert callable(guarded_reload)

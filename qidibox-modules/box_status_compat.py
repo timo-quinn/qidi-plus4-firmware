@@ -7,6 +7,8 @@ Compatible with the stock host's Python 3.7.
 
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 def _saved_tool_change(tool_change):
     variables = tool_change.printer.lookup_object('save_variables').allVariables
@@ -34,7 +36,8 @@ class BoxStatusCompat:
                 raise ValueError('ToolChange belongs to a different printer')
             for name in ('cmd_TOOL_CHANGE_START', 'cmd_TOOL_CHANGE_END'):
                 if not callable(getattr(tool_change, name, None)):
-                    raise ValueError('ToolChange has no callable ' + name)
+                    # Printer identity is a value constraint.
+                    raise ValueError('ToolChange has no callable ' + name)  # noqa: TRY004
             _saved_tool_change(tool_change)
             if hasattr(tool_change, 'is_tool_change'):
                 self._state = 'already-provided'
@@ -42,18 +45,19 @@ class BoxStatusCompat:
                 # Do not replace an existing, uninitialised native descriptor.
                 if hasattr(type(tool_change), 'is_tool_change'):
                     raise ValueError('uninitialised native is_tool_change descriptor')
-                setattr(type(tool_change), 'is_tool_change', property(_saved_tool_change))
+                type(tool_change).is_tool_change = property(_saved_tool_change)
                 installed = True
                 if tool_change.is_tool_change != _saved_tool_change(tool_change):
                     raise ValueError('compatibility property returned the wrong state')
                 self._state = 'corrected'
             self._tool_change = tool_change
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Roll back the property and translate any vendor failure into a config error.
             if installed:
                 delattr(type(tool_change), 'is_tool_change')
             self._state = 'error'
             raise self._config.error('QIDI Box status compatibility: ' + str(exc))
-        logging.info('QIDI Box status compatibility: %s; native commands retained', self._state)
+        logger.info('QIDI Box status compatibility: %s; native commands retained', self._state)
 
     def get_status(self, eventtime=None):
         return {'state': self._state,

@@ -8,7 +8,6 @@ import json
 import shutil
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent
 MANIFEST = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
 ADDONS: dict[str, dict[str, object]] = MANIFEST["addons"]

@@ -3,23 +3,22 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-from pathlib import Path
 import sys
 import threading
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLR_DIR = REPO_ROOT / "plr-hardening"
 if str(PLR_DIR) not in sys.path:
     sys.path.insert(0, str(PLR_DIR))
 
-import generate_recovery  # noqa: E402
-import install  # noqa: E402
-import patch_virtual_sdcard  # noqa: E402
-import plr_checkpoint  # noqa: E402
+import generate_recovery
+import install
+import patch_virtual_sdcard
+import plr_checkpoint
 
 
 @pytest.fixture(autouse=True)
@@ -295,6 +294,19 @@ def runtime_snapshot(
         "heaters": {"bed": 55.0, "chamber": 35.0, "extruder": 220.0},
         "macros": {"M106": {"filter_minimum": 0.2}},
     }
+
+
+def test_source_identity_preserves_caller_owned_file(tmp_path: Path) -> None:
+    source = tmp_path / "print.gcode"
+    source.write_bytes(b"G1 X10\n" * 20000)
+    expected = plr_checkpoint.source_identity(source)
+
+    with source.open("rb") as stream:
+        stream.seek(13)
+        assert plr_checkpoint.source_identity(stream) == expected
+        assert not stream.closed
+        assert stream.tell() == 13
+        assert stream.read(1) == source.read_bytes()[13:14]
 
 
 def test_runtime_python_parses_as_python_37() -> None:
@@ -1231,7 +1243,7 @@ def test_scripts_directory_legacy_owner_is_a_directory_only_transaction(
     manifest_desired = manifest["scripts_directory"]["desired"]
     assert manifest_original["uid"] == original["uid"]
     assert manifest_original["gid"] == original["gid"]
-    assert manifest_original["mode"] == "%04o" % original["mode"]
+    assert manifest_original["mode"] == "{:04o}".format(original["mode"])
     assert manifest_original["dev"] == original["dev"]
     assert manifest_original["ino"] == original["ino"]
     assert manifest_desired["uid"] == actual["uid"]
@@ -1374,10 +1386,10 @@ def test_scripts_directory_mode_only_normalization_strips_no_other_bits(
     assert manifest["files"] == []
     assert manifest["scripts_directory_metadata_normalized"] is True
     assert manifest["scripts_directory"]["original"]["mode"] == (
-        "%04o" % original["mode"]
+        "{:04o}".format(original["mode"])
     )
     assert manifest["scripts_directory"]["desired"]["mode"] == (
-        "%04o" % desired["mode"]
+        "{:04o}".format(desired["mode"])
     )
 
     args.rollback_manifest = str(Path(backup_dir) / "backup-manifest.json")

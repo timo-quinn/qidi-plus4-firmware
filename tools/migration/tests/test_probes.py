@@ -6,10 +6,8 @@ import hashlib
 import json
 import pathlib
 
-import pytest
-
 import probes
-
+import pytest
 
 REMOTE_HELPER = pathlib.Path(__file__).resolve().parents[1] / "qidi-plus4-remote.sh"
 SMOKE_TEST_CONFIG = pathlib.Path(__file__).resolve().parents[1] / "smoke-test-printer.cfg"

@@ -11,6 +11,7 @@ import argparse
 import grp
 import hashlib
 import json
+import logging
 import os
 import pathlib
 import pwd
@@ -19,7 +20,6 @@ import shutil
 import stat
 import sys
 import tempfile
-
 
 SCHEMA = "qidi-plus4-box-output-clock-guard-install/v1"
 OWNER = "mks"
@@ -47,9 +47,9 @@ def _regular_file(path, label):
     try:
         details = path.lstat()
     except OSError as exc:
-        raise RuntimeError("%s is not readable: %s" % (label, exc))
+        raise RuntimeError(f"{label} is not readable: {exc}")
     if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
-        raise RuntimeError("%s must be a regular file, not a symlink" % label)
+        raise RuntimeError(f"{label} must be a regular file, not a symlink")
     return details
 
 
@@ -57,11 +57,11 @@ def _canonical_directory(path, label):
     try:
         details = path.lstat()
     except OSError as exc:
-        raise RuntimeError("%s is not accessible: %s" % (label, exc))
+        raise RuntimeError(f"{label} is not accessible: {exc}")
     if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
-        raise RuntimeError("%s must be a real directory, not a symlink" % label)
+        raise RuntimeError(f"{label} must be a real directory, not a symlink")
     if pathlib.Path(os.path.realpath(str(path))) != path:
-        raise RuntimeError("%s does not resolve to its fixed path" % label)
+        raise RuntimeError(f"{label} does not resolve to its fixed path")
     return details
 
 
@@ -80,7 +80,7 @@ def _copy_to_path(source, destination, mode, uid, gid, expected_digest):
     """Publish a fully written copy with one same-filesystem rename."""
 
     descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".%s." % destination.name,
+        prefix=f".{destination.name}.",
         suffix=".tmp",
         dir=str(destination.parent),
     )
@@ -93,8 +93,7 @@ def _copy_to_path(source, destination, mode, uid, gid, expected_digest):
         copied_digest = sha256(temporary)
         if copied_digest != expected_digest:
             raise RuntimeError(
-                "atomic copy SHA-256 mismatch: expected %s, got %s"
-                % (expected_digest, copied_digest)
+                f"atomic copy SHA-256 mismatch: expected {expected_digest}, got {copied_digest}"
             )
         os.chmod(str(temporary), mode)
         os.chown(str(temporary), uid, gid)
@@ -118,7 +117,7 @@ def _file_status(path):
         "sha256": sha256(path),
         "owner": pwd.getpwuid(details.st_uid).pw_name,
         "group": grp.getgrgid(details.st_gid).gr_name,
-        "mode": "%04o" % stat.S_IMODE(details.st_mode),
+        "mode": f"{stat.S_IMODE(details.st_mode):04o}",
     }
 
 
@@ -139,8 +138,7 @@ def install(source, expected_digest, transaction_id, target=TARGET, owner_name=O
     source_digest = sha256(source)
     if source_digest != expected_digest:
         raise RuntimeError(
-            "staged clock guard SHA-256 mismatch: expected %s, got %s"
-            % (expected_digest, source_digest)
+            f"staged clock guard SHA-256 mismatch: expected {expected_digest}, got {source_digest}"
         )
 
     owner = pwd.getpwnam(owner_name)
@@ -155,7 +153,7 @@ def install(source, expected_digest, transaction_id, target=TARGET, owner_name=O
         existing = _regular_file(target, "existing clock guard")
         existing_digest = sha256(target)
 
-    expected_mode = "%04o" % MODE
+    expected_mode = f"{MODE:04o}"
     already_correct = bool(
         existing
         and existing_digest == source_digest
@@ -166,7 +164,7 @@ def install(source, expected_digest, transaction_id, target=TARGET, owner_name=O
     backup = None
     if not already_correct and existing is not None:
         backup_root = _ensure_backup_root(parent, owner)
-        backup_dir = backup_root / ("box-output-clock-guard-%s" % transaction_id)
+        backup_dir = backup_root / (f"box-output-clock-guard-{transaction_id}")
         backup_dir.mkdir(mode=0o700)
         os.chown(str(backup_dir), owner.pw_uid, owner.pw_gid)
         backup_path = backup_dir / target.name
@@ -252,21 +250,24 @@ def main():
         if not STAGED_SOURCE.fullmatch(args.source):
             raise RuntimeError("source must be the guarded temporary clock-module path")
         result = install(args.source, args.expected_sha256, args.transaction_id)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Always return the transaction failure and backup evidence as JSON.
         if TRANSACTION_ID.fullmatch(args.transaction_id):
             backup_path = (
                 TARGET.parent
                 / ".qidi-plus4-backups"
-                / ("box-output-clock-guard-%s" % args.transaction_id)
+                / (f"box-output-clock-guard-{args.transaction_id}")
                 / TARGET.name
             )
             if os.path.lexists(str(backup_path)):
                 try:
                     base["backup"] = _file_status(backup_path)
-                except Exception:
+                except (OSError, LookupError, RuntimeError):
                     # The primary failure remains authoritative. A malformed
                     # backup path must not hide it behind a second exception.
-                    pass
+                    logging.getLogger(__name__).warning(
+                        "Could not inspect the rollback backup", exc_info=True
+                    )
         base["verified"] = False
         base["error"] = str(exc)
         print(json.dumps(base, indent=2, sort_keys=True))

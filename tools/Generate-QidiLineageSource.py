@@ -19,7 +19,6 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-
 MODULES = ("aht20_f", "box_detect", "box_extras", "box_rfid", "box_stepper")
 VERSIONS = ("1.7.3", "1.8.2")
 BASELINE_URL = (

@@ -1,9 +1,7 @@
 import importlib.util
+import unittest
 from pathlib import Path
 from types import SimpleNamespace
-
-import unittest
-
 
 path = Path(__file__).resolve().parents[1] / 'box_status_compat.py'
 spec = importlib.util.spec_from_file_location('box_status_compat', path)

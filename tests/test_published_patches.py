@@ -7,7 +7,6 @@ import subprocess
 
 import pytest
 
-
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "tools" / "Analyze-QidiFirmwareLineage.py"
 SPEC = importlib.util.spec_from_file_location("qidi_firmware_lineage", MODULE_PATH)

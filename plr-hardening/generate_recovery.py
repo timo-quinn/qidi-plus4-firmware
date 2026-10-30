@@ -12,7 +12,6 @@ This file intentionally remains compatible with CPython 3.7.
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import math
 import os
@@ -21,7 +20,6 @@ import sys
 import tempfile
 
 import plr_checkpoint
-
 
 FORMAT_VERSION = 2
 START_MARKER = "; QIDI_PLR_HARDENED_V2"
@@ -35,15 +33,15 @@ MAX_OBJECT_DEFINITION_BYTES = 8 * 1024 * 1024
 COPY_CHUNK = 1024 * 1024
 
 Z_PATTERNS = (
-    re.compile(r"^\s*;\s*Z\s*:\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+))\s*$", re.I),
+    re.compile(r"^\s*;\s*Z\s*:\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+))\s*$", re.IGNORECASE),
     re.compile(
         r"^\s*;\s*Z_HEIGHT\s*:\s*([-+]?(?:\d+(?:\.\d*)?|\.\d+))\s*$",
-        re.I,
+        re.IGNORECASE,
     ),
 )
 COMMAND_PATTERN = re.compile(
     r"^\s*(?:N\d+\s*)?((?:G|M)\d+(?:\.\d+)?|[A-Za-z_][A-Za-z0-9_]*)\s*(.*)$",
-    re.I,
+    re.IGNORECASE,
 )
 PARAMETER_PATTERN = re.compile(
     r"([A-Za-z])\s*(?:=\s*)?([-+]?(?:\d+(?:\.\d*)?|\.\d+))"
@@ -66,7 +64,7 @@ def _is_within(path, directory):
 def _format_number(value):
     if int(value) == value:
         return str(int(value))
-    return ("%.6f" % value).rstrip("0").rstrip(".")
+    return (f"{value:.6f}").rstrip("0").rstrip(".")
 
 
 def _command_and_parameters(text):
@@ -98,12 +96,12 @@ def scan_prefix(source_file, completed_lines):
         line = source_file.readline()
         if not line:
             raise RecoveryError(
-                "checkpoint line %d is beyond the end of the source" % completed_lines
+                f"checkpoint line {completed_lines:d} is beyond the end of the source"
             )
         try:
             text = line.decode("utf-8")
         except UnicodeDecodeError as exc:
-            raise RecoveryError("source line %d is not UTF-8: %s" % (line_number, exc))
+            raise RecoveryError(f"source line {line_number:d} is not UTF-8: {exc}")
         stripped = text.strip()
         lower = stripped.lower()
 
@@ -161,8 +159,8 @@ def recovery_header(checkpoint, metadata):
     filter_minimum = runtime["macros"]["M106"]["filter_minimum"]
     lines = [
         START_MARKER,
-        "; checkpoint_line=%d" % checkpoint["line"],
-        "; source_size=%d" % checkpoint["source"]["size"],
+        f"; checkpoint_line={checkpoint['line']:d}",
+        f"; source_size={checkpoint['source']['size']:d}",
     ]
     header = ("\n".join(lines) + "\n").encode("ascii")
     if metadata["thumbnail"]:
@@ -170,31 +168,29 @@ def recovery_header(checkpoint, metadata):
         if not header.endswith(b"\n"):
             header += b"\n"
     header += (
-        "SET_KINEMATIC_POSITION Z=%s\n"
-        % _format_number(physical["Z"])
+        "SET_KINEMATIC_POSITION Z={}\n".format(_format_number(physical["Z"]))
     ).encode("ascii")
     header += metadata["object_definitions"]
     if metadata["object_definitions"] and not header.endswith(b"\n"):
         header += b"\n"
     commands = [
-        "M140 S%s" % _format_number(temperatures["bed"]),
-        "M104 S%s" % _format_number(temperatures["extruder"]),
-        "M141 S%s" % _format_number(temperatures["chamber"]),
+        "M140 S{}".format(_format_number(temperatures["bed"])),
+        "M104 S{}".format(_format_number(temperatures["extruder"])),
+        "M141 S{}".format(_format_number(temperatures["chamber"])),
         "G91",
         "G1 Z5 F600",
         "G90",
         "G28 X Y",
         "G28 X",
-        "CLEAR_NOZZLE_PLR HOTEND=%s" % _format_number(temperatures["extruder"]),
-        "M400 %s" % CLEAN_MARKER,
+        "CLEAR_NOZZLE_PLR HOTEND={}".format(_format_number(temperatures["extruder"])),
+        f"M400 {CLEAN_MARKER}",
     ]
     if temperatures["bed"] > 0.0:
-        commands.append("M190 S%s" % _format_number(temperatures["bed"]))
+        commands.append("M190 S{}".format(_format_number(temperatures["bed"])))
     if temperatures["chamber"] > 0.0:
-        commands.append("M191 S%s" % _format_number(temperatures["chamber"]))
+        commands.append("M191 S{}".format(_format_number(temperatures["chamber"])))
     commands.append(
-        "SET_GCODE_VARIABLE MACRO=M106 VARIABLE=filter_minimum VALUE=%s"
-        % _format_number(filter_minimum)
+        f"SET_GCODE_VARIABLE MACRO=M106 VARIABLE=filter_minimum VALUE={_format_number(filter_minimum)}"
     )
     for port, name in (
         ("P0", "cooling_fan"),
@@ -202,12 +198,11 @@ def recovery_header(checkpoint, metadata):
         ("P3", "chamber_circulation_fan"),
     ):
         commands.append(
-            "SET_FAN_SPEED FAN=%s SPEED=%s"
-            % (name, _format_number(fans[port] / 255.0))
+            f"SET_FAN_SPEED FAN={name} SPEED={_format_number(fans[port] / 255.0)}"
         )
     commands.extend(
         (
-            "M400 %s" % FAN_MARKER,
+            f"M400 {FAN_MARKER}",
             # CLEAR_NOZZLE_PLR has intentionally moved through a temporary
             # coordinate frame.  Re-home XY, then zero the homing-origin frame
             # so the following coordinates name the checkpoint's physical XYZ
@@ -216,36 +211,30 @@ def recovery_header(checkpoint, metadata):
             "M400",
             "SET_GCODE_OFFSET X=0 Y=0 Z=0 E=0",
             "G90",
-            "G1 X%s Y%s F12000"
-            % (
+            "G1 X{} Y{} F12000".format(
                 _format_number(physical["X"]),
                 _format_number(physical["Y"]),
             ),
-            "M400 %s" % XY_MARKER,
-            "G1 Z%s F600"
-            % _format_number(physical["Z"]),
-            "M400 %s" % Z_MARKER,
-            "SET_VELOCITY_LIMIT VELOCITY=%s ACCEL=%s ACCEL_TO_DECEL=%s SQUARE_CORNER_VELOCITY=%s"
-            % (
+            f"M400 {XY_MARKER}",
+            "G1 Z{} F600".format(_format_number(physical["Z"])),
+            f"M400 {Z_MARKER}",
+            "SET_VELOCITY_LIMIT VELOCITY={} ACCEL={} ACCEL_TO_DECEL={} SQUARE_CORNER_VELOCITY={}".format(
                 _format_number(toolhead["max_velocity"]),
                 _format_number(toolhead["max_accel"]),
                 _format_number(toolhead["max_accel_to_decel"]),
                 _format_number(toolhead["square_corner_velocity"]),
             ),
-            "SET_PRESSURE_ADVANCE ADVANCE=%s SMOOTH_TIME=%s"
-            % (
+            "SET_PRESSURE_ADVANCE ADVANCE={} SMOOTH_TIME={}".format(
                 _format_number(extruder["pressure_advance"]),
                 _format_number(extruder["smooth_time"]),
             ),
-            "M220 S%s" % _format_number(move["speed_factor"]),
-            "M221 S%s" % _format_number(move["extrude_factor"]),
-            "SET_GCODE_OFFSET X=%s Y=%s Z=%s E=%s"
-            % tuple(_format_number(origin[axis]) for axis in "XYZE"),
-            "G92 X%s Y%s Z%s E%s"
-            % tuple(_format_number(gcode_position[axis]) for axis in "XYZE"),
+            "M220 S{}".format(_format_number(move["speed_factor"])),
+            "M221 S{}".format(_format_number(move["extrude_factor"])),
+            "SET_GCODE_OFFSET X={} Y={} Z={} E={}".format(*tuple(_format_number(origin[axis]) for axis in "XYZE")),
+            "G92 X{} Y{} Z{} E{}".format(*tuple(_format_number(gcode_position[axis]) for axis in "XYZE")),
             "M82" if move["absolute_extrude"] else "M83",
             "G90" if move["absolute_coordinates"] else "G91",
-            "G1 F%s" % _format_number(move["feed_rate"]),
+            "G1 F{}".format(_format_number(move["feed_rate"])),
             "ENABLE_ALL_SENSOR",
             CONTINUATION_MARKER,
         )
@@ -260,20 +249,20 @@ def _remove_output(path, strict=False):
         return
     except OSError as exc:
         if strict:
-            raise RecoveryError("stale recovery output cannot be removed: %s" % exc)
+            raise RecoveryError(f"stale recovery output cannot be removed: {exc}")
         return
     try:
         _fsync_directory(os.path.dirname(os.path.abspath(path)))
     except OSError as exc:
         if strict:
-            raise RecoveryError("recovery directory cannot be synchronized: %s" % exc)
+            raise RecoveryError(f"recovery directory cannot be synchronized: {exc}")
 
 
 def _validate_output(path, header, expected_size):
     stat_result = os.stat(path)
     if stat_result.st_size != expected_size:
         raise RecoveryError("generated recovery size does not match its source tail")
-    with io.open(path, "rb") as output_file:
+    with open(path, "rb") as output_file:
         actual_header = output_file.read(len(header))
     if actual_header != header:
         raise RecoveryError("generated recovery header failed byte validation")
@@ -331,7 +320,7 @@ def generate(checkpoint_path, gcode_root, output_path):
     if not os.path.isdir(gcode_root):
         raise RecoveryError("G-code root does not exist")
     if not os.path.isdir(plr_directory):
-        raise RecoveryError("recovery directory does not exist: %s" % plr_directory)
+        raise RecoveryError(f"recovery directory does not exist: {plr_directory}")
     if os.path.islink(plr_directory):
         raise RecoveryError("recovery directory must not be a symlink")
     if not _is_within(os.path.realpath(plr_directory), gcode_root):
@@ -354,14 +343,14 @@ def generate(checkpoint_path, gcode_root, output_path):
             raise RecoveryError("a generated recovery file cannot be a recovery source")
         if os.path.realpath(output_path) == os.path.realpath(source_path):
             raise RecoveryError("source and recovery output resolve to the same file")
-        with io.open(source_path, "rb") as source_file:
+        with open(source_path, "rb") as source_file:
             before = plr_checkpoint.source_identity(source_file)
             if not plr_checkpoint.identities_match(checkpoint["source"], before):
                 raise RecoveryError("checkpoint source identity no longer matches")
             metadata = scan_prefix(source_file, checkpoint["line"])
             header = recovery_header(checkpoint, metadata)
             fd, temporary = tempfile.mkstemp(
-                prefix=".%s." % os.path.basename(output_path),
+                prefix=f".{os.path.basename(output_path)}.",
                 suffix=".tmp",
                 dir=os.path.dirname(output_path),
             )
@@ -434,15 +423,15 @@ def main(argv=None):
         if args.json:
             print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True))
         else:
-            print("PLR generation refused: %s" % exc, file=sys.stderr)
+            print(f"PLR generation refused: {exc}", file=sys.stderr)
         return 1
     result["ok"] = True
     if args.json:
         print(json.dumps(result, sort_keys=True))
     else:
         print(
-            "Generated %(output)s from %(source)s after line %(checkpoint_line)d "
-            "at Z=%(z)s" % result
+            f"Generated {result['output']} from {result['source']} "
+            f"after line {result['checkpoint_line']:d} at Z={result['z']}"
         )
     return 0
 

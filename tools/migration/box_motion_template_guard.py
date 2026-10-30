@@ -12,7 +12,6 @@ import stat
 import sys
 import tempfile
 
-
 SCHEMA = "qidi-plus4-box-motion-template-guard/v1"
 TRANSACTION_ID = re.compile(r"\d{8}T\d{6}Z-[0-9a-f]{16}")
 SECTION = re.compile(
@@ -36,9 +35,9 @@ def regular_file(path, label):
     try:
         details = path.lstat()
     except OSError as exc:
-        raise RuntimeError("%s is not readable: %s" % (label, exc))
+        raise RuntimeError(f"{label} is not readable: {exc}")
     if stat.S_ISLNK(details.st_mode) or not stat.S_ISREG(details.st_mode):
-        raise RuntimeError("%s must be a regular file, not a symlink" % label)
+        raise RuntimeError(f"{label} must be a regular file, not a symlink")
     return details
 
 
@@ -46,11 +45,11 @@ def real_directory(path, label):
     try:
         details = path.lstat()
     except OSError as exc:
-        raise RuntimeError("%s is not accessible: %s" % (label, exc))
+        raise RuntimeError(f"{label} is not accessible: {exc}")
     if stat.S_ISLNK(details.st_mode) or not stat.S_ISDIR(details.st_mode):
-        raise RuntimeError("%s must be a real directory, not a symlink" % label)
+        raise RuntimeError(f"{label} must be a real directory, not a symlink")
     if pathlib.Path(os.path.realpath(str(path))) != path:
-        raise RuntimeError("%s does not resolve to its fixed path" % label)
+        raise RuntimeError(f"{label} does not resolve to its fixed path")
     return details
 
 
@@ -87,7 +86,7 @@ def hardened_content(raw):
     original = lines[use_index]
     newline = "\r\n" if original.endswith("\r\n") else "\n" if original.endswith("\n") else ""
     match = USE_IRQ.match(original.rstrip("\r\n"))
-    lines[use_index] = "%suse_irq : False%s" % (match.group(1), newline)
+    lines[use_index] = f"{match.group(1)}use_irq : False{newline}"
     for index in reversed(debounce_indexes):
         del lines[index]
     return "".join(lines).encode("utf-8")
@@ -127,7 +126,7 @@ def vendor_content(raw):
     newline = "\r\n" if original.endswith("\r\n") else "\n" if original.endswith("\n") else ""
     match = USE_IRQ.match(original.rstrip("\r\n"))
     indent = match.group(1)
-    lines[use_index] = "%suse_irq : True%s" % (indent, newline)
+    lines[use_index] = f"{indent}use_irq : True{newline}"
     if debounce_indexes:
         debounce_index = debounce_indexes[0]
         debounce_original = lines[debounce_index]
@@ -136,15 +135,15 @@ def vendor_content(raw):
             if debounce_original.endswith("\r\n")
             else "\n" if debounce_original.endswith("\n") else ""
         )
-        lines[debounce_index] = "%sdebounce_us : 50%s" % (indent, debounce_newline)
+        lines[debounce_index] = f"{indent}debounce_us : 50{debounce_newline}"
     else:
-        lines.insert(use_index + 1, "%sdebounce_us : 50%s" % (indent, newline))
+        lines.insert(use_index + 1, f"{indent}debounce_us : 50{newline}")
     return "".join(lines).encode("utf-8")
 
 
 def atomic_write(target, content, details):
     descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".%s." % target.name,
+        prefix=f".{target.name}.",
         suffix=".tmp",
         dir=str(target.parent),
     )
@@ -174,7 +173,7 @@ def install(box_count, transaction_id, target=None, restore_vendor=False):
         raise RuntimeError("box count must be 1 through 4")
     if not TRANSACTION_ID.fullmatch(transaction_id):
         raise RuntimeError("invalid Box motion-guard transaction identifier")
-    expected_target = pathlib.Path("/home/mks/cfg_with_%d" % box_count)
+    expected_target = pathlib.Path(f"/home/mks/cfg_with_{box_count:d}")
     target = pathlib.Path(target) if target is not None else expected_target
     if target == expected_target and pathlib.Path(os.path.realpath(str(target))) != target:
         raise RuntimeError("Box template does not resolve to its fixed path")
@@ -232,7 +231,7 @@ def install(box_count, transaction_id, target=None, restore_vendor=False):
             "path": str(target),
             "before_sha256": before_digest,
             "after_sha256": after_digest,
-            "mode": "%04o" % stat.S_IMODE(after.st_mode),
+            "mode": f"{stat.S_IMODE(after.st_mode):04o}",
             "uid": after.st_uid,
             "gid": after.st_gid,
         },
@@ -258,13 +257,14 @@ def main():
             args.transaction_id,
             restore_vendor=args.restore_vendor,
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Always return the template transaction failure as JSON.
         result = {
             "schema": SCHEMA,
             "ok": False,
             "box_count": args.box_count,
             "transaction_id": args.transaction_id,
-            "target": {"path": "/home/mks/cfg_with_%d" % args.box_count},
+            "target": {"path": f"/home/mks/cfg_with_{args.box_count:d}"},
             "active_config_changed": False,
             "klipper_service_action": "none",
             "klipper_restarted": False,

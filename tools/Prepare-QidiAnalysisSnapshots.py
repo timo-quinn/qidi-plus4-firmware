@@ -10,7 +10,6 @@ import posixpath
 import tarfile
 from pathlib import Path, PurePosixPath
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RETAINED = REPO_ROOT / "data/printer-backups/retained"
 ARCHIVES = {

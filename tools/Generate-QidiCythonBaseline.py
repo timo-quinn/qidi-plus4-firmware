@@ -13,7 +13,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 EXPECTED_CYTHON = "3.0.12"
 MODULES = ("aht20_f", "box_detect", "box_extras", "box_rfid", "box_stepper")
 

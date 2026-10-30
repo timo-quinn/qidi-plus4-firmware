@@ -9,7 +9,6 @@ the stock Plus4 Klipper environment.  It is installed beside
 from __future__ import annotations
 
 import hashlib
-import io
 import json
 import logging
 import math
@@ -18,6 +17,7 @@ import tempfile
 import threading
 import time
 
+logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = 2
 SAMPLE_SIZE = 64 * 1024
@@ -99,28 +99,19 @@ def _sample_digest(fd, size):
 def source_identity(file_or_path):
     """Return a stable, inexpensive identity for an open or named G-code."""
 
-    close_file = False
-    if hasattr(file_or_path, "fileno"):
-        file_object = file_or_path
-        path = file_object.name
-    else:
-        path = os.fspath(file_or_path)
-        file_object = io.open(path, "rb")
-        close_file = True
-    try:
-        fd = file_object.fileno()
-        stat_result = os.fstat(fd)
-        return {
-            "path": os.path.realpath(path),
-            "device": int(stat_result.st_dev),
-            "inode": int(stat_result.st_ino),
-            "size": int(stat_result.st_size),
-            "mtime_ns": _mtime_ns(stat_result),
-            "sample_sha256": _sample_digest(fd, int(stat_result.st_size)),
-        }
-    finally:
-        if close_file:
-            file_object.close()
+    if not hasattr(file_or_path, "fileno"):
+        with open(os.fspath(file_or_path), "rb") as source_file:
+            return source_identity(source_file)
+    fd = file_or_path.fileno()
+    stat_result = os.fstat(fd)
+    return {
+        "path": os.path.realpath(file_or_path.name),
+        "device": int(stat_result.st_dev),
+        "inode": int(stat_result.st_ino),
+        "size": int(stat_result.st_size),
+        "mtime_ns": _mtime_ns(stat_result),
+        "sample_sha256": _sample_digest(fd, int(stat_result.st_size)),
+    }
 
 
 def identities_match(expected, actual):
@@ -133,14 +124,14 @@ def _validate_identity(value):
     _require_exact_keys(value, IDENTITY_FIELDS, "checkpoint source identity")
     for field in IDENTITY_FIELDS:
         if field not in value:
-            raise CheckpointError("checkpoint source identity is missing %s" % field)
+            raise CheckpointError(f"checkpoint source identity is missing {field}")
     if not isinstance(value["path"], str) or not os.path.isabs(value["path"]):
         raise CheckpointError("checkpoint source path must be absolute")
     for field in ("device", "inode", "size", "mtime_ns"):
         if isinstance(value[field], bool) or not isinstance(value[field], int):
-            raise CheckpointError("checkpoint source %s must be an integer" % field)
+            raise CheckpointError(f"checkpoint source {field} must be an integer")
         if value[field] < 0:
-            raise CheckpointError("checkpoint source %s must not be negative" % field)
+            raise CheckpointError(f"checkpoint source {field} must not be negative")
     digest = value["sample_sha256"]
     if (
         not isinstance(digest, str)
@@ -153,7 +144,7 @@ def _validate_identity(value):
 
 def _require_exact_keys(value, expected, label):
     if not isinstance(value, dict):
-        raise CheckpointError("%s is not an object" % label)
+        raise CheckpointError(f"{label} is not an object")
     actual = set(value)
     expected = set(expected)
     if actual != expected:
@@ -161,19 +152,19 @@ def _require_exact_keys(value, expected, label):
         extra = sorted(actual - expected)
         detail = []
         if missing:
-            detail.append("missing %s" % ",".join(missing))
+            detail.append("missing {}".format(",".join(missing)))
         if extra:
-            detail.append("unexpected %s" % ",".join(extra))
-        raise CheckpointError("%s fields are invalid (%s)" % (label, "; ".join(detail)))
+            detail.append("unexpected {}".format(",".join(extra)))
+        raise CheckpointError("{} fields are invalid ({})".format(label, "; ".join(detail)))
 
 
 def _finite_number(value, label, minimum, maximum):
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise CheckpointError("%s must be numeric" % label)
+        raise CheckpointError(f"{label} must be numeric")
     value = float(value)
     if not math.isfinite(value) or value < minimum or value > maximum:
         raise CheckpointError(
-            "%s is outside %.6g..%.6g" % (label, minimum, maximum)
+            f"{label} is outside {minimum:.6g}..{maximum:.6g}"
         )
     return value
 
@@ -181,7 +172,7 @@ def _finite_number(value, label, minimum, maximum):
 def _validate_axes(value, label, minimum=-1000000000000.0, maximum=1000000000000.0):
     _require_exact_keys(value, AXES, label)
     return {
-        axis: _finite_number(value[axis], "%s.%s" % (label, axis), minimum, maximum)
+        axis: _finite_number(value[axis], f"{label}.{axis}", minimum, maximum)
         for axis in AXES
     }
 
@@ -222,7 +213,7 @@ def _validate_runtime_snapshot(value, line):
     )
     for name in ("absolute_coordinates", "absolute_extrude"):
         if not isinstance(move[name], bool):
-            raise CheckpointError("checkpoint gcode_move.%s must be boolean" % name)
+            raise CheckpointError(f"checkpoint gcode_move.{name} must be boolean")
     position = _validate_axes(move["position"], "checkpoint gcode_move.position")
     gcode_position = _validate_axes(
         move["gcode_position"], "checkpoint gcode_move.gcode_position"
@@ -248,7 +239,7 @@ def _validate_runtime_snapshot(value, line):
         expected = position[axis] - base_position[axis]
         if not _close_enough(expected, gcode_position[axis]):
             raise CheckpointError(
-                "checkpoint %s coordinate mapping is inconsistent" % axis
+                f"checkpoint {axis} coordinate mapping is inconsistent"
             )
     expected_e = (position["E"] - base_position["E"]) / (extrude_factor / 100.0)
     if not _close_enough(expected_e, gcode_position["E"]):
@@ -304,7 +295,7 @@ def _validate_runtime_snapshot(value, line):
     fans = value["fans"]
     _require_exact_keys(fans, FAN_PORTS, "checkpoint fans")
     normalized_fans = {
-        port: _finite_number(fans[port], "checkpoint fans.%s" % port, 0.0, 255.0)
+        port: _finite_number(fans[port], f"checkpoint fans.{port}", 0.0, 255.0)
         for port in FAN_PORTS
     }
 
@@ -359,14 +350,14 @@ def checkpoint_bytes(path):
     try:
         stat_result = os.stat(path)
     except OSError as exc:
-        raise CheckpointError("checkpoint is unavailable: %s" % exc)
+        raise CheckpointError(f"checkpoint is unavailable: {exc}")
     if stat_result.st_size <= 0 or stat_result.st_size > 64 * 1024:
         raise CheckpointError("checkpoint size is invalid")
     try:
-        with io.open(path, "rb") as checkpoint_file:
+        with open(path, "rb") as checkpoint_file:
             return checkpoint_file.read()
     except OSError as exc:
-        raise CheckpointError("checkpoint cannot be read: %s" % exc)
+        raise CheckpointError(f"checkpoint cannot be read: {exc}")
 
 
 def load_checkpoint(path):
@@ -376,14 +367,14 @@ def load_checkpoint(path):
     try:
         value = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as exc:
-        raise CheckpointError("checkpoint is not valid UTF-8 JSON: %s" % exc)
+        raise CheckpointError(f"checkpoint is not valid UTF-8 JSON: {exc}")
     if not isinstance(value, dict):
         raise CheckpointError("checkpoint root is not an object")
     if value.get("version") != SCHEMA_VERSION:
         raise CheckpointError("unsupported checkpoint version")
     if value.get("state") != "active":
         raise CheckpointError(
-            "checkpoint is not resumable (state=%s)" % value.get("state")
+            "checkpoint is not resumable (state={})".format(value.get("state"))
         )
     _require_exact_keys(
         value, ("version", "state", "line", "source", "runtime"), "checkpoint root"
@@ -407,9 +398,9 @@ def atomic_write(path, data, mode=0o600):
     path = os.path.abspath(path)
     directory = os.path.dirname(path)
     if not os.path.isdir(directory):
-        raise OSError("destination directory does not exist: %s" % directory)
+        raise OSError(f"destination directory does not exist: {directory}")
     fd, temporary = tempfile.mkstemp(
-        prefix=".%s." % os.path.basename(path), suffix=".tmp", dir=directory
+        prefix=f".{os.path.basename(path)}.", suffix=".tmp", dir=directory
     )
     try:
         if hasattr(os, "fchmod"):
@@ -499,7 +490,7 @@ def _write_checkpoint_files(record_path, checkpoint_path, job):
         atomic_write(record_path, legacy)
 
 
-class _CheckpointWriter(object):
+class _CheckpointWriter:
     """One bounded, coalescing durability worker shared by a tracker.
 
     Klippy's reactor must not wait for eMMC fsync.  There is at most one job in
@@ -585,7 +576,8 @@ class _CheckpointWriter(object):
         try:
             with self.io_lock:
                 _write_checkpoint_files(self.record_path, self.checkpoint_path, job)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Invalidate the checkpoint on any durability failure.
             try:
                 durable_unlink(self.checkpoint_path)
             except OSError:
@@ -616,7 +608,8 @@ class _CheckpointWriter(object):
             with self.io_lock:
                 atomic_write(self.record_path, b"0\n")
                 durable_unlink(self.checkpoint_path)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Record any abort failure before notifying the writer.
             failure = exc
             try:
                 durable_unlink(self.checkpoint_path)
@@ -667,13 +660,13 @@ class _CheckpointWriter(object):
                             self.record_path, self.checkpoint_path, job
                         )
             except Exception as exc:
-                logging.exception(
+                logger.exception(
                     "PLR background checkpoint write failed; recovery disabled"
                 )
                 try:
                     durable_unlink(self.checkpoint_path)
                 except OSError as unlink_exc:
-                    logging.critical(
+                    logger.critical(
                         "PLR could not remove a stale authoritative checkpoint: %s",
                         unlink_exc,
                     )
@@ -693,19 +686,20 @@ def _coordinate_dict(value, label):
         try:
             values = list(value)
         except TypeError:
-            raise CheckpointError("%s is not a coordinate" % label)
+            raise CheckpointError(f"{label} is not a coordinate")
         if len(values) != len(AXES):
-            raise CheckpointError("%s does not contain XYZE" % label)
+            raise CheckpointError(f"{label} does not contain XYZE")
     return {axis: values[index] for index, axis in enumerate(AXES)}
 
 
 def _status(object_value, eventtime, label):
     try:
         value = object_value.get_status(eventtime)
-    except Exception as exc:
-        raise CheckpointError("cannot read %s status: %s" % (label, exc))
+    except Exception as exc:  # noqa: BLE001
+        # Convert arbitrary plugin status failures into checkpoint errors.
+        raise CheckpointError(f"cannot read {label} status: {exc}")
     if not isinstance(value, dict):
-        raise CheckpointError("%s status is not an object" % label)
+        raise CheckpointError(f"{label} status is not an object")
     return value
 
 
@@ -713,7 +707,7 @@ def _clone(value):
     return json.loads(json.dumps(value, allow_nan=False))
 
 
-class CheckpointTracker(object):
+class CheckpointTracker:
     """Track completed lines without allowing recovery files to poison state."""
 
     def __init__(
@@ -743,7 +737,7 @@ class CheckpointTracker(object):
         self.callback_pending = False
         self.fan_objects = {
             port: config.get(
-                "plr_fan_%s_object" % port.lower(), default_object
+                f"plr_fan_{port.lower()}_object", default_object
             )
             for port, default_object in FAN_OBJECTS.items()
         }
@@ -756,8 +750,8 @@ class CheckpointTracker(object):
             pass
 
     def _disable_after_error(self, operation):
-        logging.exception("PLR checkpoint %s failed; recovery disabled", operation)
-        self.writer.abort("PLR checkpoint %s failed" % operation)
+        logger.exception("PLR checkpoint %s failed; recovery disabled", operation)
+        self.writer.abort(f"PLR checkpoint {operation} failed")
         self.active = False
         self.identity = None
 
@@ -797,10 +791,11 @@ class CheckpointTracker(object):
         except TypeError:
             try:
                 value = self.printer.lookup_object(name)
-            except Exception:
+            except Exception:  # noqa: BLE001
+                # Treat arbitrary Klipper lookup failures as unavailable objects.
                 value = None
         if value is None:
-            raise CheckpointError("required Klipper object is unavailable: %s" % name)
+            raise CheckpointError(f"required Klipper object is unavailable: {name}")
         return value
 
     def _capture_fans(self, eventtime):
@@ -809,7 +804,7 @@ class CheckpointTracker(object):
             object_name = self.fan_objects[port]
             status = _status(self._lookup(object_name), eventtime, object_name)
             if "speed" not in status:
-                raise CheckpointError("%s status has no speed" % object_name)
+                raise CheckpointError(f"{object_name} status has no speed")
             result[port] = float(status["speed"]) * 255.0
         return result
 
@@ -902,7 +897,8 @@ class CheckpointTracker(object):
                 "active", completed_lines, runtime=runtime, delay=delay + 0.050
             ):
                 self.last_published_line = completed_lines
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Log callback failures and disable recovery through the shared handler.
             self._disable_after_error("physical-state capture")
 
     def _schedule_physical_checkpoint(self, completed_lines, runtime):
@@ -977,7 +973,8 @@ class CheckpointTracker(object):
                 "not_ready", 0, reason="no durable print line yet"
             )
             return True
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Log host failures and disable recovery through the shared handler.
             self._disable_after_error("start")
             return False
 
@@ -999,7 +996,8 @@ class CheckpointTracker(object):
             if completed_lines % self.save_every_n_lines == 0:
                 runtime = self._capture_runtime(completed_lines)
                 self._schedule_physical_checkpoint(completed_lines, runtime)
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Log host failures and disable recovery through the shared handler.
             self._disable_after_error("update")
 
     def complete(self, completed_lines):
@@ -1023,7 +1021,8 @@ class CheckpointTracker(object):
             self.printer.lookup_object("toolhead").register_lookahead_callback(
                 finish_after_moves
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Log host failures and disable recovery through the shared handler.
             self._disable_after_error("completion")
         finally:
             self.active = False
@@ -1034,7 +1033,8 @@ class CheckpointTracker(object):
         try:
             self.last_line = int(completed_lines)
             self._terminal("cancelled", self.last_line)
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Log host failures and disable recovery through the shared handler.
             self._disable_after_error("cancellation")
         finally:
             self.active = False
@@ -1045,7 +1045,8 @@ class CheckpointTracker(object):
         try:
             self.last_line = int(completed_lines)
             self._terminal("invalid", self.last_line, str(reason))
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Log host failures and disable recovery through the shared handler.
             self._disable_after_error("invalidation")
         finally:
             self.active = False

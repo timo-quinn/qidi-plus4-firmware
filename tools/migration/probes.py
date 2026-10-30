@@ -26,8 +26,8 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import pathlib
-from typing import Any, Callable, Iterable, Sequence
-
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 DEFAULT_SMOKE_TEST_CONFIG = SCRIPT_DIR / "smoke-test-printer.cfg"
@@ -101,7 +101,7 @@ class Context:
     smoke_test_sha256: str | None = None
 
     @classmethod
-    def load(cls, smoke_test_config: pathlib.Path | None = None) -> "Context":
+    def load(cls, smoke_test_config: pathlib.Path | None = None) -> Context:
         path = smoke_test_config or DEFAULT_SMOKE_TEST_CONFIG
         digest = None
         if path.is_file():

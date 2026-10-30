@@ -10,12 +10,11 @@ names the lane currently fed to the toolhead.
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 import re
+from pathlib import Path
 
 import pytest
 from jinja2 import Environment
-
 
 PANEL = (
     Path(__file__).resolve().parents[1]

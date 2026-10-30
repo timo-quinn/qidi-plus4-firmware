@@ -11,11 +11,9 @@ from __future__ import annotations
 
 import argparse
 import ast
-import io
 import json
 import os
 import sys
-
 
 PATCH_MARKER = "# PLR_HARDENING_V1"
 DEFAULT_CHECKPOINT_PATH = "/home/mks/scripts/plr/plr_checkpoint.json"
@@ -29,15 +27,15 @@ class PatchError(Exception):
 def _replace_once(source, old, new, label):
     count = source.count(old)
     if count != 1:
-        raise PatchError("%s anchor occurred %d times (expected exactly 1)" % (label, count))
+        raise PatchError(f"{label} anchor occurred {count:d} times (expected exactly 1)")
     return source.replace(old, new, 1)
 
 
 def _path_literal(value, label):
     if not isinstance(value, str) or not os.path.isabs(value):
-        raise PatchError("%s must be an absolute path" % label)
+        raise PatchError(f"{label} must be an absolute path")
     if "\x00" in value or "\n" in value or "\r" in value:
-        raise PatchError("%s contains an unsafe character" % label)
+        raise PatchError(f"{label} contains an unsafe character")
     return json.dumps(value)
 
 
@@ -45,21 +43,21 @@ def validate_patched(source, checkpoint_path, record_path):
     try:
         ast.parse(source, filename="virtual_sdcard.py")
     except SyntaxError as exc:
-        raise PatchError("patched source is not valid Python: %s" % exc)
+        raise PatchError(f"patched source is not valid Python: {exc}")
     required = (
-        "from . import plr_checkpoint  %s" % PATCH_MARKER,
+        f"from . import plr_checkpoint  {PATCH_MARKER}",
         "self.plr_tracker = plr_checkpoint.CheckpointTracker(",
         "self.plr_tracker.start(",
         "self.plr_tracker.advance(self.lines)",
         "self.plr_tracker.complete(self.lines)",
         "self.plr_tracker.cancel(self.lines)",
         "self.plr_tracker.invalidate(",
-        "checkpoint_path=%s" % _path_literal(checkpoint_path, "checkpoint path"),
-        "record_path=%s" % _path_literal(record_path, "record path"),
+        "checkpoint_path={}".format(_path_literal(checkpoint_path, "checkpoint path")),
+        "record_path={}".format(_path_literal(record_path, "record path")),
     )
     for fragment in required:
         if fragment not in source:
-            raise PatchError("patched source is missing required fragment: %s" % fragment)
+            raise PatchError(f"patched source is missing required fragment: {fragment}")
     if source.count(PATCH_MARKER) != 1:
         raise PatchError("patch marker must occur exactly once")
     if source.count("self.plr_tracker.start(") != 1:
@@ -78,7 +76,7 @@ def patch_source(source, checkpoint_path=DEFAULT_CHECKPOINT_PATH, record_path=DE
     try:
         ast.parse(source, filename="virtual_sdcard.py")
     except SyntaxError as exc:
-        raise PatchError("input source is not valid Python: %s" % exc)
+        raise PatchError(f"input source is not valid Python: {exc}")
 
     if PATCH_MARKER in source:
         validate_patched(source, checkpoint_path, record_path)
@@ -87,7 +85,7 @@ def patch_source(source, checkpoint_path=DEFAULT_CHECKPOINT_PATH, record_path=DE
     source = _replace_once(
         source,
         "import os, sys, logging, io\n",
-        "import os, sys, logging, io\nfrom . import plr_checkpoint  %s\n" % PATCH_MARKER,
+        f"import os, sys, logging, io\nfrom . import plr_checkpoint  {PATCH_MARKER}\n",
         "imports",
     )
     source = _replace_once(
@@ -97,16 +95,16 @@ def patch_source(source, checkpoint_path=DEFAULT_CHECKPOINT_PATH, record_path=DE
         self.save_every_n_lines = 50
         self.plr_enabled = config.getboolean('plr_enabled', True)
 """,
-        """        # Power-loss resume: publish source-bound checkpoints only after
+        f"""        # Power-loss resume: publish source-bound checkpoints only after
         # successful dispatch.  Generated .plr files are ignored by the tracker.
         self.lines = 0
         self.save_every_n_lines = config.getint(
             'plr_save_every_n_lines', 50, minval=1, maxval=10000)
         self.plr_tracker = plr_checkpoint.CheckpointTracker(
             config, self.sdcard_dirname, self.save_every_n_lines,
-            checkpoint_path=%s,
-            record_path=%s)
-""" % (checkpoint_literal, record_literal),
+            checkpoint_path={checkpoint_literal},
+            record_path={record_literal})
+""",
         "constructor PLR state",
     )
     source = _replace_once(
@@ -234,10 +232,10 @@ def patch_source(source, checkpoint_path=DEFAULT_CHECKPOINT_PATH, record_path=DE
 def patch_file(path, checkpoint_path=DEFAULT_CHECKPOINT_PATH, record_path=DEFAULT_RECORD_PATH):
     path = os.path.abspath(path)
     try:
-        with io.open(path, "r", encoding="utf-8", newline="") as source_file:
+        with open(path, "r", encoding="utf-8", newline="") as source_file:
             raw = source_file.read()
     except OSError as exc:
-        raise PatchError("cannot read %s: %s" % (path, exc))
+        raise PatchError(f"cannot read {path}: {exc}")
     newline = "\r\n" if "\r\n" in raw else "\n"
     normalized = raw.replace("\r\n", "\n")
     patched, changed = patch_source(normalized, checkpoint_path, record_path)
@@ -262,7 +260,7 @@ def main(argv=None):
     try:
         patched, changed = patch_file(args.source, args.checkpoint, args.record)
         if args.output:
-            with io.open(args.output, "w", encoding="utf-8", newline="") as output_file:
+            with open(args.output, "w", encoding="utf-8", newline="") as output_file:
                 output_file.write(patched)
         result = {
             "ok": True,
@@ -274,12 +272,12 @@ def main(argv=None):
         if args.json:
             print(json.dumps({"ok": False, "error": str(exc)}, sort_keys=True))
         else:
-            print("PLR patch refused: %s" % exc, file=sys.stderr)
+            print(f"PLR patch refused: {exc}", file=sys.stderr)
         return 1
     if args.json:
         print(json.dumps(result, sort_keys=True))
     else:
-        print("validated %s (%s)" % (args.source, "patch needed" if changed else "already patched"))
+        print("validated {} ({})".format(args.source, "patch needed" if changed else "already patched"))
     return 0
 
 

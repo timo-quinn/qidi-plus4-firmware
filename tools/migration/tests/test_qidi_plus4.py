@@ -11,7 +11,6 @@ import tarfile
 
 import pytest
 
-
 MODULE_PATH = pathlib.Path(__file__).resolve().parents[1] / "qidi_plus4.py"
 SPEC = importlib.util.spec_from_file_location("qidi_plus4", MODULE_PATH)
 assert SPEC and SPEC.loader
@@ -307,7 +306,7 @@ def test_default_key_authentication_options_remain_unchanged(
     identity = tmp_path / "id_ed25519"
     identity.write_text("test key", encoding="utf-8")
     monkeypatch.setattr(qidi_plus4, "require_command", lambda name: name)
-    monkeypatch.setattr(qidi_plus4, "mux_options", lambda: [])
+    monkeypatch.setattr(qidi_plus4, "mux_options", list)
     args = connection_args("audit", identity=str(identity), password_env=None)
 
     ssh, _ = qidi_plus4.ssh_base(args)
@@ -544,8 +543,8 @@ def test_upgrade_klippee_agent_uses_only_fixed_official_workflow(
     assert calls[0] == [
         "ssh",
         "mks@qidi1",
-        "exec /usr/bin/env -i HOME=/home/mks USER=mks LOGNAME=mks "
-        "PATH=/usr/bin:/bin LANG=C LC_ALL=C /usr/bin/python3 -I -",
+        ("exec /usr/bin/env -i HOME=/home/mks USER=mks LOGNAME=mks "
+        "PATH=/usr/bin:/bin LANG=C LC_ALL=C /usr/bin/python3 -I -"),
     ]
 
 

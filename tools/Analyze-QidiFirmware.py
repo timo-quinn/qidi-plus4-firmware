@@ -17,7 +17,6 @@ import subprocess
 from collections import Counter
 from pathlib import Path
 
-
 SKIP_PARTS = {
     ".git", "__pycache__", ".cache", "logs", "gcodes", "timelapse",
     "history", "certs", "ssh", ".ssh", ".gnupg",

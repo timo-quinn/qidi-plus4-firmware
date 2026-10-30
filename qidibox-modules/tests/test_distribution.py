@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import ast
 import hashlib
-from pathlib import Path
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 from jinja2 import Environment
-
 
 MODULE_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = MODULE_DIR.parent
@@ -58,7 +57,7 @@ def test_auto_reload_macro_renders_without_stray_gcode() -> None:
                 }
             }
         },
-        action_raise_error=lambda message: "ERROR: %s" % message,
+        action_raise_error=lambda message: f"ERROR: {message}",
     )
 
     assert "\n}\n" not in rendered
@@ -113,7 +112,7 @@ def test_cutter_clearance_is_rendered_from_post_home_position() -> None:
     )
     common = {
         "params": {"PREVIOUS_ACCEL": 3000},
-        "action_raise_error": lambda message: "ERROR: %s" % message,
+        "action_raise_error": lambda message: f"ERROR: {message}",
     }
     high = template.render(printer={"gcode_move": {"position": {"y": 310}}}, **common)
     low = template.render(printer={"gcode_move": {"position": {"y": 10}}}, **common)
@@ -135,7 +134,7 @@ def test_flush_macro_honours_call_parameters_and_validates_preconditions() -> No
     rendered = klipper_environment().from_string(body).render(
         params={"RETRACT_LENGTH": 7, "FLUSH_LENGTH": 80, "FLUSH_RATE": 1234},
         printer={"toolhead": {"homed_axes": "xyz"}},
-        action_raise_error=lambda message: "ERROR: %s" % message,
+        action_raise_error=lambda message: f"ERROR: {message}",
     )
 
     assert "G1 E7.0 F300" in rendered
@@ -166,7 +165,7 @@ def test_box_macros_reject_nonfinite_parameters() -> None:
                     }
                 }
             },
-            action_raise_error=lambda message: "ERROR: %s" % message,
+            action_raise_error=lambda message: f"ERROR: {message}",
         )
         assert "ERROR: BOX_AUTO_RELOAD_FILAMENT HOTEND" in reload_rendered
         assert "ERROR: BOX_AUTO_RELOAD_FILAMENT EXTRUDER" in reload_rendered
@@ -181,7 +180,7 @@ def test_box_macros_reject_nonfinite_parameters() -> None:
             rendered = flush_template.render(
                 params=params,
                 printer={"toolhead": {"homed_axes": "xyz"}},
-                action_raise_error=lambda message: "ERROR: %s" % message,
+                action_raise_error=lambda message: f"ERROR: {message}",
             )
             assert "ERROR: BOX_FLUSH_FILAMENT" in rendered
 
@@ -192,7 +191,7 @@ def test_box_macros_reject_nonfinite_parameters() -> None:
         rendered = cutter_template.render(
             params={"PREVIOUS_ACCEL": nonfinite},
             printer={"gcode_move": {"position": {"y": 150}}},
-            action_raise_error=lambda message: "ERROR: %s" % message,
+            action_raise_error=lambda message: f"ERROR: {message}",
         )
         assert "ERROR: _BOX_MOVE_TO_CUTTER_AFTER_HOME PREVIOUS_ACCEL" in rendered
 

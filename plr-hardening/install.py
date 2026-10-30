@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import json
 import os
 import re
@@ -77,17 +76,17 @@ def _sha256_bytes(data):
 
 def _read_bytes(path):
     try:
-        with io.open(path, "rb") as source_file:
+        with open(path, "rb") as source_file:
             return source_file.read()
     except OSError as exc:
-        raise InstallError("cannot read %s: %s" % (path, exc))
+        raise InstallError(f"cannot read {path}: {exc}")
 
 
 def _load_package_manifest():
     try:
         manifest = json.loads(_read_bytes(MANIFEST_PATH).decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as exc:
-        raise InstallError("package manifest is invalid: %s" % exc)
+        raise InstallError(f"package manifest is invalid: {exc}")
     if manifest.get("schema") != "qidi-plus4-plr-hardening/v1":
         raise InstallError("unsupported package manifest schema")
     assets = manifest.get("assets")
@@ -105,8 +104,7 @@ def _load_package_manifest():
         actual = _sha256_bytes(data)
         if actual != expected:
             raise InstallError(
-                "package asset hash mismatch for %s: expected %s, got %s"
-                % (source, expected, actual)
+                f"package asset hash mismatch for {source}: expected {expected}, got {actual}"
             )
         loaded[(source, item.get("target"))] = (item, data)
     return manifest, loaded
@@ -115,39 +113,39 @@ def _load_package_manifest():
 def _require_directory(path, label):
     path = os.path.realpath(os.path.abspath(path))
     if not os.path.isdir(path):
-        raise InstallError("%s directory does not exist: %s" % (label, path))
+        raise InstallError(f"{label} directory does not exist: {path}")
     return path
 
 
 def _require_file(path, label):
     path = os.path.realpath(os.path.abspath(path))
     if not os.path.isfile(path):
-        raise InstallError("%s file does not exist: %s" % (label, path))
+        raise InstallError(f"{label} file does not exist: {path}")
     return path
 
 
 def _require_unlinked_directory(path, label):
     absolute = os.path.abspath(path)
     if os.path.realpath(absolute) != absolute or os.path.islink(absolute):
-        raise InstallError("%s directory must not contain symlinks: %s" % (label, absolute))
+        raise InstallError(f"{label} directory must not contain symlinks: {absolute}")
     if not os.path.isdir(absolute):
-        raise InstallError("%s directory does not exist: %s" % (label, absolute))
+        raise InstallError(f"{label} directory does not exist: {absolute}")
     return absolute
 
 
 def _require_unlinked_file(path, label):
     absolute = os.path.abspath(path)
     if os.path.realpath(absolute) != absolute or os.path.islink(absolute):
-        raise InstallError("%s file must not contain symlinks: %s" % (label, absolute))
+        raise InstallError(f"{label} file must not contain symlinks: {absolute}")
     if not os.path.isfile(absolute):
-        raise InstallError("%s file does not exist: %s" % (label, absolute))
+        raise InstallError(f"{label} file does not exist: {absolute}")
     return absolute
 
 
 def _require_executable_path(path, label):
     absolute = os.path.abspath(path)
     if not os.path.isfile(absolute):
-        raise InstallError("%s file does not exist: %s" % (label, absolute))
+        raise InstallError(f"{label} file does not exist: {absolute}")
     return absolute
 
 
@@ -188,8 +186,7 @@ def _bind_canonical_layout(args):
             continue
         if os.path.abspath(value) != paths[key]:
             raise InstallError(
-                "%s must be the canonical path for printer user %s: %s"
-                % (key, args.printer_user, paths[key])
+                f"{key} must be the canonical path for printer user {args.printer_user}: {paths[key]}"
             )
     return paths
 
@@ -210,7 +207,7 @@ def _account_identity(account, paths):
     entry = _passwd_entry(account)
     if entry.pw_dir != paths["home"]:
         raise InstallError(
-            "printer user's passwd home must be exactly %s" % paths["home"]
+            "printer user's passwd home must be exactly {}".format(paths["home"])
         )
     try:
         uid = int(entry.pw_uid)
@@ -227,8 +224,7 @@ def _verify_account_owner(path, expected, label):
     actual = (int(stat_result.st_uid), int(stat_result.st_gid))
     if actual != tuple(expected):
         raise InstallError(
-            "%s ownership does not match the printer user's passwd entry: %s"
-            % (label, path)
+            f"{label} ownership does not match the printer user's passwd entry: {path}"
         )
 
 
@@ -274,21 +270,20 @@ def _open_verified_directory(path, label):
     absolute = _require_unlinked_directory(path, label)
     before = os.lstat(absolute)
     if not stat.S_ISDIR(before.st_mode) or stat.S_ISLNK(before.st_mode):
-        raise InstallError("%s must be a real directory: %s" % (label, absolute))
+        raise InstallError(f"{label} must be a real directory: {absolute}")
     if not IS_POSIX:
         return None, _metadata_from_stat(absolute, before)
     nofollow = getattr(os, "O_NOFOLLOW", None)
     directory_flag = getattr(os, "O_DIRECTORY", None)
     if nofollow is None or directory_flag is None:
         raise InstallError(
-            "cannot safely open %s because O_NOFOLLOW/O_DIRECTORY is unavailable"
-            % label
+            f"cannot safely open {label} because O_NOFOLLOW/O_DIRECTORY is unavailable"
         )
     flags = os.O_RDONLY | nofollow | directory_flag | getattr(os, "O_CLOEXEC", 0)
     try:
         fd = os.open(absolute, flags)
     except OSError as exc:
-        raise InstallError("cannot safely open %s: %s" % (label, exc))
+        raise InstallError(f"cannot safely open {label}: {exc}")
     try:
         opened = os.fstat(fd)
         after = os.lstat(absolute)
@@ -303,7 +298,7 @@ def _open_verified_directory(path, label):
             or len(set(identities)) != 1
             or os.path.realpath(absolute) != absolute
         ):
-            raise InstallError("%s directory identity changed while opening" % label)
+            raise InstallError(f"{label} directory identity changed while opening")
         return fd, _metadata_from_stat(absolute, opened)
     except Exception:
         os.close(fd)
@@ -326,7 +321,7 @@ def _fsync_directory(path, label):
     try:
         os.fsync(fd)
     except OSError as exc:
-        raise InstallError("cannot fsync %s: %s" % (label, exc))
+        raise InstallError(f"cannot fsync {label}: {exc}")
     finally:
         if fd is not None:
             os.close(fd)
@@ -340,44 +335,46 @@ def _set_directory_metadata(path, desired, label, expected=None):
     operation_error = None
     try:
         if not _same_directory_identity(current, desired):
-            raise InstallError("%s directory identity no longer matches" % label)
+            raise InstallError(f"{label} directory identity no longer matches")
         if expected is not None and not _same_directory_metadata(current, expected):
-            raise InstallError("%s directory metadata changed after planning" % label)
+            raise InstallError(f"{label} directory metadata changed after planning")
         if not IS_POSIX:
             if not _same_directory_metadata(current, desired):
-                raise InstallError("%s metadata changes require POSIX" % label)
+                raise InstallError(f"{label} metadata changes require POSIX")
             return
         if fd is None or not hasattr(os, "fchown") or not hasattr(os, "fchmod"):
-            raise InstallError("cannot safely update %s metadata" % label)
+            raise InstallError(f"cannot safely update {label} metadata")
         # fchown can clear setgid/setuid.  Reapply the complete recorded mode
         # after changing ownership, then fsync the directory inode itself.
         mutation_started = True
         os.fchown(fd, desired["uid"], desired["gid"])
         os.fchmod(fd, desired["mode"])
         os.fsync(fd)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Retain any failure after a partial metadata mutation.
         operation_error = exc
     finally:
         if fd is not None:
             try:
                 os.close(fd)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
+                # Retain any failure after a partial metadata mutation.
                 if operation_error is None:
                     operation_error = exc
     if operation_error is not None:
         if mutation_started:
             raise DirectoryMetadataMutationError(
-                "%s metadata update may be partial: %s" % (label, operation_error)
+                f"{label} metadata update may be partial: {operation_error}"
             )
         raise operation_error
     try:
         verified = _directory_metadata(path, label)
         if not _same_directory_metadata(verified, desired):
-            raise InstallError("%s metadata update was not verified" % label)
+            raise InstallError(f"{label} metadata update was not verified")
     except Exception as exc:
         if IS_POSIX:
             raise DirectoryMetadataMutationError(
-                "%s metadata update may be partial: %s" % (label, exc)
+                f"{label} metadata update may be partial: {exc}"
             )
         raise
 
@@ -389,13 +386,13 @@ def _manifest_directory_metadata(metadata):
         "ino": int(metadata["ino"]),
         "uid": int(metadata["uid"]),
         "gid": int(metadata["gid"]),
-        "mode": "%04o" % int(metadata["mode"]),
+        "mode": "{:04o}".format(int(metadata["mode"])),
     }
 
 
 def _parse_manifest_directory_metadata(value, path, label):
     if not isinstance(value, dict) or value.get("path") != path:
-        raise InstallError("%s metadata path is invalid" % label)
+        raise InstallError(f"{label} metadata path is invalid")
     try:
         metadata = {
             "path": path,
@@ -406,7 +403,7 @@ def _parse_manifest_directory_metadata(value, path, label):
             "mode": int(str(value.get("mode")), 8),
         }
     except (TypeError, ValueError):
-        raise InstallError("%s metadata is invalid" % label)
+        raise InstallError(f"{label} metadata is invalid")
     if (
         metadata["dev"] < 0
         or metadata["ino"] <= 0
@@ -417,7 +414,7 @@ def _parse_manifest_directory_metadata(value, path, label):
         or metadata["mode"] < 0
         or metadata["mode"] > 0o7777
     ):
-        raise InstallError("%s metadata is unsafe" % label)
+        raise InstallError(f"{label} metadata is unsafe")
     return metadata
 
 
@@ -434,7 +431,7 @@ def _planned_manifest(scripts_dir, transaction_id, prefix, filename):
 
 def _safe_shell_path(path, label):
     if "\x00" in path or "\n" in path or "\r" in path:
-        raise InstallError("%s contains an unsafe character" % label)
+        raise InstallError(f"{label} contains an unsafe character")
     return shlex.quote(path)
 
 
@@ -442,7 +439,7 @@ def _render_wrapper(template, paths):
     try:
         text = template.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise InstallError("wrapper template is not UTF-8: %s" % exc)
+        raise InstallError(f"wrapper template is not UTF-8: {exc}")
     replacements = {
         "@PYTHON@": _safe_shell_path(paths["python"], "Python path"),
         "@GENERATOR@": _safe_shell_path(paths["generator"], "generator path"),
@@ -452,7 +449,7 @@ def _render_wrapper(template, paths):
     }
     for token, value in replacements.items():
         if text.count(token) != 1:
-            raise InstallError("wrapper token %s must occur exactly once" % token)
+            raise InstallError(f"wrapper token {token} must occur exactly once")
         text = text.replace(token, value)
     if "@" in text:
         raise InstallError("wrapper contains an unresolved template token")
@@ -463,7 +460,7 @@ def _target_action(path, data, mode):
     if not os.path.lexists(path):
         return "create"
     if not os.path.isfile(path) or os.path.islink(path):
-        raise InstallError("refusing non-regular or symlink target: %s" % path)
+        raise InstallError(f"refusing non-regular or symlink target: {path}")
     current = _read_bytes(path)
     current_mode = os.stat(path).st_mode & 0o777
     mode_matches = os.name != "posix" or mode is None or current_mode == mode
@@ -474,7 +471,7 @@ def _target_action(path, data, mode):
 
 def build_plan(args):
     if args.service != KLIPPER_SERVICE:
-        raise InstallError("service must be exactly %s" % KLIPPER_SERVICE)
+        raise InstallError(f"service must be exactly {KLIPPER_SERVICE}")
     bound_paths = _bind_canonical_layout(args)
     account_owner = _account_identity(args.printer_user, bound_paths)
     _package, assets = _load_package_manifest()
@@ -539,7 +536,7 @@ def build_plan(args):
         raise InstallError("recovery output must be inside G-code root/.plr")
     for path, label in ((checkpoint, "checkpoint"), (record, "legacy record")):
         if os.path.dirname(path) != scripts_dir:
-            raise InstallError("%s must be directly inside the PLR scripts directory" % label)
+            raise InstallError(f"{label} must be directly inside the PLR scripts directory")
 
     try:
         patched_text, patch_needed = patch_virtual_sdcard.patch_file(
@@ -569,7 +566,7 @@ def build_plan(args):
         "version": 1,
         "paths": runtime_paths,
         "virtual_sdcard": virtual_sdcard,
-        "power_loss_resume_command": "bash %s" % runtime_paths["wrapper"],
+        "power_loss_resume_command": "bash {}".format(runtime_paths["wrapper"]),
         "update_gcode_lines_required": False,
         "assets": {},
     }
@@ -626,7 +623,7 @@ def build_plan(args):
     for descriptor in descriptors:
         normalized = os.path.abspath(descriptor["path"])
         if normalized in seen:
-            raise InstallError("deployment target occurs more than once: %s" % normalized)
+            raise InstallError(f"deployment target occurs more than once: {normalized}")
         seen.add(normalized)
         descriptor["path"] = normalized
         descriptor["action"] = _target_action(
@@ -647,7 +644,7 @@ def build_plan(args):
             "action": scripts_directory_action,
             "uid": int(scripts_desired_metadata["uid"]),
             "gid": int(scripts_desired_metadata["gid"]),
-            "mode": "%04o" % int(scripts_desired_metadata["mode"]),
+            "mode": "{:04o}".format(int(scripts_desired_metadata["mode"])),
         }
     )
     plan_changed = (
@@ -688,30 +685,29 @@ def build_plan(args):
         },
         "scripts_directory_action": scripts_directory_action,
         "service": KLIPPER_SERVICE,
-        "power_loss_resume_command": "bash %s" % runtime_paths["wrapper"],
+        "power_loss_resume_command": "bash {}".format(runtime_paths["wrapper"]),
         "update_gcode_lines_required": False,
     }
 
 
 def _check_service_stopped(service):
     if service != KLIPPER_SERVICE:
-        raise InstallError("service must be exactly %s" % KLIPPER_SERVICE)
+        raise InstallError(f"service must be exactly {KLIPPER_SERVICE}")
     systemctl = shutil.which("systemctl")
     if systemctl is None:
         raise InstallError(
-            "cannot prove %s inactive because systemctl is unavailable" % service
+            f"cannot prove {service} inactive because systemctl is unavailable"
         )
     completed = subprocess.run(
         [systemctl, "is-active", "--quiet", service],
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL, check=False,
     )
     if completed.returncode == 0:
-        raise InstallError("refusing installation while %s is active" % service)
+        raise InstallError(f"refusing installation while {service} is active")
     if completed.returncode != 3:
         raise InstallError(
-            "could not prove %s inactive (systemctl exit %d)"
-            % (service, completed.returncode)
+            f"could not prove {service} inactive (systemctl exit {completed.returncode:d})"
         )
     return "inactive"
 
@@ -719,7 +715,7 @@ def _check_service_stopped(service):
 def _atomic_install(path, data, mode, ownership=None):
     directory = os.path.dirname(path)
     fd, temporary = tempfile.mkstemp(
-        prefix=".%s." % os.path.basename(path), suffix=".tmp", dir=directory
+        prefix=f".{os.path.basename(path)}.", suffix=".tmp", dir=directory
     )
     try:
         desired_mode = mode if mode is not None else 0o644
@@ -792,7 +788,7 @@ def _verify_owner(path, expected, label):
         return
     stat_result = os.stat(path)
     if (stat_result.st_uid, stat_result.st_gid) != tuple(expected):
-        raise InstallError("%s has unsafe ownership: %s" % (label, path))
+        raise InstallError(f"{label} has unsafe ownership: {path}")
 
 
 def _secure_backup_root(scripts_dir, create, allow_legacy_scripts_mode=False):
@@ -812,7 +808,7 @@ def _secure_backup_root(scripts_dir, create, allow_legacy_scripts_mode=False):
             os.chmod(backup_root, 0o700)
         created = True
     else:
-        raise InstallError("backup root does not exist: %s" % backup_root)
+        raise InstallError(f"backup root does not exist: {backup_root}")
     if os.path.realpath(backup_root) != backup_root:
         raise InstallError("backup root must not contain symlinks")
     try:
@@ -855,18 +851,18 @@ def _create_transaction_directory(backup_root, prefix):
 def _verify_target_state(path, data, mode, ownership):
     if data is None:
         if os.path.lexists(path):
-            raise InstallError("target should be absent: %s" % path)
+            raise InstallError(f"target should be absent: {path}")
         return
     if os.path.islink(path) or not os.path.isfile(path):
-        raise InstallError("target is not a regular file: %s" % path)
+        raise InstallError(f"target is not a regular file: {path}")
     if _sha256_bytes(_read_bytes(path)) != _sha256_bytes(data):
-        raise InstallError("target hash mismatch: %s" % path)
+        raise InstallError(f"target hash mismatch: {path}")
     if os.name == "posix":
         stat_result = os.stat(path)
         if (stat_result.st_mode & 0o777) != mode:
-            raise InstallError("target mode mismatch: %s" % path)
+            raise InstallError(f"target mode mismatch: {path}")
         if (stat_result.st_uid, stat_result.st_gid) != tuple(ownership):
-            raise InstallError("target ownership mismatch: %s" % path)
+            raise InstallError(f"target ownership mismatch: {path}")
 
 
 def _inspect_removable_plr_directory(path, ownership):
@@ -966,11 +962,11 @@ def apply_plan(plan):
             target = item["path"]
             if os.path.lexists(target):
                 if os.path.islink(target) or not os.path.isfile(target):
-                    raise InstallError("installation target became unsafe: %s" % target)
+                    raise InstallError(f"installation target became unsafe: {target}")
                 stat_result = os.stat(target)
                 data = _read_bytes(target)
                 backup = os.path.join(
-                    backup_dir, "%02d-%s" % (index, os.path.basename(target))
+                    backup_dir, f"{index:02d}-{os.path.basename(target)}"
                 )
                 # Backup payloads contain the original file bytes but do not
                 # need the original access mode.  Keep every recovery artifact
@@ -1000,10 +996,11 @@ def apply_plan(plan):
             backup_manifest_bytes,
             0o600,
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Complete rollback and report every transaction failure.
         shutil.rmtree(backup_dir, ignore_errors=True)
         raise InstallError(
-            "could not create durable installation backup: %s" % exc
+            f"could not create durable installation backup: {exc}"
         )
     normalization_started = False
     normalization_completed = False
@@ -1056,7 +1053,8 @@ def apply_plan(plan):
                 ownership = (parent_stat.st_uid, parent_stat.st_gid)
             _atomic_install(item["path"], item["data"], mode, ownership)
             _verify_target_state(item["path"], item["data"], mode, ownership)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Complete rollback and report every transaction failure.
         rollback_errors = []
         for item, old_data, old_stat, _backup in reversed(original):
             try:
@@ -1076,8 +1074,9 @@ def apply_plan(plan):
                     _verify_target_state(
                         item["path"], old_data, old_mode, ownership
                     )
-            except Exception as rollback_exc:
-                rollback_errors.append("%s: %s" % (item["path"], rollback_exc))
+            except Exception as rollback_exc:  # noqa: BLE001
+                # Complete rollback and report every transaction failure.
+                rollback_errors.append("{}: {}".format(item["path"], rollback_exc))
         if create_plr_directory:
             try:
                 if os.path.isdir(plan["plr_directory"]) and not os.listdir(
@@ -1086,9 +1085,10 @@ def apply_plan(plan):
                     os.rmdir(plan["plr_directory"])
                 if os.path.lexists(plan["plr_directory"]):
                     raise InstallError("created .plr directory is not empty")
-            except Exception as rollback_exc:
+            except Exception as rollback_exc:  # noqa: BLE001
+                # Complete rollback and report every transaction failure.
                 rollback_errors.append(
-                    "%s: %s" % (plan["plr_directory"], rollback_exc)
+                    "{}: {}".format(plan["plr_directory"], rollback_exc)
                 )
         if normalization_started or normalization_completed:
             try:
@@ -1102,9 +1102,10 @@ def apply_plan(plan):
                         else None
                     ),
                 )
-            except Exception as rollback_exc:
+            except Exception as rollback_exc:  # noqa: BLE001
+                # Complete rollback and report every transaction failure.
                 rollback_errors.append(
-                    "%s: %s" % (plan["scripts_dir"], rollback_exc)
+                    "{}: {}".format(plan["scripts_dir"], rollback_exc)
                 )
         elif normalize_scripts_directory:
             try:
@@ -1115,19 +1116,20 @@ def apply_plan(plan):
                     raise InstallError(
                         "PLR scripts metadata changed outside the transaction"
                     )
-            except Exception as rollback_exc:
+            except Exception as rollback_exc:  # noqa: BLE001
+                # Complete rollback and report every transaction failure.
                 rollback_errors.append(
-                    "%s: %s" % (plan["scripts_dir"], rollback_exc)
+                    "{}: {}".format(plan["scripts_dir"], rollback_exc)
                 )
         detail = (
-            "; rollback errors: %s" % "; ".join(rollback_errors)
+            "; rollback errors: {}".format("; ".join(rollback_errors))
             if rollback_errors
             else ""
         )
         state = "partial" if rollback_errors else "auto_rolled_back"
         applied = None if rollback_errors else False
         raise TransactionError(
-            "installation failed and rollback was attempted: %s%s" % (exc, detail),
+            f"installation failed and rollback was attempted: {exc}{detail}",
             state,
             backup_manifest=manifest_path,
             applied=applied,
@@ -1137,7 +1139,7 @@ def apply_plan(plan):
 
 def build_rollback_plan(args):
     if args.service != KLIPPER_SERVICE:
-        raise InstallError("service must be exactly %s" % KLIPPER_SERVICE)
+        raise InstallError(f"service must be exactly {KLIPPER_SERVICE}")
     bound_paths = _bind_canonical_layout(args)
     account_owner = _account_identity(args.printer_user, bound_paths)
     home_dir = _require_unlinked_directory(bound_paths["home"], "printer home")
@@ -1185,7 +1187,7 @@ def build_rollback_plan(args):
     try:
         manifest = json.loads(_read_bytes(manifest_path).decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as exc:
-        raise InstallError("rollback manifest is invalid: %s" % exc)
+        raise InstallError(f"rollback manifest is invalid: {exc}")
     if manifest.get("schema") != "qidi-plus4-plr-backup/v1":
         raise InstallError("unsupported rollback manifest schema")
     if manifest.get("account") != args.printer_user:
@@ -1291,7 +1293,7 @@ def build_rollback_plan(args):
             raise InstallError("rollback file entry is not an object")
         target = os.path.abspath(str(entry.get("target", "")))
         if target not in allowed or target in seen:
-            raise InstallError("rollback target is unexpected or duplicated: %s" % target)
+            raise InstallError(f"rollback target is unexpected or duplicated: {target}")
         seen.add(target)
         backup = entry.get("backup")
         if backup is None:
@@ -1311,20 +1313,20 @@ def build_rollback_plan(args):
                 raise InstallError("rollback backup must not be group/world writable")
             data = _read_bytes(backup)
             if _sha256_bytes(data) != entry.get("sha256"):
-                raise InstallError("rollback backup hash mismatch: %s" % backup)
+                raise InstallError(f"rollback backup hash mismatch: {backup}")
             try:
                 mode = int(str(entry.get("mode")), 8)
             except (TypeError, ValueError):
-                raise InstallError("rollback backup mode is invalid: %s" % backup)
+                raise InstallError(f"rollback backup mode is invalid: {backup}")
             if mode < 0 or mode > 0o777:
-                raise InstallError("rollback backup mode is unsafe: %s" % backup)
+                raise InstallError(f"rollback backup mode is unsafe: {backup}")
             try:
                 uid = int(entry.get("uid"))
                 gid = int(entry.get("gid"))
             except (TypeError, ValueError):
-                raise InstallError("rollback backup ownership is invalid: %s" % backup)
+                raise InstallError(f"rollback backup ownership is invalid: {backup}")
             if uid < 0 or gid < 0 or uid > 0xFFFFFFFF or gid > 0xFFFFFFFF:
-                raise InstallError("rollback backup ownership is unsafe: %s" % backup)
+                raise InstallError(f"rollback backup ownership is unsafe: {backup}")
             ownership = (uid, gid)
             changed = (
                 not os.path.isfile(target)
@@ -1451,7 +1453,7 @@ def apply_rollback_plan(plan):
             safety_manifest["plr_directory"] = {
                 "path": plan["plr_directory"],
                 "present": True,
-                "mode": "%04o" % current_mode,
+                "mode": f"{current_mode:04o}",
                 "uid": int(plan["plr_ownership"][0]),
                 "gid": int(plan["plr_ownership"][1]),
             }
@@ -1459,11 +1461,11 @@ def apply_rollback_plan(plan):
             target = item["target"]
             if os.path.lexists(target):
                 if not os.path.isfile(target) or os.path.islink(target):
-                    raise InstallError("rollback target became unsafe: %s" % target)
+                    raise InstallError(f"rollback target became unsafe: {target}")
                 stat_result = os.stat(target)
                 data = _read_bytes(target)
                 safety = os.path.join(
-                    safety_dir, "%02d-%s" % (index, os.path.basename(target))
+                    safety_dir, f"{index:02d}-{os.path.basename(target)}"
                 )
                 _atomic_install(safety, data, 0o600)
                 current.append((item, data, stat_result))
@@ -1489,10 +1491,11 @@ def apply_rollback_plan(plan):
             ),
             0o600,
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Preserve safety backups and collect every restoration failure.
         shutil.rmtree(safety_dir, ignore_errors=True)
         raise InstallError(
-            "could not create durable rollback safety backup: %s" % exc
+            f"could not create durable rollback safety backup: {exc}"
         )
     scripts_restore_started = False
     try:
@@ -1501,7 +1504,7 @@ def apply_rollback_plan(plan):
             if item["data"] is None:
                 if os.path.lexists(target):
                     if os.path.islink(target) or not os.path.isfile(target):
-                        raise InstallError("rollback target became unsafe: %s" % target)
+                        raise InstallError(f"rollback target became unsafe: {target}")
                     os.unlink(target)
                 _verify_target_state(target, None, None, None)
             else:
@@ -1525,7 +1528,8 @@ def apply_rollback_plan(plan):
             except DirectoryMetadataMutationError:
                 scripts_restore_started = True
                 raise
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
+        # Preserve safety backups and collect every restoration failure.
         errors = []
         if remove_plr_directory:
             try:
@@ -1534,9 +1538,10 @@ def apply_rollback_plan(plan):
                     plan["plr_directory_mode"],
                     plan["plr_ownership"],
                 )
-            except Exception as restore_exc:
+            except Exception as restore_exc:  # noqa: BLE001
+                # Preserve safety backups and collect every restoration failure.
                 errors.append(
-                    "%s: %s" % (plan["plr_directory"], restore_exc)
+                    "{}: {}".format(plan["plr_directory"], restore_exc)
                 )
         for item, current_data, current_stat in reversed(current):
             try:
@@ -1556,8 +1561,9 @@ def apply_rollback_plan(plan):
                     _verify_target_state(
                         item["target"], current_data, current_mode, ownership
                     )
-            except Exception as restore_exc:
-                errors.append("%s: %s" % (item["target"], restore_exc))
+            except Exception as restore_exc:  # noqa: BLE001
+                # Preserve safety backups and collect every restoration failure.
+                errors.append("{}: {}".format(item["target"], restore_exc))
         if scripts_restore_started:
             try:
                 _set_directory_metadata(
@@ -1565,8 +1571,9 @@ def apply_rollback_plan(plan):
                     plan["scripts_directory"]["current"],
                     "PLR scripts",
                 )
-            except Exception as restore_exc:
-                errors.append("%s: %s" % (plan["scripts_dir"], restore_exc))
+            except Exception as restore_exc:  # noqa: BLE001
+                # Preserve safety backups and collect every restoration failure.
+                errors.append("{}: {}".format(plan["scripts_dir"], restore_exc))
         elif restore_scripts_directory:
             try:
                 observed = _directory_metadata(plan["scripts_dir"], "PLR scripts")
@@ -1576,15 +1583,16 @@ def apply_rollback_plan(plan):
                     raise InstallError(
                         "PLR scripts metadata changed outside the rollback"
                     )
-            except Exception as restore_exc:
-                errors.append("%s: %s" % (plan["scripts_dir"], restore_exc))
+            except Exception as restore_exc:  # noqa: BLE001
+                # Preserve safety backups and collect every restoration failure.
+                errors.append("{}: {}".format(plan["scripts_dir"], restore_exc))
         detail = (
-            "; safety-restore errors: %s" % "; ".join(errors) if errors else ""
+            "; safety-restore errors: {}".format("; ".join(errors)) if errors else ""
         )
         state = "partial" if errors else "safety_restored"
         applied = None if errors else False
         raise TransactionError(
-            "rollback failed; installed state restore attempted: %s%s" % (exc, detail),
+            f"rollback failed; installed state restore attempted: {exc}{detail}",
             state,
             backup_manifest=plan["backup_manifest"],
             safety_manifest=safety_manifest_path,
@@ -1743,7 +1751,7 @@ def main(argv=None):
         if args.json:
             print(json.dumps(result, sort_keys=True))
         else:
-            print("PLR installation refused: %s" % exc, file=sys.stderr)
+            print(f"PLR installation refused: {exc}", file=sys.stderr)
         return 1
     if args.json:
         print(json.dumps(result, sort_keys=True))

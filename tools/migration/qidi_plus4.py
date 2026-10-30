@@ -21,8 +21,8 @@ import sys
 import tarfile
 import tempfile
 import time
-import urllib.request
 import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
@@ -33,8 +33,7 @@ SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-import probes  # noqa: E402  - depends on the sys.path entry above
-
+import probes
 
 REPO_ROOT = SCRIPT_DIR.parent.parent
 REMOTE_HELPER = SCRIPT_DIR / "qidi-plus4-remote.sh"
@@ -264,7 +263,7 @@ def require_command(name: str) -> str:
 
 def run(command: list[str], *, input_data: bytes | None = None) -> None:
     print("+", " ".join(shlex.quote(part) for part in command))
-    result = subprocess.run(command, input=input_data)
+    result = subprocess.run(command, input=input_data, check=False)
     if result.returncode:
         raise SystemExit(f"Command failed with exit code {result.returncode}")
 
@@ -278,7 +277,7 @@ def capture(
     the traced command line goes to stderr here rather than to stdout.
     """
     print("+", " ".join(shlex.quote(part) for part in command), file=sys.stderr)
-    return subprocess.run(command, input=input_data, capture_output=True)
+    return subprocess.run(command, input=input_data, capture_output=True, check=False)
 
 
 def output(command: list[str]) -> str:
@@ -651,7 +650,7 @@ def backup_printer(args: argparse.Namespace) -> None:
     published: list[pathlib.Path] = []
     try:
         with archive_partial.open("xb") as stream:
-            result = subprocess.run(ssh + [" ".join(command)], stdout=stream)
+            result = subprocess.run(ssh + [" ".join(command)], stdout=stream, check=False)
         if result.returncode:
             raise SystemExit(f"Remote backup failed with exit code {result.returncode}")
         run(scp + [f"{target}:{remote_manifest}", str(manifest_partial)])
@@ -680,7 +679,7 @@ def backup_printer(args: argparse.Namespace) -> None:
                 final.unlink(missing_ok=True)
         raise
     finally:
-        subprocess.run(ssh + [f"rm -f {shlex.quote(remote_helper)} {shlex.quote(remote_manifest)}"])
+        subprocess.run(ssh + [f"rm -f {shlex.quote(remote_helper)} {shlex.quote(remote_manifest)}"], check=False)
     print(f"Verified {archive}\nSHA-256 {digest}")
 
 
@@ -962,7 +961,8 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
             ),
         }
         print(json.dumps(result, indent=2, sort_keys=True))
-    except BaseException as exc:
+    except BaseException as exc:  # noqa: BLE001
+        # Report recovery evidence even on interruption or SystemExit.
         remote_document = exc.document if isinstance(exc, RemoteJsonError) else None
         identity_error = None
         if remote_document is not None and (
@@ -1034,8 +1034,8 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
         }
         if exposed_backup_manifest:
             failure["next_command"] = (
-                "rollback-plr-hardening --backup-manifest %s "
-                "--confirm ROLLBACK-PLR-HARDENING" % exposed_backup_manifest
+                f"rollback-plr-hardening --backup-manifest {exposed_backup_manifest} "
+                "--confirm ROLLBACK-PLR-HARDENING"
             )
         print(json.dumps(failure, indent=2, sort_keys=True))
         if stopped:
@@ -1051,7 +1051,7 @@ def deploy_plr_hardening(args: argparse.Namespace) -> None:
             subprocess.run(
                 ssh + [f"rm -rf -- {shlex.quote(stage)}"],
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, check=False,
             )
 
 
@@ -1329,7 +1329,8 @@ def install_box_output_clock_guard(args: argparse.Namespace) -> None:
             expected_digest=source_digest,
             transaction_id=transaction_id,
         )
-    except BaseException as exc:
+    except BaseException as exc:  # noqa: BLE001
+        # Report recovery evidence even on interruption or SystemExit.
         remote_document = exc.document if isinstance(exc, BoxClockGuardInstallError) else None
         failure = {
             "schema": BOX_CLOCK_GUARD_SCHEMA,
@@ -1862,8 +1863,8 @@ def start_klipper(args: argparse.Namespace) -> None:
         )
         if rollback_hint:
             result["next_command"] = (
-                "rollback-plr-hardening --backup-manifest %s "
-                "--confirm ROLLBACK-PLR-HARDENING" % rollback_hint
+                f"rollback-plr-hardening --backup-manifest {rollback_hint} "
+                "--confirm ROLLBACK-PLR-HARDENING"
             )
     print(json.dumps(result, indent=2, sort_keys=True))
     if not ok:
@@ -2008,7 +2009,8 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
                 sort_keys=True,
             )
         )
-    except BaseException as exc:
+    except BaseException as exc:  # noqa: BLE001
+        # Report recovery evidence even on interruption or SystemExit.
         remote_document = exc.document if isinstance(exc, RemoteJsonError) else None
         identity_error = None
         if remote_document is not None and (
@@ -2085,7 +2087,7 @@ def rollback_plr_hardening(args: argparse.Namespace) -> None:
             subprocess.run(
                 ssh + [f"rm -rf -- {shlex.quote(stage)}"],
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, check=False,
             )
 
 
@@ -2239,7 +2241,7 @@ def render_config(args: argparse.Namespace) -> None:
 
 
 def stage(args: argparse.Namespace, kind: str) -> tuple[list[str], str, str]:
-    ssh, target = ssh_base(args)
+    ssh, _target = ssh_base(args)
     image = args.image.resolve()
     validate_image(kind, image)
     remote_image = f"{args.remote_directory}/{kind}.bin"
@@ -2377,11 +2379,11 @@ def setup_ssh(args: argparse.Namespace) -> None:
         + [
             "--",
             target,
-            'set -e; install -d -m 700 "$HOME/.ssh"; '
+            ('set -e; install -d -m 700 "$HOME/.ssh"; '
             'touch "$HOME/.ssh/authorized_keys"; chmod 600 "$HOME/.ssh/authorized_keys"; '
             'key="$(cat)"; '
             'grep -qxF "$key" "$HOME/.ssh/authorized_keys" '
-            '|| printf "%s\\n" "$key" >> "$HOME/.ssh/authorized_keys"',
+            '|| printf "%s\\n" "$key" >> "$HOME/.ssh/authorized_keys"'),
         ]
     )
     if password_options:
@@ -2409,7 +2411,7 @@ def setup_ssh(args: argparse.Namespace) -> None:
         "true",
     ]
     print("Verifying key-based login...")
-    if subprocess.run(verify).returncode:
+    if subprocess.run(verify, check=False).returncode:
         raise SystemExit(
             "Key installed, but key-based login did not succeed. Confirm the printer "
             "permits public-key authentication."
@@ -2481,7 +2483,7 @@ def setup_management_user(args: argparse.Namespace) -> None:
         "id -un; sudo -n true && echo sudo=ok",
     ]
     print(f"Verifying key login as {args.new_user}...")
-    if subprocess.run(verify).returncode:
+    if subprocess.run(verify, check=False).returncode:
         raise SystemExit(
             f"The account was created but key login as {new_user} did not "
             "succeed. Check the printer's sshd configuration before relying on it."
@@ -2517,7 +2519,7 @@ def stage_mainboard_sdcard(args: argparse.Namespace) -> None:
 def smoke_test(args: argparse.Namespace) -> None:
     if not SMOKE_TEST_CONFIG.exists():
         raise SystemExit(f"Smoke-test config missing: {SMOKE_TEST_CONFIG}")
-    ssh, target = ssh_base(args)
+    ssh, _target = ssh_base(args)
     remote_cfg = f"{args.data_dir}/config/printer.cfg"
     # The config belongs to the Klipper account, which is not necessarily the
     # account this connection uses. Copy through sudo and hand ownership back,

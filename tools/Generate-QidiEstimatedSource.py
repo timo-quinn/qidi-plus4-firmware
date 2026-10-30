@@ -15,7 +15,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-
 WRAPPER_PREFIX = "__pyx_pw_"
 IGNORE_IDENTIFIERS = {
     "args", "kwds", "self", "result", "retval", "values", "PyObject",

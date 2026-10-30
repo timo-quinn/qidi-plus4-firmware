@@ -13,13 +13,13 @@ import csv
 import difflib
 import hashlib
 import importlib.util
+import itertools
 import json
 import re
 import subprocess
 from collections import Counter
 from pathlib import Path
 from typing import Any
-
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PAIRWISE_PATH = SCRIPT_DIR / "Analyze-QidiFirmware.py"
@@ -374,7 +374,7 @@ def write_transition_patches(snapshots: list[tuple[str, Path]], output: Path) ->
         "init-scripts",
         "xindi",
     )
-    for (old_label, old_root), (new_label, new_root) in zip(snapshots, snapshots[1:]):
+    for (old_label, old_root), (new_label, new_root) in itertools.pairwise(snapshots):
         transition_name = f"{old_label}-to-{new_label}"
         for area in areas:
             relative_root = AREAS[area]
@@ -450,11 +450,11 @@ def build_lineage(
         for label in labels:
             paths.update(scans[label][area])
         area_counts: dict[str, Counter[str]] = {
-            f"{old}->{new}": Counter() for old, new in zip(labels, labels[1:])
+            f"{old}->{new}": Counter() for old, new in itertools.pairwise(labels)
         }
         for relative in sorted(paths):
             states = [scans[label][area].get(relative) for label in labels]
-            changes = [transition(old, new) for old, new in zip(states, states[1:])]
+            changes = [transition(old, new) for old, new in itertools.pairwise(states)]
             for pair, change in zip(area_counts, changes):
                 area_counts[pair][change] += 1
             if all(change == "unchanged" for change in changes):
@@ -479,7 +479,7 @@ def build_lineage(
         fields.extend(
             f"{prefix}_{suffix}" for suffix in ("present", "size", "sha256", "mode")
         )
-    for old, new in zip(labels, labels[1:]):
+    for old, new in itertools.pairwise(labels):
         fields.append(f"transition_{field_prefix(old)}_to_{field_prefix(new)}")
     with (output / "file-lineage.csv").open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
@@ -519,7 +519,7 @@ def write_xindi(snapshots: list[tuple[str, Path]], output: Path) -> None:
         }
         pairwise.write_lines(directory / f"symbols-{label}.txt", symbols[label])
     labels = [label for label, _ in snapshots if label in symbols]
-    for old, new in zip(labels, labels[1:]):
+    for old, new in itertools.pairwise(labels):
         pairwise.write_lines(directory / f"symbols-added-{old}-to-{new}.txt", symbols[new] - symbols[old])
         pairwise.write_lines(directory / f"symbols-removed-{old}-to-{new}.txt", symbols[old] - symbols[new])
         pairwise.write_lines(directory / f"strings-added-{old}-to-{new}.txt", strings[new] - strings[old])

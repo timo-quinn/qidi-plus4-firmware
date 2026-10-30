@@ -10,7 +10,6 @@ import types
 
 import pytest
 
-
 HELPER_PATH = pathlib.Path(__file__).resolve().parents[1] / "upgrade-klippee-agent.py"
 POSIX_ONLY = pytest.mark.skipif(os.name == "nt", reason="printer helper is POSIX-only")
 
@@ -29,7 +28,7 @@ def valid_source(version: str) -> bytes:
     return (
         '"""Klippee\'s dependency-light config sync client."""\n'
         f'CLI_VERSION = "{version}"\n'
-    ).encode("utf-8")
+    ).encode()
 
 
 def test_upgrader_source_is_python37_and_does_not_execute_installed_cli() -> None:

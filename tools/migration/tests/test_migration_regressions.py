@@ -7,7 +7,6 @@ import shutil
 import subprocess
 
 import pytest
-
 import qidi_plus4 as migration
 
 
@@ -106,7 +105,7 @@ if audit_tuning runtime; then exit 42; fi
         command = ["bash", "-s"]
     else:
         pytest.skip("bash is required for the read-only shell audit test")
-    result = subprocess.run(command, input=harness.encode(), capture_output=True, timeout=20)
+    result = subprocess.run(command, input=harness.encode(), capture_output=True, timeout=20, check=False)
     assert result.returncode == 0, result.stderr.decode()
     assert b"result=early-tuned" in result.stdout
     assert b"result=not-tuned" in result.stdout

@@ -20,7 +20,6 @@ import sys
 import time
 from datetime import datetime, timezone
 
-
 EXPECTED_SIZE = 31_037_849_600
 SECTOR_SIZE = 512
 PREFIX_SIZE = 16 * 1024 * 1024

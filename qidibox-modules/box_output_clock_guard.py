@@ -10,6 +10,7 @@ original callback.
 
 import logging
 
+logger = logging.getLogger(__name__)
 
 _OUTPUT_NAMES = ("b_output", "e_output")
 _LOG_PREFIX = "QIDI Box output clock guard"
@@ -27,12 +28,12 @@ class BoxOutputClockGuard:
         self._reload_all_guarded = False
         self._applied = False
         self._printer.register_event_handler("klippy:connect", self._handle_connect)
-        logging.info("%s: waiting for klippy:connect", _LOG_PREFIX)
+        logger.info("%s: waiting for klippy:connect", _LOG_PREFIX)
 
     def _fail(self, message):
         self._state = "error"
-        detail = "%s: %s" % (_LOG_PREFIX, message)
-        logging.error(detail)
+        detail = f"{_LOG_PREFIX}: {message}"
+        logger.error(detail)
         return self._config.error(detail)
 
     @staticmethod
@@ -47,34 +48,33 @@ class BoxOutputClockGuard:
 
     def _inspect_output(self, box_extras, output_name):
         if not hasattr(box_extras, output_name):
-            raise TypeError("box_extras has no %s attribute" % (output_name,))
+            raise TypeError(f"box_extras has no {output_name} attribute")
         output = getattr(box_extras, output_name)
 
         if not callable(getattr(output, "set_pin", None)):
-            raise TypeError("box_extras.%s has no callable set_pin()" % output_name)
+            raise TypeError(f"box_extras.{output_name} has no callable set_pin()")
         if not hasattr(output, "mcu"):
-            raise TypeError("box_extras.%s has no mcu attribute" % output_name)
+            raise TypeError(f"box_extras.{output_name} has no mcu attribute")
         if not hasattr(output, "digital_out"):
-            raise TypeError("box_extras.%s has no digital_out attribute" % output_name)
+            raise TypeError(f"box_extras.{output_name} has no digital_out attribute")
 
         digital_out = output.digital_out
         get_mcu = getattr(digital_out, "get_mcu", None)
         if not callable(get_mcu):
-            raise TypeError("box_extras.%s.digital_out has no callable get_mcu()" % output_name)
+            raise TypeError(f"box_extras.{output_name}.digital_out has no callable get_mcu()")
         if not callable(getattr(digital_out, "set_digital", None)):
-            raise TypeError("box_extras.%s.digital_out has no callable set_digital()" % output_name)
+            raise TypeError(f"box_extras.{output_name}.digital_out has no callable set_digital()")
 
         source_mcu = output.mcu
         target_mcu = get_mcu()
         if source_mcu is None:
-            raise TypeError("box_extras.%s.mcu is None" % output_name)
+            raise TypeError(f"box_extras.{output_name}.mcu is None")
         if target_mcu is None:
-            raise TypeError("box_extras.%s.digital_out.get_mcu() returned None" % output_name)
+            raise TypeError(f"box_extras.{output_name}.digital_out.get_mcu() returned None")
         for role, mcu in (("current", source_mcu), ("pin", target_mcu)):
             if not callable(getattr(mcu, "estimated_print_time", None)):
                 raise TypeError(
-                    "box_extras.%s %s MCU has no callable estimated_print_time()"
-                    % (output_name, role)
+                    f"box_extras.{output_name} {role} MCU has no callable estimated_print_time()"
                 )
 
         source_name = self._mcu_name(source_mcu)
@@ -127,18 +127,19 @@ class BoxOutputClockGuard:
 
     def _handle_connect(self):
         if self._applied:
-            logging.info("%s: already applied; no changes made", _LOG_PREFIX)
+            logger.info("%s: already applied; no changes made", _LOG_PREFIX)
             return
 
         try:
             box_extras = self._printer.lookup_object("box_extras")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Vendor callbacks and setters can raise arbitrary exceptions.
             # Stock QIDI's box_detect may regenerate box.cfg and request a
             # second Klipper start. During that transitional first start the
             # Box include can legitimately be absent. Halting Klipper here
             # prevents box_detect from completing its own recovery cycle.
             self._state = "inactive-no-box"
-            logging.warning(
+            logger.warning(
                 "%s: box_extras is not loaded; deferring until the next Klipper start (%s)",
                 _LOG_PREFIX,
                 exc,
@@ -152,8 +153,9 @@ class BoxOutputClockGuard:
         try:
             for output_name in _OUTPUT_NAMES:
                 inspected.append(self._inspect_output(box_extras, output_name))
-        except Exception as exc:
-            raise self._fail("incompatible vendor object: %s" % (exc,))
+        except Exception as exc:  # noqa: BLE001
+            # Vendor callbacks and setters can raise arbitrary exceptions.
+            raise self._fail(f"incompatible vendor object: {exc}")
 
         changed = []
         try:
@@ -164,9 +166,10 @@ class BoxOutputClockGuard:
                     changed.append(item)
                     item["output"].mcu = item["target_mcu"]
                     if item["output"].mcu is not item["target_mcu"]:
-                        raise TypeError("box_extras.%s.mcu rejected the pin MCU" % item["name"])
+                        raise TypeError("box_extras.{}.mcu rejected the pin MCU".format(item["name"]))
             self._install_reload_all_guard(box_extras)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Vendor callbacks and setters can raise arbitrary exceptions.
             # Attribute assignment is expected to be writable on QIDI's
             # Cython class.  Roll back earlier assignments if that expectation
             # proves false so the overlay never leaves a half-corrected pair.
@@ -174,11 +177,12 @@ class BoxOutputClockGuard:
             for item in reversed(changed):
                 try:
                     item["output"].mcu = item["source_mcu"]
-                except Exception as rollback_exc:
+                except Exception as rollback_exc:  # noqa: BLE001
+                    # Vendor callbacks and setters can raise arbitrary exceptions.
                     rollback_errors.append(str(rollback_exc))
-            detail = "could not apply correction; prior changes rolled back: %s" % (exc,)
+            detail = f"could not apply correction; prior changes rolled back: {exc}"
             if rollback_errors:
-                detail += "; rollback errors: %s" % ", ".join(rollback_errors)
+                detail += "; rollback errors: {}".format(", ".join(rollback_errors))
             raise self._fail(detail)
 
         self._corrected_outputs = [item["name"] for item in changed]
@@ -194,7 +198,7 @@ class BoxOutputClockGuard:
         self._applied = True
 
         for item in inspected:
-            logging.info(
+            logger.info(
                 "%s: %s %s (%s -> %s)",
                 _LOG_PREFIX,
                 item["name"],
@@ -202,7 +206,7 @@ class BoxOutputClockGuard:
                 item["source_name"],
                 item["target_name"],
             )
-        logging.info(
+        logger.info(
             "%s: active; corrected=%d already-correct=%d reload-all-guarded=%s",
             _LOG_PREFIX,
             len(changed),

@@ -18,7 +18,6 @@ import sys
 import tempfile
 import time
 
-
 SCHEMA = "qidi-plus4-klippee-agent-upgrade/v1"
 ACCOUNT = "mks"
 CLI_PATH = "/home/mks/.local/bin/klippee"
@@ -247,8 +246,7 @@ def download_cli() -> dict:
     ]
     completed = subprocess.run(
         command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         env=safe_environment(),
         timeout=70,
         check=False,
@@ -287,9 +285,8 @@ def atomic_replace(source: bytes, mode: int) -> None:
 def run_systemctl(*arguments: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [SYSTEMCTL, "--user", *arguments],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
+        capture_output=True,
+        text=True,
         env=safe_environment(),
         timeout=15,
         check=False,

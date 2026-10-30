@@ -44,12 +44,14 @@ def load_profile(path: str | Path) -> ScreenProfile:
 
     serial = data["serial"]
     if not isinstance(serial, dict) or not isinstance(serial.get("device"), str):
-        raise ValueError(f"{source}: serial.device must be a string")
+        # Malformed JSON values retain the profile loader ValueError contract.
+        raise ValueError(f"{source}: serial.device must be a string")  # noqa: TRY004
     baud = serial.get("runtime_baud")
     if baud is not None and (not isinstance(baud, int) or baud <= 0):
         raise ValueError(f"{source}: serial.runtime_baud must be a positive integer or null")
     if not isinstance(data["mappings"], dict):
-        raise ValueError(f"{source}: mappings must be an object")
+        # Malformed JSON values retain the profile loader ValueError contract.
+        raise ValueError(f"{source}: mappings must be an object")  # noqa: TRY004
     if not isinstance(data["unknowns"], list) or not all(
         isinstance(item, str) for item in data["unknowns"]
     ):
@@ -57,7 +59,8 @@ def load_profile(path: str | Path) -> ScreenProfile:
 
     resource = data.get("screen_resource", {})
     if not isinstance(resource, dict):
-        raise ValueError(f"{source}: screen_resource must be an object")
+        # Malformed JSON values retain the profile loader ValueError contract.
+        raise ValueError(f"{source}: screen_resource must be an object")  # noqa: TRY004
     digest = resource.get("sha256")
     if digest is not None and (
         not isinstance(digest, str)

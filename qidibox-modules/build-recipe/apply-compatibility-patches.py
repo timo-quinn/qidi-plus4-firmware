@@ -4,30 +4,29 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 UPSTREAM_SHA256 = "ae99d1504d71b6afe017459873c46f2c25158fe7cc913105399721ab8bd3e21e"
 PATCHED_SHA256 = "f0c672807ab90c3d16909f9f238704604c8535372d3958bc229a6539da3f87be"
 
 REPLACEMENTS = (
     (
-        "        self.exclude_tool = False\n"
-        "        self.last_position = [0., 0., 0., 0.]\n",
-        "        self.exclude_tool = False\n"
+        ("        self.exclude_tool = False\n"
+        "        self.last_position = [0., 0., 0., 0.]\n"),
+        ("        self.exclude_tool = False\n"
         "        self.is_tool_change = False\n"
-        "        self.last_position = [0., 0., 0., 0.]\n",
+        "        self.last_position = [0., 0., 0., 0.]\n"),
     ),
     (
         '        box_extras.save_variable("is_tool_change", 1)\n',
-        '        box_extras.save_variable("is_tool_change", 1)\n'
-        "        self.is_tool_change = True\n",
+        ('        box_extras.save_variable("is_tool_change", 1)\n'
+        "        self.is_tool_change = True\n"),
     ),
     (
         '        box_extras.save_variable("is_tool_change", 0)\n',
-        '        box_extras.save_variable("is_tool_change", 0)\n'
-        "        self.is_tool_change = False\n",
+        ('        box_extras.save_variable("is_tool_change", 0)\n'
+        "        self.is_tool_change = False\n"),
     ),
 )
 
