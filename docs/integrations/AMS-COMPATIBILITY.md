@@ -299,7 +299,7 @@ a migration removes the Box UI even when the Box still works. Neither front-end
 has a plugin or panel API, so the supported way to restore control without
 forking them is Klipper's `action:prompt_*` dialog protocol. That replacement
 is provided by
-[`../mainline-addons/integrations/qidi-box-ui/`](../mainline-addons/integrations/qidi-box-ui/).
+[`../../mainline-addons/integrations/qidi-box-ui/`](../../mainline-addons/integrations/qidi-box-ui/).
 It covers the actions but not the ambient spool grid; a standalone web panel on
 Moonraker's WebSocket API remains the option that reaches full visual parity.
 

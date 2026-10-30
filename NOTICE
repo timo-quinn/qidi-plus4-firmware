@@ -123,5 +123,5 @@ Klipper macro configuration, not original to this repository and not part of the
 compiled modules. Local syntax and G-code-state fixes have been applied. The
 Plus4 Wiki is published under the MIT license; its copyright notice and full
 license terms are preserved in qidibox-modules/LICENSE.box_macros.
-docs/DISABLE-QIDI-CLOUD.md is original writing that documents a procedure from
+docs/fixes/DISABLE-QIDI-CLOUD.md is original writing that documents a procedure from
 the same wiki, with credit.

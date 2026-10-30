@@ -130,6 +130,34 @@ def status_of(results, probe_id: str) -> str:
     return next(result.status for result in results if result.probe == probe_id)
 
 
+def test_ready_stock_plus4_does_not_supersede_mainline_smoke_test() -> None:
+    facts = migrated_facts()
+    facts["bootstrap_receipt"] = {"present": False}
+    facts["checkouts"]["katapult"] = {"present": False, "head": None}
+    facts["printer_cfg"]["mcu_sections"] = ["mcu", "mcu U_1", "mcu mcu_box1"]
+    facts["moonraker"]["mcu_objects"] = ["mcu", "mcu U_1", "mcu mcu_box1"]
+    assert status_of(probes.evaluate(facts, CONTEXT), "config.installed") == probes.UNSATISFIED
+
+
+def test_restored_config_on_bootstrapped_host_requires_live_mcus() -> None:
+    facts = migrated_facts()
+    facts["moonraker"]["klippy_state"] = "error"
+    assert status_of(probes.evaluate(facts, CONTEXT), "config.installed") == probes.UNSATISFIED
+
+
+def test_config_without_provenance_is_indeterminate() -> None:
+    facts = migrated_facts()
+    del facts["bootstrap_receipt"]
+    assert status_of(probes.evaluate(facts, CONTEXT), "config.installed") == probes.INDETERMINATE
+
+
+def test_config_accepts_the_sanitized_profiles_stock_style_mcu_names() -> None:
+    facts = migrated_facts()
+    facts["printer_cfg"]["mcu_sections"] = ["mcu", "mcu U_1"]
+    facts["moonraker"]["mcu_objects"] = ["mcu", "mcu U_1"]
+    assert status_of(probes.evaluate(facts, CONTEXT), "config.installed") == probes.SATISFIED
+
+
 def detail_of(results, probe_id: str) -> str:
     return next(result.detail for result in results if result.probe == probe_id)
 

@@ -11,14 +11,18 @@ sudo -n true >/dev/null 2>&1 || {
 }
 
 home="$HOME"
+export USER="$(id -un)"
 data="$home/printer_data"
 klipper="$home/klipper"
 moonraker="$home/moonraker"
 katapult="$home/katapult"
 host_tuning_helper="${QIDI_HOST_TUNING_HELPER:-$home/qidi-host-tuning.sh}"
-klipper_ref="${KLIPPER_REF:-master}"
-moonraker_ref="${MOONRAKER_REF:-master}"
-katapult_ref="${KATAPULT_REF:-master}"
+klipper_ref="${KLIPPER_REF:-214fdb2877ff4640e9316a663c1b8b2e232c86fd}"
+moonraker_ref="${MOONRAKER_REF:-1cfb0c41e468645951a371621f06d32777b6107c}"
+katapult_ref="${KATAPULT_REF:-ec59b9bb9ad6c2ec8d4dc6831fbc77f0b308e29e}"
+for ref in "$klipper_ref" "$moonraker_ref" "$katapult_ref"; do
+    [[ $ref =~ ^[0-9a-f]{40}$ ]] || { echo 'Full commit SHA required' >&2; exit 1; }
+done
 
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -38,6 +42,9 @@ clone_or_update() {
     fi
     git -C "$directory" fetch --prune origin "$ref"
     git -C "$directory" checkout --detach FETCH_HEAD
+    [[ $(git -C "$directory" rev-parse HEAD) == "$ref" ]] || {
+        echo "Fetched commit does not match requested pin: $directory" >&2; exit 1;
+    }
 }
 
 clone_or_update https://github.com/Klipper3d/klipper.git "$klipper" "$klipper_ref"
@@ -47,6 +54,17 @@ clone_or_update https://github.com/Arksine/katapult.git "$katapult" "$katapult_r
 python3 -m venv "$home/klippy-env"
 "$home/klippy-env/bin/pip" install --upgrade pip
 "$home/klippy-env/bin/pip" install -r "$klipper/scripts/klippy-requirements.txt"
+
+if [[ -n ${BEACON_REF:-} ]]; then
+    [[ $BEACON_REF =~ ^[0-9a-f]{40}$ ]] || { echo 'Full Beacon commit SHA required' >&2; exit 1; }
+    clone_or_update https://github.com/beacon3d/beacon_klipper.git "$home/beacon" "$BEACON_REF"
+    "$home/klippy-env/bin/pip" install -r "$home/beacon/requirements.txt"
+    # The upstream install.sh also flashes connected probes. Reproduce only
+    # its documented host installation so bootstrap never updates probe MCUs.
+    ln -sfn "$home/beacon/beacon.py" "$klipper/klippy/extras/beacon.py"
+    grep -qxF 'klippy/extras/beacon.py' "$klipper/.git/info/exclude" ||
+        echo 'klippy/extras/beacon.py' >>"$klipper/.git/info/exclude"
+fi
 
 mkdir -p "$data/config" "$data/logs" "$data/comms" "$data/systemd" "$data/gcodes"
 touch "$data/config/printer.cfg"
@@ -112,13 +130,14 @@ MOONRAKER_DATA_PATH="$data" MOONRAKER_FORCE_SYSTEM_INSTALL=y \
 chmod 700 "$host_tuning_helper"
 sudo bash "$host_tuning_helper" install --printer-user "$USER" --no-restart
 sudo systemctl restart moonraker.service
-bash "$host_tuning_helper" audit
+bash "$host_tuning_helper" audit-early
 
 {
     printf 'installed_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf 'klipper_commit=%s\n' "$(git -C "$klipper" rev-parse HEAD)"
     printf 'moonraker_commit=%s\n' "$(git -C "$moonraker" rev-parse HEAD)"
     printf 'katapult_commit=%s\n' "$(git -C "$katapult" rev-parse HEAD)"
+    [[ -z ${BEACON_REF:-} ]] || printf 'beacon_commit=%s\n' "$BEACON_REF"
     printf 'qidi_host_tuning_version=3\n'
 } | tee "$data/mainline-bootstrap.txt"
 

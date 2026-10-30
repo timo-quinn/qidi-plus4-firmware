@@ -1,9 +1,16 @@
-# Migration runbook: Box-equipped Plus4 (1.8.2) → mainline + KlipperFleet
+# Migration runbook: Box-equipped Plus4 (1.8.2) → mainline
 
 A plan for migrating a QIDI Plus4 that is currently on stock **1.8.2 with the
 QIDI Box** (and, in this example, a Beacon Rev H) to mainline Klipper/Moonraker
-on Armbian, set up so that [KlipperFleet](https://github.com/JohnBaumb/KlipperFleet)
-manages ongoing MCU firmware, while **attempting to retain Box functionality**.
+on Armbian, with optional
+[KlipperFleet](https://github.com/JohnBaumb/KlipperFleet) maintenance and a
+separate later Box-commissioning phase.
+
+The [2026-10-04 review](../history/QIDI1-MIGRATION-REVIEW-2026-10-04.md) is the current
+QIDI1 preparation decision: commission single-material first, then evaluate
+Happy Hare's new QIDI Box preset. The v2/Q2 defaults are not yet validated on
+our retained Plus4/Box revision. Keep the stock Box MCU and exclude its config
+during the base migration.
 
 This runbook builds on [MAINLINE-MIGRATION.md](MAINLINE-MIGRATION.md) — read that
 first. This document only adds the Box-printer choices, the KlipperFleet
@@ -68,17 +75,7 @@ There is **no mainboard Katapult config yet** — see the mainboard options belo
 As in the base guide §2 — download/verify the official Qidi X-6 image and write
 it to the spare eMMC. Keep the original eMMC untouched as the rollback.
 
-## 3. Flash the MCUs
-
-### Toolhead — Katapult, then Klipper (proven)
-
-One-time SWD/ST-Link Katapult install, then Klipper over `/dev/ttyS2`, exactly as
-[MAINLINE-MIGRATION.md](MAINLINE-MIGRATION.md) §6–§7. Either wiring option (board
-in place, or removed and powered from the ST-Link 3.3 V on J1 pin 2) applies.
-After this, the toolhead has a resident Katapult bootloader and KlipperFleet can
-reflash it over UART with no further SWD.
-
-### Mainboard — choose one
+## 3. Flash the mainboard — choose one
 
 **Option A — QIDI microSD bootloader + mainline Klipper (proven, recommended).**
 Stage and flash the mainline mainboard image through QIDI's resident microSD
@@ -94,32 +91,71 @@ mainboard updates continue via microSD. KlipperFleet then manages the toolhead
 only. This is the low-risk path and is recommended for a first attempt.
 
 **Option B — Katapult on the mainboard (experimental, for full KlipperFleet).**
-KlipperFleet lists the Plus4 mainboard as a Katapult target, but **this repo has
-not validated installing Katapult on the mainboard**, and there is a real
-obstacle: QIDI's microSD bootloader lives at `0x08000000` and writes only the
-application region (`0x08008000`), so it cannot flash a Katapult bootloader over
-itself. Installing Katapult on the F401 mainboard therefore likely requires
-system **USB DFU** (BOOT0 + the F401's USB, which is not the host UART link) or
-another out-of-band programmer, and needs a mainboard Katapult Kconfig
-(STM32F401, 32 KiB bootloader offset, UART `ttyS0` @ 500000, `restart_method:
-command`) that does not yet exist in `firmware-configs/`. Treat Option B as
-research to validate, not a supported step. Do not attempt it on the first pass.
+This repo has not validated mainboard Katapult locally. The established
+community alternative uses QIDI's microSD loader to start a **Katapult deployer**
+as `qd_mcu.bin` at `0x08008000`. The running deployer can then write Katapult
+at `0x08000000`, **replacing QIDI's resident bootloader**. SWD is a fallback if
+deployment fails, not an inherent requirement for a successful deployer install.
+
+The deployer's own link offset and Katapult's configured Klipper application
+offset are separate settings. A 16 KiB application selection needs a different
+Klipper build from this repo's 32 KiB-offset mainboard image. No reviewed
+mainboard Katapult/deployer config is supplied here. See the
+[source review](../history/QIDI1-UPSTREAM-REVIEW-2026-10-04.md#mcu-flashing-and-recovery)
+and [Katapult deployer documentation](https://github.com/Arksine/katapult/blob/ec59b9bb9ad6c2ec8d4dc6831fbc77f0b308e29e/README.md#katapult-deployer).
+Use Option A for the first migration; evaluate this recovery tradeoff separately.
+
+## 4. Bootstrap the replacement host before toolhead work
+
+Swap in the prepared Armbian eMMC and bootstrap the upstream stack **as the
+intended Klipper owner**, normally `mks`:
+
+```powershell
+python .\tools\migration\qidi_plus4.py bootstrap-host `
+  --printer $Printer --user mks --confirm BOOTSTRAP-HOST
+```
+
+Pin the source commits as described in the base guide. Its bootstrap installs
+`stlink-tools` and Katapult; both must exist before the following toolhead
+commands can run. Account selection, fresh-host idle checks and the tuning
+audit need the explicit handling described in the dated review.
+
+## 5. Toolhead — Katapult, then Klipper (proven)
+
+One-time SWD/ST-Link Katapult install, then Klipper over `/dev/ttyS2`, exactly as
+[MAINLINE-MIGRATION.md](MAINLINE-MIGRATION.md) §6–§7. Either wiring option (board
+in place, or removed and powered from the ST-Link 3.3 V on J1 pin 2) applies.
+After this, the toolhead has a resident Katapult bootloader and can be reflashed
+over UART with no further SWD.
 
 ### Box MCU — do nothing
 
 Leave the Box on its stock firmware. It is not flashed, not given Katapult, and
 not a KlipperFleet target.
 
-## 4. Swap eMMC and bootstrap the host
+## 6. Base configuration and single-material commissioning
 
-Base guide §5: swap in the Armbian eMMC and bootstrap the upstream stack:
+Commission single-material **before** touching the Box. Render the reviewed
+X-7 V1.0 / Beacon profile with this printer's Beacon by-id path and run the smoke
+test:
 
 ```powershell
-python .\tools\migration\qidi_plus4.py bootstrap-host `
-  --printer $Printer --confirm BOOTSTRAP-HOST
+python .\tools\migration\qidi_plus4.py render-config `
+  --profile-dir ..\qidi-plus4-configs\printers\mainline-klipper-beacon `
+  --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_<yours>-if00' `
+  --output .\artifacts\generated-configs\my-plus4
+python .\tools\migration\qidi_plus4.py smoke-test --printer $Printer
 ```
 
-## 5. Install KlipperFleet (day-2 MCU management)
+During the inert smoke test, confirm `[mcu]` on `/dev/ttyS0` and `[mcu toolhead]`
+on `/dev/ttyS2` reach `Ready`, then audit effective host tuning. Install the
+reviewed full profile afterward; it uses `[mcu]` for the toolhead and
+`[mcu U_1]` for the mainboard. Install its Beacon/Shake&Tune dependencies and
+commission motion, temperatures and Beacon per the profile. The renderer does
+not remove source-printer tuning. Recalibrate this printer and prove
+single-material printing works before proceeding.
+
+## 7. Optional: evaluate KlipperFleet for later MCU management
 
 KlipperFleet assumes Klipper at `~/klipper`, Katapult at `~/katapult`, and
 Katapult bootloaders already on the MCUs — which the steps above provide for the
@@ -139,24 +175,14 @@ before relying on it; if it does not yet support the host, fall back to
 `katapult/scripts/flashtool.py` over UART for toolhead updates. Getting the
 QIDI/RK3328 host supported upstream is a worthwhile contribution.
 
-## 6. Base configuration and single-material commissioning
+## 8. Experimental: retain the Box on mainline
 
-Commission single-material **before** touching the Box. Render the reviewed
-X-7 V1.0 / Beacon profile with this printer's Beacon by-id path and run the smoke
-test:
-
-```powershell
-python .\tools\migration\qidi_plus4.py render-config `
-  --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_<yours>-if00' `
-  --output .\artifacts\generated-configs\my-plus4
-python .\tools\migration\qidi_plus4.py smoke-test --printer $Printer
-```
-
-Confirm both `[mcu]` (toolhead) and `[mcu U_1]` (mainboard) reach `Ready`, then
-commission motion, temps, and Beacon per the profile. Prove single-material
-printing works before proceeding.
-
-## 7. Experimental: retain the Box on mainline
+As of 2026-10-04, the first upstream route to evaluate is
+[Happy Hare's QIDI Box preset](https://github.com/moggieuk/Happy-Hare/blob/main/installer/boards/custom/Kconfig.qidi_box),
+introduced in v4. The Plus4 namespace, physical Box revision, stock MCU protocol,
+cutter geometry and thermal controls still need comparison and hardware tests.
+Factory RFID parity is not established. The direct QIDI-module port below is
+retained as an experimental alternative, not a prerequisite for migration.
 
 > This is the frontier. The Box host modules were written against QIDI's Klipper
 > fork and are **not validated on upstream Klipper**. Expect to iterate, and keep
@@ -164,7 +190,7 @@ printing works before proceeding.
 
 The Box MCU stays stock; the host side is reconstructed from open source:
 
-1. **Connect the Box MCU.** Add a second MCU to the config using the by-id path:
+1. **Connect the Box MCU.** Add a Box MCU to the config using the by-id path:
 
    ```ini
    [mcu box1]
@@ -172,16 +198,16 @@ The Box MCU stays stock; the host side is reconstructed from open source:
    ```
 
 2. **Add the Box host modules (pure Python).** Copy QIDI's own 1.7.0 GPLv3 Box
-   source — [`../analysis/github-releases/qidi-klipper-1.7.0-box-source/`](../analysis/github-releases/qidi-klipper-1.7.0-box-source/)
+   source — [`../../analysis/github-releases/qidi-klipper-1.7.0-box-source/`](../../analysis/github-releases/qidi-klipper-1.7.0-box-source/)
    (`aht20_f.py`, `box_detect.py`, `box_extras.py`, `box_rfid.py`,
    `box_stepper.py`) — into `~/klipper/klippy/extras/`, and
-   `~/klippy-env/bin/pip install pyudev`. These are plain `.py`, so mainline
-   loads them natively (no `.so`, no Python-version lock). The prebuilt binaries
-   in [`../qidibox-modules/`](../qidibox-modules/) are an alternative only if you
+   `~/klippy-env/bin/pip install pyudev`. Plain `.py` avoids a compiled-module
+   Python-version lock, but does not establish compatible Klipper APIs. The
+   prebuilt binaries in [`../../qidibox-modules/`](../../qidibox-modules/) are an alternative only if you
    deliberately want compiled modules matching your Python/arch.
 
 3. **Add the Box macros and config.** Include
-   [`../qidibox-modules/box_macros.cfg`](../qidibox-modules/box_macros.cfg) (it
+   [`../../qidibox-modules/box_macros.cfg`](../../qidibox-modules/box_macros.cfg) (it
    restores the three commands the source predates), and bring the Box config
    sections (`box.cfg`, `box1.cfg`–`box4.cfg`, `user_multi_color.qdini`,
    `drying.conf`) from this printer's own backup, adjusting pin/MCU names to the
@@ -195,17 +221,19 @@ The Box MCU stays stock; the host side is reconstructed from open source:
    module at a time (`box_detect` → `box_rfid` → `box_stepper` → `box_extras`).
 
 Record what works; that feedback is exactly what a reviewed mainline Box backend
-needs. See [AMS-COMPATIBILITY.md](AMS-COMPATIBILITY.md) and
-[BOX-CARTOGRAPHER-PYTHON-CONFLICT.md](BOX-CARTOGRAPHER-PYTHON-CONFLICT.md).
+needs. See [AMS-COMPATIBILITY.md](../integrations/AMS-COMPATIBILITY.md) and
+[BOX-CARTOGRAPHER-PYTHON-CONFLICT.md](../integrations/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md).
 
-## 8. Recovery and rollback
+## 9. Recovery and rollback
 
-- **Host:** the original eMMC is untouched — swap it back for a full revert.
+- **Host:** the original eMMC is untouched — swap it back to restore the host;
+  restore the changed MCUs separately before expecting the stock stack to work.
 - **Box:** never modified — it returns to full function on the stock host, or
   keeps working as a stock MCU if the experimental host modules are removed.
 - **MCUs:** mainboard and toolhead pre-flash dumps are retained for reflash.
-- The toolhead is the only irreversible-ish change (SWD erase of the stock app);
-  its dump is retained, and the stock toolhead has no bootloader regardless.
+- If Option B replaced the mainboard bootloader, restoring QIDI's microSD
+  recovery path requires a separate programmer/recovery procedure. The toolhead
+  dump can be restored through SWD; its stock image has no resident bootloader.
 
 ## Status summary
 

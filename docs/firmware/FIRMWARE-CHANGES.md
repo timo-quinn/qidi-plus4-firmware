@@ -439,12 +439,12 @@ Python bytecode, so tools such as `uncompyle6` are not applicable.
 QIDI's own source for `aht20_f`, `box_detect`, `box_extras`, `box_rfid` and
 `box_stepper` is available: it shipped as open `.py` in firmware 1.7.0 (GPLv3,
 in QIDI's Klipper fork) and is preserved at
-`../analysis/github-releases/qidi-klipper-1.7.0-box-source/`. A community
+`../../analysis/github-releases/qidi-klipper-1.7.0-box-source/`. A community
 snapshot published as "MIT" is byte-identical to it and is therefore also
 GPLv3. All 116 published APIs occur in both firmware binary sets, with no
 published-only APIs, making this source the preferred readable lineage baseline
-for those five modules. See `../analysis/components/LINEAGE-ANALYSIS.md` and
-`../analysis/components/lineage-source/`. Same-name bodies are still not assumed
+for those five modules. See `../../analysis/components/LINEAGE-ANALYSIS.md` and
+`../../analysis/components/lineage-source/`. Same-name bodies are still not assumed
 to be identical, and the binaries add three public `BoxExtras` commands.
 
 This repository now provides four readability levels:

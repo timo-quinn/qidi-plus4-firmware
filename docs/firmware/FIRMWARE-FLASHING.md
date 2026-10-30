@@ -311,7 +311,7 @@ A conservative conversion path is:
    separate compatible display. The stock panel is a serial HMI rather than a
    KlipperScreen-compatible Linux display, and `xindi` depends on QIDI-specific
    host APIs and configuration. The independent bridge research is documented
-   in [SCREEN-BRIDGE.md](SCREEN-BRIDGE.md).
+   in [SCREEN-BRIDGE.md](../integrations/SCREEN-BRIDGE.md).
 
 Live testing shows that a correctly linked mainboard image cannot reliably be
 sent through `/root/hid-flash ... ttyS0` from the stock SSH host. Three loader
@@ -406,9 +406,9 @@ mainline operation.
 * `xindi-update-decompiled.c` — selected named 1.8.2 update routines;
 * `box-hid-flash-decompiled.c` — Box flasher main control flow;
 * `box-hid-protocol-decompiled.c` — recovered framing and response parser;
-* `../analysis/components/lineage-source/*/klipper/box_detect.py` — published
+* `../../analysis/components/lineage-source/*/klipper/box_detect.py` — published
   source-lineage view of Box discovery/update triggering;
-* `../tools/ghidra/ExportNamedDecompilation.java` — the
+* `../../tools/ghidra/ExportNamedDecompilation.java` — the
   reusable named-function Ghidra exporter.
 
 Key 1.8.2 evidence hashes:

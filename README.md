@@ -1,98 +1,45 @@
 # QIDI Plus4 firmware research
 
-Technical reference material for QIDI Plus4 firmware from the factory 1.1.2
-image through versions 1.7.3 and 1.8.2, including printer backups, static
-analysis, decompilation output, reconstructed source, and MCU flashing
-research. Stock-fork profiles live in the companion
-[qidi-plus4-configs](https://github.com/cl-tim/qidi-plus4-configs)
-repository; the new upstream-Klipper commissioning and operating profiles live
-here temporarily as a compatibility fallback while config ownership moves to
-that repository.
+Firmware research, recovery references, and mainline Klipper migration tools
+for the QIDI Plus4. The research covers factory 1.1.2, installed 1.7.3 and
+1.8.2 systems, and QIDI's published source releases from 1.3.2 to 1.7.1.
 
-## Content ownership and navigation
+## Find what you need
 
-| Area | Kind | Source of truth / editing rule |
-| --- | --- | --- |
-| [`docs/`](docs/) and [`tools/`](tools/) | Maintained project work | Edit here; migration CLI compatibility is part of the printerlab contract. |
-| [`firmware-configs/`](firmware-configs/) | MCU build input | Authoritative here; these are Kconfig fragments, not runtime printer configs. |
-| [`mainline-configs/`](mainline-configs/) | Runtime config fallback | Transitional bundled copy. New live/profile work belongs in `qidi-plus4-configs`; `render-config --profile-dir` can consume it directly. |
-| [`mainline-addons/`](mainline-addons/) | Optional runtime templates | Maintained templates, never per-printer saved state. |
-| [`analysis/`](analysis/) | Generated evidence | Regenerate with the documented tools; do not hand-edit decompilation, disassembly, inventories, or reconstructed outlines. |
-| [`analysis/github-releases/qidi-klipper-1.7.0-box-source/`](analysis/github-releases/qidi-klipper-1.7.0-box-source/) | Preserved upstream GPLv3 source | Immutable vendor snapshot used for provenance and QIDI Box rebuilds. |
-| [`qidibox-modules/`](qidibox-modules/) | Rebuildable distribution | Recipes and provenance are maintained; `.so` files are derived release artifacts. |
-| [`data/printer-backups/`](data/README.md) | Private local input | Ignored by Git; may contain credentials, databases, and device identities. |
-| [`artifacts/`](artifacts/README.md) | Local output | Ignored by Git; generated and live copies are never configuration authority. |
+| I want to… | Start here |
+| --- | --- |
+| Find firmware files or backups, including v1.8.2 | [Firmware and backup locations](data/README.md) |
+| Understand firmware versions and changes | [Firmware research](docs/firmware/README.md) |
+| Understand downloading, flashing, and recovery | [Firmware flashing reference](docs/firmware/FIRMWARE-FLASHING.md) |
+| Migrate to mainline Klipper | [Migration guides](docs/migration/README.md) |
+| Work with QIDI Box, Happy Hare, or the stock screen | [Integration research](docs/integrations/README.md) |
+| Fix stock-firmware problems | [Fixes and compatibility](docs/fixes/README.md) |
+| Back up a printer or regenerate research | [Tools](tools/README.md) |
+| Contribute or run checks | [Contributing](CONTRIBUTING.md) |
 
-For firmware behavior, start in [`docs/`](docs/README.md). For migration and
-printerlab integration, start in [`tools/migration/`](tools/migration/README.md).
-For raw evidence, use the indexes under [`analysis/`](analysis/README.md) rather
-than searching the generated trees directly.
+The [documentation index](docs/README.md) covers every guide. Dated printer
+reviews and implementation notes are kept separately in [history](docs/history/README.md).
 
-## Repository layout
+## Repository map
 
-- [`docs/`](docs/) contains the human-readable findings: the firmware change
-  report, flashing research, AMS compatibility analysis, and Happy Hare notes.
-- [`analysis/firmware/`](analysis/firmware/) contains generated filesystem,
-  touchscreen, symbol, string, patch, and protocol evidence.
-- [`analysis/components/`](analysis/components/) contains the compiled-component
-  index, ARM64 disassembly, Ghidra pseudocode, and source reconstructions.
-- [`tools/`](tools/) contains the backup, comparison, export, and reconstruction
-  utilities. Ghidra helper scripts are grouped under [`tools/ghidra/`](tools/ghidra/).
-- [`firmware-configs/`](firmware-configs/) contains reproducible Klipper and
-  Katapult build fragments for the verified Plus4 controller boards.
-- [`mainline-configs/`](mainline-configs/) contains conservative, per-printer
-  renderable upstream-Klipper commissioning and operating profiles.
-- [`mainline-addons/`](mainline-addons/) contains opt-in, safe-default Klipper
-  macro scaffolds and separate Beacon/Happy Hare integration templates.
-- [`screen-bridge/`](screen-bridge/) scaffolds an independent Python bridge for
-  retaining the stock serial touchscreen with mainline Moonraker.
-- [`qidibox-modules/`](qidibox-modules/) contains QIDI Box Klipper modules
-  recompiled from QIDI's own GPLv3 source for CPython 3.12 and 3.7 (aarch64),
-  for keeping the Box working alongside a Cartographer probe.
-- `data/printer-backups/` contains sensitive local inputs and is ignored by Git.
+| Directory | Contents |
+| --- | --- |
+| [docs/](docs/README.md) | Guides and findings, grouped by topic |
+| [tools/](tools/README.md) | Backup, analysis, and migration utilities |
+| [analysis/](analysis/README.md) | Generated evidence and preserved vendor source |
+| [firmware-configs/](firmware-configs/README.md) | MCU build fragments for Klipper and Katapult |
+| [mainline-configs/](mainline-configs/README.md) | Transitional runtime configuration profiles |
+| [mainline-addons/](mainline-addons/README.md) | Optional macros and integration templates |
+| [qidibox-modules/](qidibox-modules/README.md) | Rebuildable Box modules and compatibility overlays |
+| [plr-hardening/](plr-hardening/README.md) | Stock power-loss recovery repair |
+| [screen-bridge/](screen-bridge/README.md) | Experimental stock touchscreen bridge |
+| [data/](data/README.md) | Private local inputs; backups are ignored by Git |
+| [artifacts/](artifacts/README.md) | Local build output, downloads, and live captures; ignored by Git |
 
-## Start here
-
-- [Firmware changes from 1.7.3 to 1.8.2](docs/FIRMWARE-CHANGES.md)
-- [Firmware lineage from factory 1.1.2 through 1.8.2](docs/FIRMWARE-LINEAGE.md)
-- [GitHub-published source releases 1.3.2–1.7.1](analysis/github-releases/README.md)
-- [Mainline Klipper migration](docs/MAINLINE-MIGRATION.md)
-- [Box-printer runbook: 1.8.2 + Box → mainline + KlipperFleet](docs/MIGRATION-WITH-BOX.md)
-- [Mainline printer configurations](mainline-configs/README.md)
-- [Optional mainline add-ons](mainline-addons/README.md)
-- [Firmware downloading and flashing](docs/FIRMWARE-FLASHING.md)
-- [Toolhead MCU firmware analysis (load cell, timing)](docs/TOOLHEAD-MCU-FIRMWARE.md)
-- [QIDI Box and third-party AMS compatibility](docs/AMS-COMPATIBILITY.md)
-- [QIDI Box `box.cfg` regeneration and sync implications](docs/QIDI-BOX-CONFIG-REGENERATION.md)
-- [QIDI Box vs. Cartographer compiled-Python conflict](docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md)
-- [Disabling the legacy QIDILink client on stock firmware](docs/DISABLE-QIDI-CLOUD.md)
-- [Manual PLR `Timer too close` repair](docs/PLR-TIMER-TOO-CLOSE.md)
-- [QIDI Box output clock guard](docs/QIDI-BOX-OUTPUT-CLOCK-GUARD.md)
-- [QIDI Box MCU watchdog reset forensic result](docs/QIDI-BOX-WATCHDOG-RESET.md)
-- [Happy Hare integration notes](docs/HAPPY-HARE-INTEGRATION.md)
-- [Install Happy Hare after mainline migration](docs/HAPPY-HARE-INSTALLATION.md)
-- [Stock touchscreen bridge research](docs/SCREEN-BRIDGE.md)
-- [Live hardware and runtime inventory](docs/LIVE-HARDWARE-INVENTORY.md)
-- [Compiled component reference](analysis/components/INDEX.md)
-- [Published-source lineage analysis](analysis/components/LINEAGE-ANALYSIS.md)
-
-## Backing up a printer
-
-From PowerShell on Windows:
-
-```powershell
-.\tools\Backup-QidiPlus4.ps1 `
-  -Printer 'box=192.168.1.50','no-box=192.168.1.51'
-```
-
-Replace the example addresses. The script streams each compressed archive over
-SSH, downloads the inventory with SCP, verifies the archive, and records its
-SHA-256 digest. Use `-Expand` to extract verified archives locally.
-
-Backups are written under `data/printer-backups/` and intentionally ignored by Git.
-They may contain credentials, API keys, databases, and SSH material. These are
-filesystem/source backups; MCU flash readbacks require the separately documented
-procedures.
+Runtime profile development belongs in the companion
+[qidi-plus4-configs](https://github.com/cl-tim/qidi-plus4-configs) repository.
+The bundled `mainline-configs/` profiles remain a compatibility fallback;
+`render-config --profile-dir` can consume external profiles directly.
 
 ## Community resources
 
@@ -105,9 +52,9 @@ canonical reference. Directly relevant entries there include:
   — the pure-Python Box modules and `box_macros.cfg` (a copy of the latter is
   included under [`qidibox-modules/`](qidibox-modules/)).
 - [Cartographer3D install guide](https://github.com/qidi-community/Plus4-Wiki/tree/main/content/bed-scanning-probes/cartographer3d)
-  — companion to [docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md](docs/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md).
+  — companion to [docs/integrations/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md](docs/integrations/BOX-CARTOGRAPHER-PYTHON-CONFLICT.md).
 - [Disabling the QIDILink client](https://github.com/qidi-community/Plus4-Wiki/tree/main/content/disable%20QIDILink-client)
-  — the procedure behind [docs/DISABLE-QIDI-CLOUD.md](docs/DISABLE-QIDI-CLOUD.md).
+  — the procedure behind [docs/fixes/DISABLE-QIDI-CLOUD.md](docs/fixes/DISABLE-QIDI-CLOUD.md).
 - Hardware mods, maintenance, and slicer profiles — out of scope here; see the
   wiki.
 

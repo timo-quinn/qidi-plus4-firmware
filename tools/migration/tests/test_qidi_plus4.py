@@ -474,396 +474,200 @@ def test_refresh_klippee_agent_requires_exact_confirmation_before_ssh(
         qidi_plus4.refresh_klippee_agent(args)
 
 
-def test_parser_exposes_fixed_box_clock_guard_installer() -> None:
-    parsed = qidi_plus4.create_parser().parse_args(
-        [
-            "install-box-output-clock-guard",
-            "--printer",
-            "qidi1",
-            "--confirm",
-            "INSTALL-BOX-OUTPUT-CLOCK-GUARD",
-        ]
-    )
-
-    assert parsed.func is qidi_plus4.install_box_output_clock_guard
-    assert not hasattr(parsed, "source")
-    assert not hasattr(parsed, "target")
-    assert not hasattr(parsed, "mode")
-    assert not hasattr(parsed, "remote_python")
-
-
-def test_parser_exposes_fixed_box_motion_template_guard() -> None:
-    parsed = qidi_plus4.create_parser().parse_args(
-        [
-            "harden-box-motion-template",
-            "--printer",
-            "qidi1",
-            "--box-count",
-            "1",
-            "--confirm",
-            "HARDEN-BOX-MOTION-TEMPLATE",
-        ]
-    )
-
-    assert parsed.func is qidi_plus4.harden_box_motion_template
-    assert parsed.box_count == 1
-    assert not hasattr(parsed, "target")
-    assert not hasattr(parsed, "remote_python")
-
-
-def test_box_motion_template_guard_streams_fixed_helper_without_restart(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    transaction_id = "20260806T010203Z-0123456789abcdef"
-    before = "1" * 64
-    after = "2" * 64
-    remote_result = {
-        "schema": qidi_plus4.BOX_MOTION_GUARD_SCHEMA,
-        "ok": True,
-        "changed": True,
-        "verified": True,
-        "box_count": 1,
-        "transaction_id": transaction_id,
-        "target": {
-            "path": "/home/mks/cfg_with_1",
-            "before_sha256": before,
-            "after_sha256": after,
-            "mode": "0644",
-            "uid": 0,
-            "gid": 0,
+def klippee_agent_upgrade_result(*, ok: bool = True) -> dict[str, object]:
+    return {
+        "schema": qidi_plus4.KLIPPEE_AGENT_UPGRADE_SCHEMA,
+        "ok": ok,
+        "changed": ok,
+        "account": qidi_plus4.KLIPPEE_AGENT_ACCOUNT,
+        "cli_path": qidi_plus4.KLIPPEE_AGENT_CLI_PATH,
+        "source_url": qidi_plus4.KLIPPEE_AGENT_UPGRADE_SOURCE,
+        "before": {"version": "2026.08.06.5", "sha256": "1" * 64},
+        "after": {
+            "version": "2026.08.06.6" if ok else "2026.08.06.5",
+            "sha256": "2" * 64 if ok else "1" * 64,
         },
-        "backup": {
-            "path": (f"/home/mks/.qidi-plus4-backups/box-motion-guard-{transaction_id}/cfg_with_1"),
-            "sha256": before,
-        },
-        "use_irq": False,
-        "debounce_us_present": False,
-        "active_config_changed": False,
-        "klipper_service_action": "none",
-        "klipper_restarted": False,
-        "activation_required": True,
+        "service": qidi_plus4.KLIPPEE_AGENT_SERVICE,
+        "scope": "user",
+        "observed_state": "active",
+        "before_pid": 410,
+        "after_pid": 512 if ok else 410,
+        "upgrade_exit": 0 if ok else 1,
+        "state_exit": 0,
+        "upgrade_reported_success": ok,
+        "agent_restart_performed": ok,
+        "klipper_actions_performed": False,
+        "config_deployment_performed": False,
     }
-    calls: list[tuple[list[str], bytes | None]] = []
-    monkeypatch.setattr(
-        qidi_plus4,
-        "ssh_base",
-        lambda _args: (["ssh", "qidi1"], "plab@qidi1"),
-    )
-    monkeypatch.setattr(
-        qidi_plus4,
-        "_box_clock_guard_transaction_id",
-        lambda: transaction_id,
-    )
-
-    def fake_capture(
-        command: list[str], input_data: bytes | None = None
-    ) -> subprocess.CompletedProcess[bytes]:
-        calls.append((command, input_data))
-        return subprocess.CompletedProcess(command, 0, json.dumps(remote_result).encode(), b"")
-
-    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
-    qidi_plus4.harden_box_motion_template(
-        connection_args(
-            "harden-box-motion-template",
-            confirm="HARDEN-BOX-MOTION-TEMPLATE",
-            box_count=1,
-            user="plab",
-            printer_user="mks",
-        )
-    )
-
-    result = json.loads(capsys.readouterr().out)
-    assert result["target"]["after_sha256"] == after
-    assert len(calls) == 1
-    command, helper = calls[0]
-    assert helper == qidi_plus4.BOX_MOTION_GUARD_REMOTE_INSTALLER.read_bytes()
-    assert "sudo -n /usr/bin/python3 -I -" in command[-1]
-    assert "--box-count 1" in command[-1]
-    assert transaction_id in command[-1]
-    assert "systemctl" not in command[-1]
-    assert "restart" not in command[-1]
 
 
-def test_set_klippee_variable_uses_fixed_cli_and_verifies_without_restart(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
+def test_upgrade_klippee_agent_uses_only_fixed_official_workflow(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    parsed = qidi_plus4.create_parser().parse_args([
+        "upgrade-klippee-agent",
+        "--printer", "qidi1",
+        "--confirm", "UPGRADE-KLIPPEE-AGENT",
+    ])
+    assert parsed.func is qidi_plus4.upgrade_klippee_agent
+
+    monkeypatch.setattr(
+        qidi_plus4, "ssh_base", lambda _args: (["ssh", "mks@qidi1"], "mks@qidi1")
+    )
     calls: list[list[str]] = []
-    monkeypatch.setattr(
-        qidi_plus4,
-        "ssh_base",
-        lambda _args: (["ssh", "qidi1"], "plab@qidi1"),
-    )
+    expected = klippee_agent_upgrade_result()
 
     def fake_capture(
         command: list[str], input_data: bytes | None = None
     ) -> subprocess.CompletedProcess[bytes]:
-        assert input_data is None
+        assert input_data is not None
+        assert b'def download_cli()' in input_data
+        assert b'"--disable"' in input_data
+        assert b'os.replace(temporary, CLI_PATH)' in input_data
+        assert b'run_systemctl("restart", SERVICE)' in input_data
+        assert b'CLI_PATH, "upgrade"' not in input_data
         calls.append(command)
-        return subprocess.CompletedProcess(command, 0, b"verified\n", b"")
-
-    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
-    value = "/dev/serial/by-id/usb-QIDI_TEST"
-    qidi_plus4.set_klippee_variable(
-        connection_args(
-            "set-klippee-variable",
-            confirm="SET-KLIPPEE-VARIABLE",
-            name="qidi_box_serial",
-            value=value,
-            user="plab",
-            printer_user="mks",
+        return subprocess.CompletedProcess(
+            command, 0, json.dumps(expected).encode("utf-8"), b""
         )
-    )
-
-    result = json.loads(capsys.readouterr().out)
-    assert result["ok"] is True
-    assert result["verified"] is True
-    assert result["name"] == "qidi_box_serial"
-    assert result["value_sha256"] == qidi_plus4.hashlib.sha256(value.encode()).hexdigest()
-    assert value not in json.dumps(result)
-    assert len(calls) == 2
-    assert qidi_plus4.KLIPPEE_VARIABLE_CLI in calls[0][-1]
-    assert "variables set qidi_box_serial" in calls[0][-1]
-    assert "variables doctor" in calls[1][-1]
-    assert "systemctl" not in "\n".join(call[-1] for call in calls)
-    assert "restart" not in "\n".join(call[-1] for call in calls)
-
-
-def test_set_klippee_variable_rejects_unsafe_name_before_ssh(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        qidi_plus4,
-        "ssh_base",
-        lambda _args: pytest.fail("invalid variable must not reach SSH"),
-    )
-    with pytest.raises(SystemExit, match="name is invalid"):
-        qidi_plus4.set_klippee_variable(
-            connection_args(
-                "set-klippee-variable",
-                confirm="SET-KLIPPEE-VARIABLE",
-                name="bad;name",
-                value="value",
-                printer_user="mks",
-            )
-        )
-
-
-def test_box_clock_guard_installer_requires_confirmation_and_fixed_owner_before_ssh(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        qidi_plus4,
-        "ssh_base",
-        lambda _args: pytest.fail("local safety checks must precede SSH construction"),
-    )
-
-    with pytest.raises(SystemExit, match="INSTALL-BOX-OUTPUT-CLOCK-GUARD"):
-        qidi_plus4.install_box_output_clock_guard(
-            connection_args("install-box-output-clock-guard", confirm="yes")
-        )
-
-    with pytest.raises(SystemExit, match="fixed stock Klipper account mks"):
-        qidi_plus4.install_box_output_clock_guard(
-            connection_args(
-                "install-box-output-clock-guard",
-                confirm="INSTALL-BOX-OUTPUT-CLOCK-GUARD",
-                printer_user="root",
-            )
-        )
-
-
-def test_box_clock_guard_installer_uploads_only_reviewed_asset_and_never_restarts(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    stage = "/tmp/qidi-box-clock-guard.A1b2C3d4"
-    transaction_id = "20260806T010203Z-0123456789abcdef"
-    digest = qidi_plus4.sha256(qidi_plus4.BOX_CLOCK_GUARD_SOURCE)
-    backup_path = (
-        "/home/mks/klipper/klippy/extras/.qidi-plus4-backups/"
-        f"box-output-clock-guard-{transaction_id}/box_output_clock_guard.py"
-    )
-    remote_result = {
-        "schema": qidi_plus4.BOX_CLOCK_GUARD_SCHEMA,
-        "ok": True,
-        "changed": True,
-        "applied": True,
-        "verified": True,
-        "account": "mks",
-        "transaction_id": transaction_id,
-        "source_sha256": digest,
-        "target": {
-            "path": qidi_plus4.BOX_CLOCK_GUARD_TARGET,
-            "sha256": digest,
-            "owner": "mks",
-            "group": "mks",
-            "mode": "0644",
-        },
-        "backup": {
-            "path": backup_path,
-            "sha256": "0" * 64,
-            "owner": "mks",
-            "group": "mks",
-            "mode": "0644",
-        },
-        "klipper_service_action": "none",
-        "klipper_restarted": False,
-        "config_changed": False,
-        "activation_required": True,
-        "required_config_section": "[box_output_clock_guard]",
-    }
-    calls: list[tuple[list[str], bytes | None]] = []
-    monkeypatch.setattr(
-        qidi_plus4,
-        "ssh_base",
-        lambda _args: (["ssh", "qidi1"], "mks@qidi1"),
-    )
-    monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
-    monkeypatch.setattr(
-        qidi_plus4,
-        "_box_clock_guard_transaction_id",
-        lambda: transaction_id,
-    )
-
-    def fake_capture(
-        command: list[str], input_data: bytes | None = None
-    ) -> subprocess.CompletedProcess[bytes]:
-        calls.append((command, input_data))
-        if command[-1] == "mktemp -d /tmp/qidi-box-clock-guard.XXXXXXXX":
-            return subprocess.CompletedProcess(command, 0, (stage + "\n").encode(), b"")
-        if input_data is not None:
-            return subprocess.CompletedProcess(command, 0, json.dumps(remote_result).encode(), b"")
-        return subprocess.CompletedProcess(command, 0, b"", b"")
 
     monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
     args = connection_args(
-        "install-box-output-clock-guard",
-        confirm="INSTALL-BOX-OUTPUT-CLOCK-GUARD",
-        printer_user=None,
+        "upgrade-klippee-agent", confirm="UPGRADE-KLIPPEE-AGENT"
     )
 
-    qidi_plus4.install_box_output_clock_guard(args)
+    qidi_plus4.upgrade_klippee_agent(args)
 
     result = json.loads(capsys.readouterr().out)
-    assert result["ok"] is True
-    assert result["target"]["sha256"] == digest
-    assert result["backup"]["path"] == backup_path
-    assert result["klipper_service_action"] == "none"
-    assert result["klipper_restarted"] is False
-    assert result["config_changed"] is False
-    assert result["staging_cleanup_verified"] is True
-
-    scp_calls = [command for command, _input in calls if command[0] == "scp"]
-    assert scp_calls == [
-        [
-            "scp",
-            str(qidi_plus4.BOX_CLOCK_GUARD_SOURCE.resolve()),
-            f"mks@qidi1:{stage}/box_output_clock_guard.py",
-        ]
+    assert result == expected
+    assert len(calls) == 1
+    assert calls[0] == [
+        "ssh",
+        "mks@qidi1",
+        "exec /usr/bin/env -i HOME=/home/mks USER=mks LOGNAME=mks "
+        "PATH=/usr/bin:/bin LANG=C LC_ALL=C /usr/bin/python3 -I -",
     ]
-    streamed = [(command, data) for command, data in calls if data is not None]
-    assert len(streamed) == 1
-    remote_command, helper = streamed[0]
-    assert helper == qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER.read_bytes()
-    assert qidi_plus4.BOX_CLOCK_GUARD_REMOTE_PYTHON in remote_command[-1]
-    assert " -I - " in remote_command[-1]
-    assert digest in remote_command[-1]
-    assert transaction_id in remote_command[-1]
-    assert qidi_plus4.BOX_CLOCK_GUARD_TARGET not in remote_command[-1]
-    all_commands = "\n".join(" ".join(command) for command, _input in calls)
-    assert "systemctl" not in all_commands
-    assert "restart" not in all_commands
 
 
-def test_box_clock_guard_proof_rejects_wrong_remote_digest() -> None:
-    expected = "1" * 64
-    document = {
-        "schema": qidi_plus4.BOX_CLOCK_GUARD_SCHEMA,
-        "ok": True,
-        "changed": False,
-        "applied": False,
-        "verified": True,
-        "account": "mks",
-        "transaction_id": "20260806T010203Z-0123456789abcdef",
-        "source_sha256": expected,
-        "target": {
-            "path": qidi_plus4.BOX_CLOCK_GUARD_TARGET,
-            "sha256": "2" * 64,
-            "owner": "mks",
-            "group": "mks",
-            "mode": "0644",
-        },
-        "backup": None,
-        "klipper_service_action": "none",
-        "klipper_restarted": False,
-        "config_changed": False,
-        "activation_required": True,
-        "required_config_section": "[box_output_clock_guard]",
-    }
-    completed = subprocess.CompletedProcess(["ssh"], 0, json.dumps(document).encode(), b"")
-
-    with pytest.raises(
-        qidi_plus4.BoxClockGuardInstallError,
-        match="digest or metadata was not verified",
-    ):
-        qidi_plus4._validated_box_clock_guard_result(
-            completed,
-            expected_digest=expected,
-            transaction_id="20260806T010203Z-0123456789abcdef",
-        )
-
-
-def test_remote_box_clock_guard_helper_has_fixed_install_boundary() -> None:
-    helper = qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER.read_text(encoding="utf-8")
-
-    assert 'OWNER = "mks"' in helper
-    assert '"/home/mks/klipper/klippy/extras/box_output_clock_guard.py"' in helper
-    assert "MODE = 0o644" in helper
-    assert 'parser.add_argument("--target"' not in helper
-    assert 'parser.add_argument("--owner"' not in helper
-    assert 'parser.add_argument("--mode"' not in helper
-    assert "systemctl" not in helper
-    assert "subprocess" not in helper
-
-
-@pytest.mark.skipif(os.name == "nt", reason="remote helper targets a POSIX QIDI host")
-def test_remote_box_clock_guard_helper_preserves_timestamped_backup(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: pathlib.Path,
+def test_upgrade_klippee_agent_reports_unproven_restart_as_failure(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    helper_path = qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER
-    spec = importlib.util.spec_from_file_location("box_clock_guard_installer", helper_path)
-    assert spec and spec.loader
-    helper = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(helper)
-    current_owner = helper.pwd.getpwuid(os.getuid()).pw_name
-    source = tmp_path / "source.py"
-    target = tmp_path / "extras" / "box_output_clock_guard.py"
-    target.parent.mkdir()
-    source.write_bytes(b"reviewed clock guard\n")
-    target.write_bytes(b"old clock guard\n")
-    target.chmod(0o600)
-    monkeypatch.setattr(helper.os, "chown", lambda _path, _uid, _gid: None)
-    transaction_id = "20260806T010203Z-0123456789abcdef"
-
-    result = helper.install(
-        source,
-        helper.sha256(source),
-        transaction_id,
-        target=target,
-        owner_name=current_owner,
+    monkeypatch.setattr(
+        qidi_plus4, "ssh_base", lambda _args: (["ssh", "mks@qidi1"], "mks@qidi1")
+    )
+    failure = klippee_agent_upgrade_result(ok=False)
+    failure["error"] = "managed agent restart was not proven"
+    monkeypatch.setattr(
+        qidi_plus4,
+        "capture",
+        lambda command, input_data=None: subprocess.CompletedProcess(
+            command, 1, json.dumps(failure).encode("utf-8"), b""
+        ),
+    )
+    args = connection_args(
+        "upgrade-klippee-agent", confirm="UPGRADE-KLIPPEE-AGENT"
     )
 
-    assert result["ok"] is True
-    assert result["changed"] is True
-    assert result["target"]["sha256"] == helper.sha256(source)
-    assert result["target"]["mode"] == "0644"
-    backup = pathlib.Path(result["backup"]["path"])
-    assert transaction_id in str(backup)
-    assert backup.read_bytes() == b"old clock guard\n"
-    assert result["klipper_restarted"] is False
+    with pytest.raises(SystemExit) as raised:
+        qidi_plus4.upgrade_klippee_agent(args)
+
+    assert raised.value.code == 1
+    result = json.loads(capsys.readouterr().out)
+    assert result["ok"] is False
+    assert result["changed"] is False
+    assert result["agent_restart_performed"] is False
+    assert "restart was not proven" in result["error"]
+
+
+def test_upgrade_klippee_agent_surfaces_bounded_helper_preflight_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4, "ssh_base", lambda _args: (["ssh", "mks@qidi1"], "mks@qidi1")
+    )
+    monkeypatch.setattr(
+        qidi_plus4,
+        "capture",
+        lambda command, input_data=None: subprocess.CompletedProcess(
+            command,
+            1,
+            b"",
+            b"klippee-agent-upgrade: managed unit has unreviewed directives\n",
+        ),
+    )
+    args = connection_args(
+        "upgrade-klippee-agent", confirm="UPGRADE-KLIPPEE-AGENT"
+    )
+
+    with pytest.raises(SystemExit, match="managed unit has unreviewed directives"):
+        qidi_plus4.upgrade_klippee_agent(args)
+
+
+def test_upgrade_klippee_agent_requires_confirmation_and_fixed_account(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: pytest.fail("preflight must precede SSH construction"),
+    )
+    with pytest.raises(SystemExit, match="UPGRADE-KLIPPEE-AGENT"):
+        qidi_plus4.upgrade_klippee_agent(
+            connection_args("upgrade-klippee-agent", confirm="wrong")
+        )
+    with pytest.raises(SystemExit, match="fixed mks"):
+        qidi_plus4.upgrade_klippee_agent(connection_args(
+            "upgrade-klippee-agent",
+            user="plab",
+            printer_user="other",
+            confirm="UPGRADE-KLIPPEE-AGENT",
+        ))
+
+
+def test_upgrade_klippee_agent_runs_management_connection_as_fixed_mks(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: (["ssh", "plab@qidi1"], "plab@qidi1"),
+    )
+    expected = klippee_agent_upgrade_result()
+    calls: list[list[str]] = []
+
+    def fake_capture(command, input_data=None):
+        assert input_data is not None
+        calls.append(command)
+        return subprocess.CompletedProcess(
+            command, 0, json.dumps(expected).encode("utf-8"), b""
+        )
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    qidi_plus4.upgrade_klippee_agent(connection_args(
+        "upgrade-klippee-agent",
+        user="plab",
+        printer_user="mks",
+        confirm="UPGRADE-KLIPPEE-AGENT",
+    ))
+
+    assert json.loads(capsys.readouterr().out) == expected
+    assert calls[0][0:2] == ["ssh", "plab@qidi1"]
+    assert calls[0][-1].startswith(
+        "exec /usr/bin/sudo -n -u mks /usr/bin/env -i "
+    )
+
+
+def test_klippee_agent_upgrade_rejects_duplicate_or_unsafe_evidence() -> None:
+    with pytest.raises(SystemExit, match="duplicate field"):
+        qidi_plus4._decode_unique_json(
+            b'{"schema":"one","schema":"two"}', "upgrade"
+        )
+    document = klippee_agent_upgrade_result()
+    document["source_url"] = "https://attacker.invalid/klippee.py"
+    with pytest.raises(SystemExit, match="fixed identity"):
+        qidi_plus4._validate_klippee_agent_upgrade_result(
+            document, returncode=0
+        )
 
 
 def test_start_klipper_only_starts_exact_unit_and_verifies_active(
@@ -1533,30 +1337,37 @@ def test_tune_host_uploads_installs_and_cleans_up(
     assert "sudo -n bash /tmp/qidi-host-tuning.sh install --printer-user mks" in run_calls[1][2]
 
 
-def test_bootstrap_uploads_and_passes_host_tuning_helper(
+def test_bootstrap_streams_helpers_as_printer_owner(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    calls: list[list[str]] = []
+    calls: list[tuple[list[str], bytes | None]] = []
     monkeypatch.setattr(qidi_plus4, "ssh_base", lambda _args: (["ssh", "qidi2"], "mks@qidi2"))
     monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
     monkeypatch.setattr(
         qidi_plus4,
         "run",
-        lambda command, input_data=None: calls.append(command),
+        lambda command, input_data=None: calls.append((command, input_data)),
     )
     args = connection_args(
         "bootstrap-host",
+        user="plab",
+        printer_user="mks",
         confirm="BOOTSTRAP-HOST",
-        klipper_ref="klipper-ref",
-        moonraker_ref="moonraker-ref",
-        katapult_ref="katapult-ref",
+        klipper_ref=qidi_plus4.KLIPPER_REF,
+        moonraker_ref=qidi_plus4.MOONRAKER_REF,
+        katapult_ref=qidi_plus4.KATAPULT_REF,
     )
 
     qidi_plus4.bootstrap_host(args)
 
-    assert calls[0][1] == str(qidi_plus4.BOOTSTRAP_HELPER)
-    assert calls[1][1] == str(qidi_plus4.HOST_TUNING_HELPER)
-    assert "QIDI_HOST_TUNING_HELPER=/home/mks/qidi-host-tuning.sh" in calls[2][2]
+    assert len(calls) == 1
+    command, payload = calls[0]
+    assert "sudo -n -u mks -H env" in command[-1]
+    assert f"KLIPPER_REF={qidi_plus4.KLIPPER_REF}" in command[-1]
+    assert "bash -s" in command[-1]
+    assert qidi_plus4.BOOTSTRAP_HELPER.read_bytes() in payload
+    assert qidi_plus4.HOST_TUNING_HELPER.read_bytes() in payload
+    assert b"mktemp" in payload and b"trap" in payload
 
 
 def test_render_config_supports_external_profile_and_output(tmp_path: pathlib.Path) -> None:
@@ -1670,3 +1481,395 @@ def test_failed_render_keeps_existing_managed_output(tmp_path: pathlib.Path) -> 
         qidi_plus4.render_config(render_args(profile, output, force=True))
 
     assert (output / "printer.cfg").read_text(encoding="utf-8") == "# existing\n"
+
+
+def test_parser_exposes_fixed_box_clock_guard_installer() -> None:
+    parsed = qidi_plus4.create_parser().parse_args(
+        [
+            "install-box-output-clock-guard",
+            "--printer",
+            "qidi1",
+            "--confirm",
+            "INSTALL-BOX-OUTPUT-CLOCK-GUARD",
+        ]
+    )
+
+    assert parsed.func is qidi_plus4.install_box_output_clock_guard
+    assert not hasattr(parsed, "source")
+    assert not hasattr(parsed, "target")
+    assert not hasattr(parsed, "mode")
+    assert not hasattr(parsed, "remote_python")
+
+
+def test_parser_exposes_fixed_box_motion_template_guard() -> None:
+    parsed = qidi_plus4.create_parser().parse_args(
+        [
+            "harden-box-motion-template",
+            "--printer",
+            "qidi1",
+            "--box-count",
+            "1",
+            "--confirm",
+            "HARDEN-BOX-MOTION-TEMPLATE",
+        ]
+    )
+
+    assert parsed.func is qidi_plus4.harden_box_motion_template
+    assert parsed.box_count == 1
+    assert not hasattr(parsed, "target")
+    assert not hasattr(parsed, "remote_python")
+
+
+def test_box_motion_template_guard_streams_fixed_helper_without_restart(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    transaction_id = "20260806T010203Z-0123456789abcdef"
+    before = "1" * 64
+    after = "2" * 64
+    remote_result = {
+        "schema": qidi_plus4.BOX_MOTION_GUARD_SCHEMA,
+        "ok": True,
+        "changed": True,
+        "verified": True,
+        "box_count": 1,
+        "transaction_id": transaction_id,
+        "target": {
+            "path": "/home/mks/cfg_with_1",
+            "before_sha256": before,
+            "after_sha256": after,
+            "mode": "0644",
+            "uid": 0,
+            "gid": 0,
+        },
+        "backup": {
+            "path": (f"/home/mks/.qidi-plus4-backups/box-motion-guard-{transaction_id}/cfg_with_1"),
+            "sha256": before,
+        },
+        "use_irq": False,
+        "debounce_us_present": False,
+        "active_config_changed": False,
+        "klipper_service_action": "none",
+        "klipper_restarted": False,
+        "activation_required": True,
+    }
+    calls: list[tuple[list[str], bytes | None]] = []
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: (["ssh", "qidi1"], "plab@qidi1"),
+    )
+    monkeypatch.setattr(
+        qidi_plus4,
+        "_box_clock_guard_transaction_id",
+        lambda: transaction_id,
+    )
+
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        calls.append((command, input_data))
+        return subprocess.CompletedProcess(command, 0, json.dumps(remote_result).encode(), b"")
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    qidi_plus4.harden_box_motion_template(
+        connection_args(
+            "harden-box-motion-template",
+            confirm="HARDEN-BOX-MOTION-TEMPLATE",
+            box_count=1,
+            user="plab",
+            printer_user="mks",
+        )
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["target"]["after_sha256"] == after
+    assert len(calls) == 1
+    command, helper = calls[0]
+    assert helper == qidi_plus4.BOX_MOTION_GUARD_REMOTE_INSTALLER.read_bytes()
+    assert "sudo -n /usr/bin/python3 -I -" in command[-1]
+    assert "--box-count 1" in command[-1]
+    assert transaction_id in command[-1]
+    assert "systemctl" not in command[-1]
+    assert "restart" not in command[-1]
+
+
+def test_set_klippee_variable_uses_fixed_cli_and_verifies_without_restart(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: (["ssh", "qidi1"], "plab@qidi1"),
+    )
+
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        assert input_data is None
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, b"verified\n", b"")
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    value = "/dev/serial/by-id/usb-QIDI_TEST"
+    qidi_plus4.set_klippee_variable(
+        connection_args(
+            "set-klippee-variable",
+            confirm="SET-KLIPPEE-VARIABLE",
+            name="qidi_box_serial",
+            value=value,
+            user="plab",
+            printer_user="mks",
+        )
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["ok"] is True
+    assert result["verified"] is True
+    assert result["name"] == "qidi_box_serial"
+    assert result["value_sha256"] == qidi_plus4.hashlib.sha256(value.encode()).hexdigest()
+    assert value not in json.dumps(result)
+    assert len(calls) == 2
+    assert qidi_plus4.KLIPPEE_VARIABLE_CLI in calls[0][-1]
+    assert "variables set qidi_box_serial" in calls[0][-1]
+    assert "variables doctor" in calls[1][-1]
+    assert "systemctl" not in "\n".join(call[-1] for call in calls)
+    assert "restart" not in "\n".join(call[-1] for call in calls)
+
+
+def test_set_klippee_variable_rejects_unsafe_name_before_ssh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: pytest.fail("invalid variable must not reach SSH"),
+    )
+    with pytest.raises(SystemExit, match="name is invalid"):
+        qidi_plus4.set_klippee_variable(
+            connection_args(
+                "set-klippee-variable",
+                confirm="SET-KLIPPEE-VARIABLE",
+                name="bad;name",
+                value="value",
+                printer_user="mks",
+            )
+        )
+
+
+def test_box_clock_guard_installer_requires_confirmation_and_fixed_owner_before_ssh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: pytest.fail("local safety checks must precede SSH construction"),
+    )
+
+    with pytest.raises(SystemExit, match="INSTALL-BOX-OUTPUT-CLOCK-GUARD"):
+        qidi_plus4.install_box_output_clock_guard(
+            connection_args("install-box-output-clock-guard", confirm="yes")
+        )
+
+    with pytest.raises(SystemExit, match="fixed stock Klipper account mks"):
+        qidi_plus4.install_box_output_clock_guard(
+            connection_args(
+                "install-box-output-clock-guard",
+                confirm="INSTALL-BOX-OUTPUT-CLOCK-GUARD",
+                printer_user="root",
+            )
+        )
+
+
+def test_box_clock_guard_installer_uploads_only_reviewed_asset_and_never_restarts(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    stage = "/tmp/qidi-box-clock-guard.A1b2C3d4"
+    transaction_id = "20260806T010203Z-0123456789abcdef"
+    digest = qidi_plus4.sha256(qidi_plus4.BOX_CLOCK_GUARD_SOURCE)
+    backup_path = (
+        "/home/mks/klipper/klippy/extras/.qidi-plus4-backups/"
+        f"box-output-clock-guard-{transaction_id}/box_output_clock_guard.py"
+    )
+    remote_result = {
+        "schema": qidi_plus4.BOX_CLOCK_GUARD_SCHEMA,
+        "ok": True,
+        "changed": True,
+        "applied": True,
+        "verified": True,
+        "account": "mks",
+        "transaction_id": transaction_id,
+        "source_sha256": digest,
+        "target": {
+            "path": qidi_plus4.BOX_CLOCK_GUARD_TARGET,
+            "sha256": digest,
+            "owner": "mks",
+            "group": "mks",
+            "mode": "0644",
+        },
+        "backup": {
+            "path": backup_path,
+            "sha256": "0" * 64,
+            "owner": "mks",
+            "group": "mks",
+            "mode": "0644",
+        },
+        "klipper_service_action": "none",
+        "klipper_restarted": False,
+        "config_changed": False,
+        "activation_required": True,
+        "required_config_section": "[box_output_clock_guard]",
+    }
+    calls: list[tuple[list[str], bytes | None]] = []
+    monkeypatch.setattr(
+        qidi_plus4,
+        "ssh_base",
+        lambda _args: (["ssh", "qidi1"], "mks@qidi1"),
+    )
+    monkeypatch.setattr(qidi_plus4, "scp_base", lambda _args: ["scp"])
+    monkeypatch.setattr(
+        qidi_plus4,
+        "_box_clock_guard_transaction_id",
+        lambda: transaction_id,
+    )
+
+    def fake_capture(
+        command: list[str], input_data: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
+        calls.append((command, input_data))
+        if command[-1] == "mktemp -d /tmp/qidi-box-clock-guard.XXXXXXXX":
+            return subprocess.CompletedProcess(command, 0, (stage + "\n").encode(), b"")
+        if input_data is not None:
+            return subprocess.CompletedProcess(command, 0, json.dumps(remote_result).encode(), b"")
+        return subprocess.CompletedProcess(command, 0, b"", b"")
+
+    monkeypatch.setattr(qidi_plus4, "capture", fake_capture)
+    args = connection_args(
+        "install-box-output-clock-guard",
+        confirm="INSTALL-BOX-OUTPUT-CLOCK-GUARD",
+        printer_user=None,
+    )
+
+    qidi_plus4.install_box_output_clock_guard(args)
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["ok"] is True
+    assert result["target"]["sha256"] == digest
+    assert result["backup"]["path"] == backup_path
+    assert result["klipper_service_action"] == "none"
+    assert result["klipper_restarted"] is False
+    assert result["config_changed"] is False
+    assert result["staging_cleanup_verified"] is True
+
+    scp_calls = [command for command, _input in calls if command[0] == "scp"]
+    assert scp_calls == [
+        [
+            "scp",
+            str(qidi_plus4.BOX_CLOCK_GUARD_SOURCE.resolve()),
+            f"mks@qidi1:{stage}/box_output_clock_guard.py",
+        ]
+    ]
+    streamed = [(command, data) for command, data in calls if data is not None]
+    assert len(streamed) == 1
+    remote_command, helper = streamed[0]
+    assert helper == qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER.read_bytes()
+    assert qidi_plus4.BOX_CLOCK_GUARD_REMOTE_PYTHON in remote_command[-1]
+    assert " -I - " in remote_command[-1]
+    assert digest in remote_command[-1]
+    assert transaction_id in remote_command[-1]
+    assert qidi_plus4.BOX_CLOCK_GUARD_TARGET not in remote_command[-1]
+    all_commands = "\n".join(" ".join(command) for command, _input in calls)
+    assert "systemctl" not in all_commands
+    assert "restart" not in all_commands
+
+
+def test_box_clock_guard_proof_rejects_wrong_remote_digest() -> None:
+    expected = "1" * 64
+    document = {
+        "schema": qidi_plus4.BOX_CLOCK_GUARD_SCHEMA,
+        "ok": True,
+        "changed": False,
+        "applied": False,
+        "verified": True,
+        "account": "mks",
+        "transaction_id": "20260806T010203Z-0123456789abcdef",
+        "source_sha256": expected,
+        "target": {
+            "path": qidi_plus4.BOX_CLOCK_GUARD_TARGET,
+            "sha256": "2" * 64,
+            "owner": "mks",
+            "group": "mks",
+            "mode": "0644",
+        },
+        "backup": None,
+        "klipper_service_action": "none",
+        "klipper_restarted": False,
+        "config_changed": False,
+        "activation_required": True,
+        "required_config_section": "[box_output_clock_guard]",
+    }
+    completed = subprocess.CompletedProcess(["ssh"], 0, json.dumps(document).encode(), b"")
+
+    with pytest.raises(
+        qidi_plus4.BoxClockGuardInstallError,
+        match="digest or metadata was not verified",
+    ):
+        qidi_plus4._validated_box_clock_guard_result(
+            completed,
+            expected_digest=expected,
+            transaction_id="20260806T010203Z-0123456789abcdef",
+        )
+
+
+def test_remote_box_clock_guard_helper_has_fixed_install_boundary() -> None:
+    helper = qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER.read_text(encoding="utf-8")
+
+    assert 'OWNER = "mks"' in helper
+    assert '"/home/mks/klipper/klippy/extras/box_output_clock_guard.py"' in helper
+    assert "MODE = 0o644" in helper
+    assert 'parser.add_argument("--target"' not in helper
+    assert 'parser.add_argument("--owner"' not in helper
+    assert 'parser.add_argument("--mode"' not in helper
+    assert "systemctl" not in helper
+    assert "subprocess" not in helper
+
+
+@pytest.mark.skipif(os.name == "nt", reason="remote helper targets a POSIX QIDI host")
+def test_remote_box_clock_guard_helper_preserves_timestamped_backup(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    helper_path = qidi_plus4.BOX_CLOCK_GUARD_REMOTE_INSTALLER
+    spec = importlib.util.spec_from_file_location("box_clock_guard_installer", helper_path)
+    assert spec and spec.loader
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    current_owner = helper.pwd.getpwuid(os.getuid()).pw_name
+    source = tmp_path / "source.py"
+    target = tmp_path / "extras" / "box_output_clock_guard.py"
+    target.parent.mkdir()
+    source.write_bytes(b"reviewed clock guard\n")
+    target.write_bytes(b"old clock guard\n")
+    target.chmod(0o600)
+    monkeypatch.setattr(helper.os, "chown", lambda _path, _uid, _gid: None)
+    transaction_id = "20260806T010203Z-0123456789abcdef"
+
+    result = helper.install(
+        source,
+        helper.sha256(source),
+        transaction_id,
+        target=target,
+        owner_name=current_owner,
+    )
+
+    assert result["ok"] is True
+    assert result["changed"] is True
+    assert result["target"]["sha256"] == helper.sha256(source)
+    assert result["target"]["mode"] == "0644"
+    backup = pathlib.Path(result["backup"]["path"])
+    assert transaction_id in str(backup)
+    assert backup.read_bytes() == b"old clock guard\n"
+    assert result["klipper_restarted"] is False

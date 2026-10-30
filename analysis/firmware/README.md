@@ -1,10 +1,10 @@
 # Firmware analysis artifacts
 
-Start with the [three-way lineage report](../../docs/FIRMWARE-LINEAGE.md), then
-the detailed [firmware change report](../../docs/FIRMWARE-CHANGES.md). They
+Start with the [three-way lineage report](../../docs/firmware/FIRMWARE-LINEAGE.md), then
+the detailed [firmware change report](../../docs/firmware/FIRMWARE-CHANGES.md). They
 cover factory 1.1.2 through 1.8.2 across Klipper, Moonraker,
 `xindi`, QIDILink, the release payload, services and captured firmware images.
-See [firmware flashing research](../../docs/FIRMWARE-FLASHING.md) for the recovered offline,
+See [firmware flashing research](../../docs/firmware/FIRMWARE-FLASHING.md) for the recovered offline,
 online, toolhead, QIDI Box and touchscreen update paths.
 
 Supporting evidence:
@@ -21,7 +21,7 @@ Supporting evidence:
   `xindi-filtered-strings-*.txt` contain the touchscreen binary comparison;
 * `toolhead-mcu-dictionary.json` is the Klipper command dictionary extracted
   from the toolhead flash dump (stock Klipper; see
-  [`../../docs/TOOLHEAD-MCU-FIRMWARE.md`](../../docs/TOOLHEAD-MCU-FIRMWARE.md));
+  [`../../docs/firmware/TOOLHEAD-MCU-FIRMWARE.md`](../../docs/firmware/TOOLHEAD-MCU-FIRMWARE.md));
 * `../components/` contains ELF metadata, symbols, strings, ARM64
   disassembly and Ghidra pseudocode for QIDI's compiled Python extensions;
 * `../components/estimated-source/` contains generated, non-runnable

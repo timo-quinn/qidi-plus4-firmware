@@ -98,7 +98,7 @@ the 1.8.2 unit.
 | UART settings | 115200, raw 8N1, no flow control | same |
 
 The complete resource hashes and capture unknowns are maintained in the JSON
-profiles under [`../screen-bridge/profiles/`](../screen-bridge/profiles/).
+profiles under [`../../screen-bridge/profiles/`](../../screen-bridge/profiles/).
 
 ## Runtime API differences
 
@@ -138,7 +138,7 @@ The spare factory eMMC connected through the reference USB reader appears as a
 31,037,849,600-byte removable MBR disk. It exposes the 16 MiB bootloader prefix
 and user partitions, but not separate eMMC hardware `boot0`/`boot1` devices or
 EXT_CSD access. Use
-[`image_factory_emmc.py`](../tools/migration/image_factory_emmc.py) from an
+[`image_factory_emmc.py`](../../tools/migration/image_factory_emmc.py) from an
 elevated terminal to image that user area. Capture `boot0`, `boot1`, and EXT_CSD
 later from a booted board or a reader that explicitly exposes eMMC hardware
 partitions.

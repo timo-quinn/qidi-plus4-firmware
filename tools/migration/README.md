@@ -136,8 +136,43 @@ backup was needed. This command never changes printer configuration and never
 stops or restarts Klipper. Add `[box_output_clock_guard]` through the managed
 configuration workflow, restart once while idle, and verify the object's status
 before operating the Box. See
-[`../../docs/QIDI-BOX-OUTPUT-CLOCK-GUARD.md`](../../docs/QIDI-BOX-OUTPUT-CLOCK-GUARD.md)
+[`../../docs/fixes/QIDI-BOX-OUTPUT-CLOCK-GUARD.md`](../../docs/fixes/QIDI-BOX-OUTPUT-CLOCK-GUARD.md)
 for the activation and verification procedure.
+
+
+## Upgrading the managed Klippee agent
+
+Use the guarded upgrade operation when a newly deployed Klippee CLI adds an
+agent method or response schema:
+
+```powershell
+python .\tools\migration\qidi_plus4.py upgrade-klippee-agent `
+  --printer $Printer --confirm UPGRADE-KLIPPEE-AGENT
+```
+
+The operation is intentionally narrower than remote command execution. It
+accepts no executable path or download URL, requires the stock `mks` account,
+streams a reviewed source-bound upgrader, and never executes the old CLI as an
+upgrade authority. The helper downloads only
+`https://klippee.xyz/install/klippee.py` with fixed HTTPS/curl controls,
+validates the marker, version, size, UTF-8, and printer-Python syntax, then
+atomically replaces only `/home/mks/.local/bin/klippee`. It validates the exact
+managed user-unit directives, rejects systemd drop-ins, and proves both the old
+and new PIDs run that fixed CLI as `mks`. When the fixed, non-symlink CLI
+or unit directory is owned by `mks` but is group/world writable, the helper
+normalizes that directory to `0755`. It also normalizes the fixed unit to `0600`
+only after its complete contents pass validation. Unexpected ownership, type,
+path resolution, inode changes, or unit directives still fail closed. A failed
+changed-artifact activation rolls the CLI back and recovers the old agent. Its
+JSON result includes the
+before/after CLI versions and SHA-256 digests and explicit proof that it neither
+restarted Klipper nor deployed configuration. Printerlab exposes this as
+`plab klippee upgrade-agent` and first proves the current agent has no running
+operation.
+
+The SSH connection may use the dedicated management account created by this
+tool. In that case the fixed helper is run only as `mks` through noninteractive
+`sudo -u mks`; the management account cannot select another target user.
 
 ## Staging the mainboard microSD image
 
@@ -177,9 +212,9 @@ The installer does not change Klipper's baud rate, timer thresholds, MCU
 firmware, or `printer.cfg`.
 
 `smoke-test` installs the inert two-MCU `smoke-test-printer.cfg` (backing up any
-existing `printer.cfg`), restarts mainline Klipper, and prints the recent
-`klippy.log` so both MCUs can be seen reaching `Ready` before the real
-configuration is installed:
+existing `printer.cfg`), restarts mainline Klipper, waits for both MCU objects
+to reach `Ready`, and requires the full runtime tuning audit to pass. Failed
+checks return a nonzero exit status and leave the inert config installed:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py smoke-test --printer $Printer
@@ -206,19 +241,20 @@ python .\tools\migration\image_factory_emmc.py `
 The tool validates the exact disk size and MBR layout before copying. Never
 change the disk number without repeating `Get-Disk` and checking its size.
 
-Read [`../../docs/MAINLINE-MIGRATION.md`](../../docs/MAINLINE-MIGRATION.md)
+Read [`../../docs/migration/MAINLINE-MIGRATION.md`](../../docs/migration/MAINLINE-MIGRATION.md)
 before using any action other than `Audit` or `Validate*`.
 
 After both MCU links pass the inert smoke test, render a reviewed configuration
 with the target printer's exact Beacon serial path. The runtime profile can
 come directly from the companion config repository, which is the preferred
-source for reusable firmware and hardware setup examples:
+source for sanitized setup profiles. Per-printer state stays in Klippee:
 
 ```powershell
 python .\tools\migration\qidi_plus4.py render-config `
+  --commissioning `
   --profile-dir ..\qidi-plus4-configs\printers\mainline-klipper-beacon `
   --beacon-serial '/dev/serial/by-id/usb-Beacon_Beacon_RevH_CHANGE_ME-if00' `
-  --output C:\printerlab-workspaces\qidi2
+  --output C:\printerlab-workspaces\my-plus4-mainline
 ```
 
 Omit `--profile-dir` to keep using the bundled compatibility profile selected
@@ -231,3 +267,22 @@ moved aside.
 Rendered output may contain hardware serials and must be reviewed before
 installation or publication. The bundled fallback remains documented under
 [`../../mainline-configs/`](../../mainline-configs/).
+
+`--commissioning` enables only the hardware and Beacon homing includes, uses
+watermark heater control and conservative motion limits, clears source input
+shaping and pressure advance, and leaves production/Box/Shake&Tune inactive.
+Review PB4 fan wiring, Beacon offsets and accelerometer orientation before
+installing it. Calibrate heaters, probe and motion on the target printer before
+rendering/enabling the production profile. Printerlab resume uses this mode.
+
+Build and bootstrap use immutable reviewed commits, and build rejects changed
+source trees. On Windows, `build --wsl-distro Ubuntu` accepts Linux source
+paths and translates absolute Windows output paths. The default install set is
+listed in [the fix report](../../docs/history/QIDI1-MIGRATION-FIXES-2026-10-04.md).
+`bootstrap-host --artifacts <directory>` checks the complete image manifest and
+source pins before any SSH mutation. `--printer-user` selects the actual owner.
+`--beacon-ref` installs only the pinned host module and never flashes a probe.
+
+The toolhead Katapult wrapper saves a 64 KiB recovery dump on the workstation
+before erase. It requires a second read from the attached target to match that
+dump; failed download or verification leaves the chip unerased.

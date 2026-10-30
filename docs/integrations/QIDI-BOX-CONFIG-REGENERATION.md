@@ -72,12 +72,12 @@ attached devices, it can copy the template again, update `box.cfg`, and request
 a Klipper restart.
 
 The relevant preserved source is
-[`analysis/github-releases/qidi-klipper-1.7.0-box-source/box_detect.py`](../analysis/github-releases/qidi-klipper-1.7.0-box-source/box_detect.py).
+[`analysis/github-releases/qidi-klipper-1.7.0-box-source/box_detect.py`](../../analysis/github-releases/qidi-klipper-1.7.0-box-source/box_detect.py).
 The same paths and functions are present in the analyzed 1.7.3 and 1.8.2
 compiled modules; see
-[`analysis/components/1.7.3/klipper/box_detect/strings.txt`](../analysis/components/1.7.3/klipper/box_detect/strings.txt)
+[`analysis/components/1.7.3/klipper/box_detect/strings.txt`](../../analysis/components/1.7.3/klipper/box_detect/strings.txt)
 and the
-[`estimated 1.8.2 source outline`](../analysis/components/estimated-source/1.8.2/klipper/box_detect.py).
+[`estimated 1.8.2 source outline`](../../analysis/components/estimated-source/1.8.2/klipper/box_detect.py).
 
 ## Why formatting and comments disappear
 

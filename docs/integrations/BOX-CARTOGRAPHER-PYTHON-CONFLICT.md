@@ -33,7 +33,7 @@ Two independent facts collide.
    ```
 
    A Cython `.so` only imports under the exact Python minor version it was
-   built for. See [`../analysis/components/LINEAGE-ANALYSIS.md`](../analysis/components/LINEAGE-ANALYSIS.md).
+   built for. See [`../../analysis/components/LINEAGE-ANALYSIS.md`](../../analysis/components/LINEAGE-ANALYSIS.md).
 
 2. **Cartographer needs a newer Python.** The Cartographer/Survey Klipper
    plugin requires Python 3.9+ (its numpy/scipy stack). QIDI stock is Python
@@ -82,7 +82,7 @@ archive does not:
 
 - **The source is QIDI's own, and a confirmed match.** The five modules shipped
   as open `.py` in QIDI's GPLv3 Klipper fork at firmware 1.7.0, preserved at
-  [`../analysis/github-releases/qidi-klipper-1.7.0-box-source/`](../analysis/github-releases/qidi-klipper-1.7.0-box-source/);
+  [`../../analysis/github-releases/qidi-klipper-1.7.0-box-source/`](../../analysis/github-releases/qidi-klipper-1.7.0-box-source/);
   the Plus4 Wiki snapshot cited as MIT is byte-identical to it (hence also
   GPLv3). Their 116 public functions/methods each have a corresponding Cython
   wrapper symbol in both the 1.7.3 and 1.8.2 binaries — a genuine lineage match,
@@ -97,14 +97,14 @@ archive does not:
 
 For anyone who wants to understand or extend the pure-Python modules — or
 reconstruct the three missing commands — the decompilation and lineage analysis
-under [`../analysis/components/`](../analysis/components/) are a stronger
+under [`../../analysis/components/`](../../analysis/components/) are a stronger
 reference than the archive alone. Note that the reconstructed
 `analysis/components/lineage-source/` files are analysis estimates marked "do
 not install"; the installable source is the community archive, not this repo.
 
 ## Prebuilt modules in this repository
 
-For convenience, [`../qidibox-modules/`](../qidibox-modules/) contains the Box
+For convenience, [`../../qidibox-modules/`](../../qidibox-modules/) contains the Box
 modules recompiled from QIDI's own GPLv3 1.7.0 source for two targets: CPython
 3.12 / aarch64 (`cp312-aarch64/`, the Cartographer fix) and CPython 3.7 /
 aarch64 (`cp37-aarch64/`, an open equivalent of the stock-host binaries). They
@@ -126,7 +126,7 @@ hashes, caveats, and a reproducible recipe are documented in that directory.
   versions, swap `probe.py`, and restore Box behavior with macros.
 - Prefer the **pure-Python source** — it is not locked to any interpreter
   version. Prebuilt CPython 3.12 / aarch64 binaries are available under
-  [`../qidibox-modules/`](../qidibox-modules/) for those who specifically
+  [`../../qidibox-modules/`](../../qidibox-modules/) for those who specifically
   want a compiled drop-in, with the version/architecture limits noted there.
 
 ## References

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import atexit
 import hashlib
+import io
 import json
 import os
 import pathlib
@@ -21,6 +22,7 @@ import tarfile
 import tempfile
 import time
 import urllib.request
+import urllib.parse
 from datetime import datetime, timezone
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
@@ -63,6 +65,17 @@ PLR_DEPLOYMENT_ASSETS = (
     "manifest.json",
 )
 KLIPPEE_AGENT_SERVICE = "klippee-moonraker.service"
+KLIPPEE_AGENT_ACCOUNT = "mks"
+KLIPPEE_AGENT_CLI_PATH = "/home/mks/.local/bin/klippee"
+KLIPPEE_AGENT_UPGRADE_SOURCE = "https://klippee.xyz/install/klippee.py"
+KLIPPEE_AGENT_UPGRADE_ACTION = "UPGRADE-KLIPPEE-AGENT"
+KLIPPEE_AGENT_UPGRADE_SCHEMA = "qidi-plus4-klippee-agent-upgrade/v1"
+KLIPPEE_AGENT_UPGRADE_HELPER = SCRIPT_DIR / "upgrade-klippee-agent.py"
+KLIPPEE_AGENT_VERSION = re.compile(
+    r"^[0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:\.[0-9]+)?$"
+)
+KLIPPEE_AGENT_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+KLIPPEE_AGENT_MAX_RESULT_BYTES = 64 * 1024
 KLIPPER_SERVICE = "klipper.service"
 KLIPPER_START_STABILITY_CHECKS = 5
 KLIPPER_START_STABILITY_INTERVAL_SECONDS = 1.0
@@ -72,6 +85,30 @@ SMOKE_TEST_CONFIG = SCRIPT_DIR / "smoke-test-printer.cfg"
 DEFAULT_ARTIFACTS = REPO_ROOT / "artifacts"
 MAINLINE_CONFIGS = REPO_ROOT / "mainline-configs"
 DEFAULT_CONFIG_PROFILE = "plus4-x7-v1.0-beacon"
+KLIPPER_REF = "214fdb2877ff4640e9316a663c1b8b2e232c86fd"
+MOONRAKER_REF = "1cfb0c41e468645951a371621f06d32777b6107c"
+KATAPULT_REF = "ec59b9bb9ad6c2ec8d4dc6831fbc77f0b308e29e"
+
+
+def pinned_ref(value: str) -> str:
+    if not re.fullmatch(r"[0-9a-f]{40}", value):
+        raise argparse.ArgumentTypeError("Use an immutable full 40-character commit SHA")
+    return value
+
+
+def kernel_version(value: str) -> str:
+    if not re.fullmatch(r"\d+\.\d+\.\d+", value):
+        raise argparse.ArgumentTypeError("Use a kernel version such as 6.18.54")
+    return value
+
+
+def wsl_path(value: pathlib.Path) -> str:
+    path = str(value).replace("\\", "/")
+    if re.match(r"^[A-Za-z]:/", path):
+        return f"/mnt/{path[0].lower()}/{path[3:]}"
+    if path.startswith("/"):
+        return path
+    raise SystemExit(f"WSL builds require absolute paths: {value}")
 BEACON_SERIAL_TOKEN = "CHANGE_ME_BEACON_SERIAL"
 RENDER_METADATA_FILE = "RENDER-METADATA.json"
 RENDER_METADATA_SCHEMA = "qidi-plus4-config-render/v1"
@@ -285,6 +322,15 @@ def git_commit(directory: pathlib.Path) -> str:
 
 
 def build_firmware(args: argparse.Namespace) -> None:
+    if getattr(args, "wsl_distro", None):
+        command = [require_command("wsl"), "-d", args.wsl_distro, "--", "python3",
+                   wsl_path(pathlib.Path(__file__).resolve()), "build",
+                   "--klipper-dir", wsl_path(args.klipper_dir),
+                   "--katapult-dir", wsl_path(args.katapult_dir),
+                   "--output", wsl_path(args.output.resolve()),
+                   "--klipper-ref", args.klipper_ref, "--katapult-ref", args.katapult_ref]
+        run(command)
+        return
     make = require_command("make")
     require_command("git")
     klipper = args.klipper_dir.resolve()
@@ -292,6 +338,13 @@ def build_firmware(args: argparse.Namespace) -> None:
     for name, directory in (("Klipper", klipper), ("Katapult", katapult)):
         if not (directory / ".git").exists():
             raise SystemExit(f"{name} path is not a Git checkout: {directory}")
+        expected = args.klipper_ref if name == "Klipper" else args.katapult_ref
+        if git_commit(directory) != expected:
+            raise SystemExit(f"{name} HEAD does not match pinned commit {expected}")
+        dirty = output([require_command("git"), "-C", str(directory),
+                        "status", "--porcelain", "--untracked-files=normal"])
+        if dirty:
+            raise SystemExit(f"Refusing to build dirty {name} checkout: {directory}")
 
     output_dir = args.output.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -375,7 +428,7 @@ def download_file(url: str, target: pathlib.Path) -> None:
 
 
 def armbian_image(args: argparse.Namespace) -> None:
-    base = "https://dl.armbian.com/qidi-x6/Trixie_current_minimal"
+    base = getattr(args, "url", None) or "https://dl.armbian.com/qidi-x6/Trixie_current_minimal"
     print("Official Armbian Qidi X-6 / Plus4 minimal image")
     print("https://www.armbian.com/boards/qidi-x6")
     print(
@@ -384,12 +437,26 @@ def armbian_image(args: argparse.Namespace) -> None:
     )
     if args.list_only:
         return
+    if urllib.parse.urlsplit(base).scheme != "https":
+        raise SystemExit("Armbian image URL must use HTTPS")
+    request = urllib.request.Request(base, method="HEAD")
+    with urllib.request.urlopen(request, timeout=30) as response:
+        resolved = response.geturl()
+    filename = pathlib.PurePosixPath(urllib.parse.urlsplit(resolved).path).name
+    match = re.search(r"_(?:current|edge|legacy)_(\d+\.\d+\.\d+)[_-]", filename)
+    if not match or "qidi" not in filename.lower() or not filename.endswith(".img.xz"):
+        raise SystemExit("Cannot identify Qidi image/kernel from resolved filename; select an exact URL")
+    minimum = getattr(args, "minimum_kernel", "6.18.54")
+    if tuple(map(int, match[1].split("."))) < tuple(map(int, minimum.split("."))):
+        raise SystemExit(f"Image kernel {match[1]} is older than required {minimum}; "
+                         "choose or build a qualified image instead of the moving alias")
+    print(f"Resolved image: {filename}; kernel {match[1]} (boot/UART qualification still required)")
     args.output.mkdir(parents=True, exist_ok=True)
-    target = args.output / "Armbian_qidi-x6_trixie_current_minimal.img.xz"
+    target = args.output / filename
     sha_target = target.with_suffix(target.suffix + ".sha")
     try:
-        download_file(base, target)
-        download_file(base + ".sha", sha_target)
+        download_file(resolved, target)
+        download_file(resolved + ".sha", sha_target)
     except BaseException:
         # Leave no truncated image behind on an interrupted or failed download.
         target.unlink(missing_ok=True)
@@ -402,6 +469,10 @@ def armbian_image(args: argparse.Namespace) -> None:
         sha_target.unlink(missing_ok=True)
         raise SystemExit(f"Armbian image SHA-256 mismatch: expected {expected}, got {actual}")
     print(f"Verified SHA-256 {actual}")
+    target.with_suffix(target.suffix + ".json").write_text(json.dumps({
+        "url": resolved, "filename": filename, "kernel": match[1], "sha256": actual,
+        "qualification": "download verified; boot and UART checks pending",
+    }, indent=2) + "\n", encoding="utf-8")
 
 
 def ssh_base(args: argparse.Namespace) -> tuple[list[str], str]:
@@ -615,20 +686,61 @@ def backup_printer(args: argparse.Namespace) -> None:
 def bootstrap_host(args: argparse.Namespace) -> None:
     if args.confirm != "BOOTSTRAP-HOST":
         raise SystemExit("This action requires --confirm BOOTSTRAP-HOST")
-    ssh, target = ssh_base(args)
-    remote = f"/home/{args.user}/bootstrap-mainline.sh"
-    remote_tuning = f"/home/{args.user}/qidi-host-tuning.sh"
-    run(scp_base(args) + [str(BOOTSTRAP_HELPER), f"{target}:{remote}"])
-    run(scp_base(args) + [str(HOST_TUNING_HELPER), f"{target}:{remote_tuning}"])
-    environment = " ".join(
-        (
-            f"KLIPPER_REF={shlex.quote(args.klipper_ref)}",
-            f"MOONRAKER_REF={shlex.quote(args.moonraker_ref)}",
-            f"KATAPULT_REF={shlex.quote(args.katapult_ref)}",
-            f"QIDI_HOST_TUNING_HELPER={shlex.quote(remote_tuning)}",
-        )
+    for ref in (args.klipper_ref, args.moonraker_ref, args.katapult_ref):
+        pinned_ref(ref)
+    if getattr(args, "beacon_ref", None):
+        pinned_ref(args.beacon_ref)
+    if getattr(args, "artifacts", None):
+        metadata = verify_build_metadata(args.artifacts)
+        for key, value in (("klipper_commit", args.klipper_ref),
+                           ("katapult_commit", args.katapult_ref)):
+            if metadata.get(key) != value:
+                raise SystemExit(f"Bootstrap {key} does not match built firmware")
+    ssh, _target = ssh_base(args)
+    owner = connection_user(getattr(args, "printer_user", None) or args.user)
+    environment = " ".join((
+        f"KLIPPER_REF={shlex.quote(args.klipper_ref)}",
+        f"MOONRAKER_REF={shlex.quote(args.moonraker_ref)}",
+        f"KATAPULT_REF={shlex.quote(args.katapult_ref)}",
+        f"BEACON_REF={shlex.quote(getattr(args, 'beacon_ref', None) or '')}",
+    ))
+    prefix = f"sudo -n -u {shlex.quote(owner)} -H " if owner != args.user else ""
+    # Stream through the selected owner's shell: no helper in the management
+    # account's home, and no shared /tmp filename to follow or overwrite.
+    payload = (
+        b"set -euo pipefail\numask 077\n"
+        b'export QIDI_HOST_TUNING_HELPER=$(mktemp "$HOME/.qidi-host-tuning.XXXXXX")\n'
+        b'trap \'rm -f "$QIDI_HOST_TUNING_HELPER"\' EXIT\n'
+        b'cat >"$QIDI_HOST_TUNING_HELPER" <<\'QIDI_TUNING_EOF\'\n'
+        + HOST_TUNING_HELPER.read_bytes()
+        + b"\nQIDI_TUNING_EOF\n"
+        + BOOTSTRAP_HELPER.read_bytes()
     )
-    run(ssh + [f"chmod 700 {shlex.quote(remote)} && {environment} {shlex.quote(remote)}"])
+    run(ssh + [f"{prefix}env {environment} bash -s"], input_data=payload)
+
+
+def verify_build_metadata(directory: pathlib.Path) -> dict[str, str]:
+    manifest = directory / "BUILD-METADATA.txt"
+    if not manifest.is_file():
+        raise SystemExit(f"Build manifest missing: {manifest}; rebuild before migration")
+    values = {}
+    hashes = {}
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            values[key] = value
+        elif "  " in line:
+            digest, name = line.split("  ", 1)
+            hashes[name] = digest
+    for name in ("plus4-mainboard-klipper.bin", "plus4-toolhead-klipper.bin",
+                 "plus4-toolhead-katapult.bin"):
+        image = directory / name
+        if not image.is_file() or hashes.get(name) != sha256(image):
+            raise SystemExit(f"Build manifest hash mismatch or missing image: {name}")
+    for key in ("klipper_commit", "katapult_commit"):
+        if not re.fullmatch(r"[0-9a-f]{40}", values.get(key, "")):
+            raise SystemExit(f"Build manifest lacks pinned {key}")
+    return values
 
 
 def host_tuning(args: argparse.Namespace) -> None:
@@ -1471,6 +1583,195 @@ def set_klippee_variable(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+def _decode_unique_json(raw: bytes, label: str) -> dict:
+    if not raw or len(raw) > KLIPPEE_AGENT_MAX_RESULT_BYTES:
+        raise SystemExit(f"{label} returned an invalid result size")
+
+    def unique_object(pairs: list[tuple[str, object]]) -> dict:
+        result = {}
+        for name, value in pairs:
+            if name in result:
+                raise ValueError(f"duplicate field {name!r}")
+            result[name] = value
+        return result
+
+    try:
+        document = json.loads(
+            raw.decode("utf-8"), object_pairs_hook=unique_object
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise SystemExit(f"{label} returned invalid JSON: {exc}") from exc
+    if not isinstance(document, dict):
+        raise SystemExit(f"{label} did not return one JSON object")
+    return document
+
+
+def _klippee_agent_version_key(value: str) -> tuple[int, ...]:
+    if not KLIPPEE_AGENT_VERSION.fullmatch(value):
+        raise SystemExit(f"Invalid Klippee agent version: {value!r}")
+    return tuple(int(part) for part in value.split("."))
+
+
+def _validate_klippee_agent_artifact(value: object, label: str) -> dict:
+    if not isinstance(value, dict) or set(value) != {"version", "sha256"}:
+        raise SystemExit(f"Klippee agent upgrade returned invalid {label} evidence")
+    version = value.get("version")
+    digest = value.get("sha256")
+    if not isinstance(version, str) or not KLIPPEE_AGENT_VERSION.fullmatch(version):
+        raise SystemExit(f"Klippee agent upgrade returned an invalid {label} version")
+    if not isinstance(digest, str) or not KLIPPEE_AGENT_SHA256.fullmatch(digest):
+        raise SystemExit(f"Klippee agent upgrade returned an invalid {label} SHA-256")
+    return value
+
+
+def _validate_klippee_agent_upgrade_result(
+    document: dict, *, returncode: int
+) -> dict:
+    required = {
+        "schema", "ok", "changed", "account", "cli_path", "source_url",
+        "before", "after", "service", "scope", "observed_state",
+        "before_pid", "after_pid", "upgrade_exit", "state_exit",
+        "upgrade_reported_success", "agent_restart_performed",
+        "klipper_actions_performed", "config_deployment_performed",
+    }
+    allowed = required | {"error"}
+    if not required.issubset(document) or not set(document).issubset(allowed):
+        raise SystemExit("Klippee agent upgrade returned an unexpected contract")
+    if (
+        document.get("schema") != KLIPPEE_AGENT_UPGRADE_SCHEMA
+        or document.get("account") != KLIPPEE_AGENT_ACCOUNT
+        or document.get("cli_path") != KLIPPEE_AGENT_CLI_PATH
+        or document.get("source_url") != KLIPPEE_AGENT_UPGRADE_SOURCE
+        or document.get("service") != KLIPPEE_AGENT_SERVICE
+        or document.get("scope") != "user"
+    ):
+        raise SystemExit("Klippee agent upgrade returned an unexpected fixed identity")
+    boolean_fields = (
+        "ok", "changed", "upgrade_reported_success",
+        "agent_restart_performed", "klipper_actions_performed",
+        "config_deployment_performed",
+    )
+    if any(not isinstance(document.get(name), bool) for name in boolean_fields):
+        raise SystemExit("Klippee agent upgrade returned an invalid boolean proof")
+    if (
+        document["klipper_actions_performed"]
+        or document["config_deployment_performed"]
+    ):
+        raise SystemExit("Klippee agent upgrade did not prove zero Klipper/config actions")
+
+    before = _validate_klippee_agent_artifact(document.get("before"), "before")
+    after = _validate_klippee_agent_artifact(document.get("after"), "after")
+    if _klippee_agent_version_key(after["version"]) < _klippee_agent_version_key(before["version"]):
+        raise SystemExit("Klippee agent upgrade reported a version downgrade")
+    changed = (
+        before["version"] != after["version"]
+        or before["sha256"] != after["sha256"]
+    )
+    if document["changed"] != changed:
+        raise SystemExit("Klippee agent upgrade returned inconsistent artifact evidence")
+
+    state = document.get("observed_state")
+    integer_fields = ("before_pid", "after_pid", "upgrade_exit", "state_exit")
+    if (
+        not isinstance(state, str)
+        or not state
+        or len(state) > 32
+        or re.fullmatch(r"[a-z-]+", state) is None
+        or any(
+            isinstance(document.get(name), bool)
+            or not isinstance(document.get(name), int)
+            for name in integer_fields
+        )
+        or not 0 < document["before_pid"] <= 2_147_483_647
+        or not 0 <= document["after_pid"] <= 2_147_483_647
+        or not 0 <= document["upgrade_exit"] <= 255
+        or not 0 <= document["state_exit"] <= 255
+    ):
+        raise SystemExit("Klippee agent upgrade returned invalid process/service evidence")
+    if document["upgrade_reported_success"] != (document["upgrade_exit"] == 0):
+        raise SystemExit("Klippee agent upgrade returned inconsistent exit evidence")
+    if (state == "active") != (document["state_exit"] == 0):
+        raise SystemExit("Klippee agent upgrade returned inconsistent service evidence")
+    if document["agent_restart_performed"]:
+        if document["before_pid"] == document["after_pid"]:
+            raise SystemExit("Klippee agent upgrade returned inconsistent restart evidence")
+    elif document["before_pid"] != document["after_pid"]:
+        raise SystemExit("Klippee agent upgrade returned unexplained process churn")
+
+    ok = document["ok"]
+    error = document.get("error")
+    if ok:
+        if returncode != 0:
+            raise SystemExit("Klippee agent upgrade exited nonzero after reporting success")
+        if "error" in document and error:
+            raise SystemExit("Klippee agent upgrade reported success with an error")
+        if (
+            state != "active"
+            or document["upgrade_exit"] != 0
+            or not document["upgrade_reported_success"]
+            or not document["agent_restart_performed"]
+            or document["after_pid"] <= 0
+        ):
+            raise SystemExit("Klippee agent upgrade omitted required success proof")
+    else:
+        if returncode == 0:
+            raise SystemExit("Klippee agent upgrade exited zero after reporting failure")
+        if not isinstance(error, str) or not error.strip() or len(error) > 2_000:
+            raise SystemExit("Klippee agent upgrade failure omitted its bounded error")
+    return document
+
+
+def upgrade_klippee_agent(args: argparse.Namespace) -> None:
+    """Run the reviewed source-bound Klippee upgrader over SSH stdin."""
+
+    if args.confirm != KLIPPEE_AGENT_UPGRADE_ACTION:
+        raise SystemExit(
+            f"This action requires --confirm {KLIPPEE_AGENT_UPGRADE_ACTION}"
+        )
+    account = getattr(args, "printer_user", None) or args.user
+    if account != KLIPPEE_AGENT_ACCOUNT:
+        raise SystemExit(
+            "Klippee agent upgrade requires the fixed mks printer account"
+        )
+    ssh, _target = ssh_base(args)
+    helper = KLIPPEE_AGENT_UPGRADE_HELPER
+    if (
+        helper.is_symlink()
+        or not helper.is_file()
+        or not 0 < helper.stat().st_size <= 128 * 1024
+    ):
+        raise SystemExit(f"Reviewed Klippee upgrade helper not found: {helper}")
+    isolated_python = (
+        "/usr/bin/env -i HOME=/home/mks USER=mks LOGNAME=mks "
+        "PATH=/usr/bin:/bin LANG=C LC_ALL=C /usr/bin/python3 -I -"
+    )
+    if args.user == KLIPPEE_AGENT_ACCOUNT:
+        remote_command = "exec " + isolated_python
+    else:
+        remote_command = (
+            "exec /usr/bin/sudo -n -u mks " + isolated_python
+        )
+    completed = capture(
+        ssh + [remote_command],
+        input_data=helper.read_bytes(),
+    )
+    if not completed.stdout and completed.returncode:
+        detail = " ".join(
+            completed.stderr.decode("utf-8", errors="replace").split()
+        )[:500]
+        suffix = f": {detail}" if detail else ""
+        raise SystemExit(
+            f"Klippee agent upgrade exited {completed.returncode}{suffix}"
+        )
+    result = _decode_unique_json(completed.stdout, "Klippee agent upgrade")
+    _validate_klippee_agent_upgrade_result(
+        result, returncode=completed.returncode
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+    if completed.returncode:
+        raise SystemExit(completed.returncode)
+
+
 def _validated_plr_backup_manifest(path: str, scripts_dir: str) -> str:
     scripts_dir = scripts_dir.rstrip("/")
     pattern = (
@@ -1882,6 +2183,16 @@ def render_config(args: argparse.Namespace) -> None:
             rendered += 1
         if not rendered:
             raise SystemExit(f"No .cfg files found in profile: {source}")
+        if getattr(args, "commissioning", False):
+            if not (staging / "hardware.cfg").exists() or not (staging / "beacon.cfg").exists():
+                raise SystemExit("Commissioning mode requires hardware.cfg and beacon.cfg")
+            (staging / "printer.cfg").write_text(
+                (SCRIPT_DIR / "commissioning-printer.cfg").read_text(encoding="utf-8"),
+                encoding="utf-8", newline="\n")
+            beacon = staging / "beacon.cfg"
+            text = beacon.read_text(encoding="utf-8")
+            text = re.sub(r"(?m)^accel_axes_map:.*$", "accel_axes_map: x, y, z", text)
+            beacon.write_text(text, encoding="utf-8", newline="\n")
         remaining = [
             path.name
             for path in staging.glob("*.cfg")
@@ -1895,6 +2206,7 @@ def render_config(args: argparse.Namespace) -> None:
             "managed_by": RENDER_METADATA_MANAGER,
             "profile": profile,
             "beacon_serial": serial,
+            "commissioning": bool(getattr(args, "commissioning", False)),
             "rendered_at_utc": datetime.now(timezone.utc).isoformat(),
         }
         (staging / RENDER_METADATA_FILE).write_text(
@@ -1914,14 +2226,22 @@ def stage(args: argparse.Namespace, kind: str) -> tuple[list[str], str, str]:
     validate_image(kind, image)
     remote_image = f"{args.remote_directory}/{kind}.bin"
     remote_helper = f"{args.remote_directory}/qidi-plus4-remote.sh"
-    remote_layouts = f"{args.remote_directory}/mcu-layouts.json"
     remote_dir = shlex.quote(args.remote_directory)
-    scp = scp_base(args)
-    run(ssh + [f"mkdir -p {remote_dir}"])
-    run(scp + [str(REMOTE_HELPER), f"{target}:{remote_helper}"])
-    run(scp + [str(LAYOUTS_FILE), f"{target}:{remote_layouts}"])
-    run(scp + [str(image), f"{target}:{remote_image}"])
+    bundle = io.BytesIO()
+    with tarfile.open(fileobj=bundle, mode="w") as archive:
+        for source, name in ((REMOTE_HELPER, "qidi-plus4-remote.sh"),
+                             (LAYOUTS_FILE, "mcu-layouts.json"), (image, f"{kind}.bin")):
+            archive.add(source, arcname=name, recursive=False)
+    command = f"set -eu; umask 077; mkdir -p {remote_dir}; tar -xf - -C {remote_dir}"
+    run(ssh + [owner_command(args, command)], input_data=bundle.getvalue())
     return ssh, remote_helper, remote_image
+
+
+def owner_command(args: argparse.Namespace, command: str) -> str:
+    owner = connection_user(getattr(args, "printer_user", None) or args.user)
+    if owner != args.user:
+        return f"sudo -n -u {shlex.quote(owner)} -H bash -c {shlex.quote(command)}"
+    return command
 
 
 def remote_action(args: argparse.Namespace) -> None:
@@ -1930,7 +2250,7 @@ def remote_action(args: argparse.Namespace) -> None:
             "Direct SSH mainboard flashing is disabled: repeated live tests on "
             "the stock Plus4 did not enter QIDI's UART bootloader. No firmware "
             "pages were transferred. Copy plus4-mainboard-klipper.bin to a FAT32 "
-            "microSD card as qd_mcu.bin and follow docs/MAINLINE-MIGRATION.md."
+            "microSD card as qd_mcu.bin and follow docs/migration/MAINLINE-MIGRATION.md."
         )
     actions = {
         "validate-mainboard": ("mainboard", "validate", None),
@@ -1946,6 +2266,13 @@ def remote_action(args: argparse.Namespace) -> None:
     kind, remote_command, required_confirmation = actions[args.command]
     if required_confirmation and args.confirm != required_confirmation:
         raise SystemExit(f"This action requires --confirm {required_confirmation}")
+    if getattr(args, "artifacts", None):
+        verify_build_metadata(args.artifacts)
+        expected_name = {"mainboard": "plus4-mainboard-klipper.bin",
+                         "toolhead-app": "plus4-toolhead-klipper.bin",
+                         "toolhead-katapult": "plus4-toolhead-katapult.bin"}[kind]
+        if args.image.resolve() != (args.artifacts / expected_name).resolve():
+            raise SystemExit("Selected image is outside the verified artifact set")
     ssh, helper, image = stage(args, kind)
     digest = sha256(args.image.resolve())
     parts = [shlex.quote(helper), remote_command]
@@ -1954,10 +2281,29 @@ def remote_action(args: argparse.Namespace) -> None:
     else:
         parts += [shlex.quote(image), digest, required_confirmation]
         if remote_command == "flash-toolhead-katapult":
-            parts.append(shlex.quote(f"{args.remote_directory}/backups"))
+            backup_dir = f"{args.remote_directory}/backups"
+            backup = f"{backup_dir}/toolhead-before-erase-{secrets.token_hex(8)}.bin"
+            run(ssh + [owner_command(args, f"bash {shlex.quote(helper)} backup-toolhead "
+                                     + shlex.quote(backup))])
+            result = capture(ssh + [owner_command(args, "cat " + shlex.quote(backup))])
+            result.check_returncode()
+            if len(result.stdout) != 0x10000:
+                raise SystemExit("Toolhead backup is not 64 KiB; refusing erase")
+            output_dir = getattr(args, "backup_output", None) or REPO_ROOT / "data/printer-backups"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            local = output_dir / pathlib.PurePosixPath(backup).name
+            with local.open("xb") as stream:
+                stream.write(result.stdout)
+            backup_sha = hashlib.sha256(result.stdout).hexdigest()
+            if sha256(local) != backup_sha:
+                raise SystemExit("Workstation backup verification failed; refusing erase")
+            local.with_suffix(".bin.sha256").write_text(
+                f"{backup_sha}  {local.name}\n", encoding="utf-8")
+            print(f"Verified toolhead recovery dump on workstation: {local}")
+            parts += [shlex.quote(backup_dir), backup_sha]
         elif remote_command == "flash-toolhead":
             parts.append(shlex.quote(args.katapult_directory))
-    run(ssh + [f"chmod 700 {shlex.quote(helper)} && " + " ".join(parts)])
+    run(ssh + [owner_command(args, f"chmod 700 {shlex.quote(helper)} && " + " ".join(parts))])
 
 
 def default_private_key() -> pathlib.Path | None:
@@ -2129,6 +2475,10 @@ def setup_management_user(args: argparse.Namespace) -> None:
 
 
 def stage_mainboard_sdcard(args: argparse.Namespace) -> None:
+    if getattr(args, "artifacts", None):
+        verify_build_metadata(args.artifacts)
+        if args.image.resolve() != (args.artifacts / "plus4-mainboard-klipper.bin").resolve():
+            raise SystemExit("Selected mainboard image is outside the verified artifact set")
     image = args.image.resolve()
     validate_image("mainboard", image)
     destination = args.output.resolve()
@@ -2141,28 +2491,24 @@ def stage_mainboard_sdcard(args: argparse.Namespace) -> None:
     (destination / "qd_mcu.bin.sha256").write_text(f"{digest}  qd_mcu.bin\n", encoding="ascii")
     print(f"Staged validated mainboard image to {target}")
     print(f"SHA-256 {digest}")
-    print(
-        "Copy qd_mcu.bin to the root of a FAT32 microSD card, insert it into the "
-        "mainboard, and power on. A successful update renames it to qd_mcu.CUR. "
-        "See docs/MAINLINE-MIGRATION.md."
-    )
+    print("Copy qd_mcu.bin to the root of a FAT32 microSD card, insert it into the "
+          "mainboard, and power on. A successful update renames it to qd_mcu.CUR. "
+          "See docs/migration/MAINLINE-MIGRATION.md.")
 
 
 def smoke_test(args: argparse.Namespace) -> None:
     if not SMOKE_TEST_CONFIG.exists():
         raise SystemExit(f"Smoke-test config missing: {SMOKE_TEST_CONFIG}")
     ssh, target = ssh_base(args)
-    remote_tmp = "/tmp/qidi-smoke-test-printer.cfg"
     remote_cfg = f"{args.data_dir}/config/printer.cfg"
-    remote_log = f"{args.data_dir}/logs/klippy.log"
-    run(scp_base(args) + [str(SMOKE_TEST_CONFIG), f"{target}:{remote_tmp}"])
     # The config belongs to the Klipper account, which is not necessarily the
     # account this connection uses. Copy through sudo and hand ownership back,
     # so a dedicated management account can install it without owning the
     # directory.
     owner = shlex.quote(getattr(args, "printer_user", None) or args.user)
     install = (
-        f"set -e; cfg={shlex.quote(remote_cfg)}; tmp={shlex.quote(remote_tmp)}; "
+        f"set -e; cfg={shlex.quote(remote_cfg)}; "
+        "tmp=$(mktemp); trap 'rm -f \"$tmp\"' EXIT; cat >\"$tmp\"; "
         f"owner={owner}; "
         "ts=$(date -u +%Y%m%dT%H%M%SZ); "
         'if [ -s "$cfg" ]; then sudo -n cp -p "$cfg" "$cfg.$ts.bak"; '
@@ -2171,18 +2517,27 @@ def smoke_test(args: argparse.Namespace) -> None:
         "sudo -n systemctl restart klipper"
     )
     print("Installing the inert smoke-test printer.cfg and restarting mainline Klipper...")
-    run(ssh + [install])
-    inspect = (
-        f"log={shlex.quote(remote_log)}; sleep 8; "
-        'if [ -f "$log" ]; then tail -n 40 "$log"; '
-        'else echo "klippy.log not found at $log"; fi'
-    )
-    print('Recent klippy.log output (both MCUs should reach "Ready"):')
-    run(ssh + [inspect])
-    print(
-        '\nIf either MCU reports "is not responding" or the host stays in shutdown, '
-        "recheck that board's firmware and UART before installing the real configuration."
-    )
+    run(ssh + [install], input_data=SMOKE_TEST_CONFIG.read_bytes())
+    context = probes.Context.load()
+    # The post-start tuning hook settles for 60 seconds. Do not treat a short
+    # log tail or systemd's activating state as a completed smoke test.
+    last = "No facts collected"
+    for attempt in range(45):
+        facts, reason = collect_facts(args)
+        if facts is not None:
+            results = probes.evaluate(facts, context, ["config.smoke-test", "mcu.online"])
+            last = "; ".join(result.detail for result in results)
+            names = facts.get("moonraker", {}).get("mcu_objects", [])
+            if all(result.status == probes.SATISFIED for result in results) and \
+                    set(names) == {"mcu", "mcu toolhead"}:
+                run(ssh + ["bash -s -- audit"], input_data=HOST_TUNING_HELPER.read_bytes())
+                print("Smoke test passed: inert config, both MCUs ready, runtime tuning verified.")
+                return
+        else:
+            last = reason
+        if attempt < 44:
+            time.sleep(2)
+    raise SystemExit(f"Smoke test failed: {last}. The inert config remains installed.")
 
 
 def add_connection(parser: argparse.ArgumentParser, *, image: bool = False) -> None:
@@ -2215,14 +2570,19 @@ def create_parser() -> argparse.ArgumentParser:
     build = sub.add_parser("build", help="Build all three MCU images")
     build.add_argument("--klipper-dir", type=pathlib.Path, required=True)
     build.add_argument("--katapult-dir", type=pathlib.Path, required=True)
-    build.add_argument(
-        "--output", type=pathlib.Path, default=DEFAULT_ARTIFACTS / "mainline-firmware"
-    )
+    build.add_argument("--klipper-ref", type=pinned_ref, default=KLIPPER_REF)
+    build.add_argument("--katapult-ref", type=pinned_ref, default=KATAPULT_REF)
+    build.add_argument("--wsl-distro", help="Run the build in this WSL distribution")
+    build.add_argument("--output", type=pathlib.Path,
+                       default=DEFAULT_ARTIFACTS / "mainline-firmware")
     build.set_defaults(func=build_firmware)
 
     image = sub.add_parser("armbian-image", help="Download and verify the official Qidi X-6 image")
     image.add_argument("--output", type=pathlib.Path, default=DEFAULT_ARTIFACTS / "armbian")
     image.add_argument("--list-only", action="store_true")
+    image.add_argument("--url", help="Exact HTTPS image URL instead of the moving download alias")
+    image.add_argument("--minimum-kernel", type=kernel_version, default="6.18.54",
+                       help="Minimum reviewed kernel version; default %(default)s")
     image.set_defaults(func=armbian_image)
 
     setup = sub.add_parser(
@@ -2291,9 +2651,13 @@ def create_parser() -> argparse.ArgumentParser:
     bootstrap = sub.add_parser("bootstrap-host", help="Install official Klipper and Moonraker")
     add_connection(bootstrap)
     bootstrap.add_argument("--confirm", required=True)
-    bootstrap.add_argument("--klipper-ref", default="master")
-    bootstrap.add_argument("--moonraker-ref", default="master")
-    bootstrap.add_argument("--katapult-ref", default="master")
+    bootstrap.add_argument("--klipper-ref", type=pinned_ref, default=KLIPPER_REF)
+    bootstrap.add_argument("--moonraker-ref", type=pinned_ref, default=MOONRAKER_REF)
+    bootstrap.add_argument("--katapult-ref", type=pinned_ref, default=KATAPULT_REF)
+    bootstrap.add_argument("--artifacts", type=pathlib.Path,
+                           help="Verify MCU hashes and source commits before bootstrap")
+    bootstrap.add_argument("--beacon-ref", type=pinned_ref,
+                           help="Install only the Beacon host plugin at this commit; no probe flash")
     bootstrap.set_defaults(func=bootstrap_host)
 
     tuning_audit = sub.add_parser(
@@ -2352,6 +2716,15 @@ def create_parser() -> argparse.ArgumentParser:
     klippee_variable.add_argument("--confirm", required=True)
     klippee_variable.set_defaults(func=set_klippee_variable)
 
+
+    upgrade_agent = sub.add_parser(
+        "upgrade-klippee-agent",
+        help="Upgrade the fixed Klippee CLI and prove its managed agent restarted",
+    )
+    add_connection(upgrade_agent)
+    upgrade_agent.add_argument("--confirm", required=True)
+    upgrade_agent.set_defaults(func=upgrade_klippee_agent)
+
     plr_deploy = sub.add_parser(
         "deploy-plr-hardening",
         help="Safely install source-bound PLR runtime assets and leave Klipper stopped",
@@ -2409,6 +2782,8 @@ def create_parser() -> argparse.ArgumentParser:
     )
     config.add_argument("--beacon-serial", required=True)
     config.add_argument("--output", type=pathlib.Path, required=True)
+    config.add_argument("--commissioning", action="store_true",
+                        help="Enable only hardware/Beacon with conservative uncalibrated defaults")
     config.add_argument(
         "--force",
         action="store_true",
@@ -2428,6 +2803,7 @@ def create_parser() -> argparse.ArgumentParser:
         help="microSD card root or a staging directory",
     )
     sdcard.add_argument("--force", action="store_true")
+    sdcard.add_argument("--artifacts", type=pathlib.Path)
     sdcard.set_defaults(func=stage_mainboard_sdcard)
 
     smoke = sub.add_parser(
@@ -2447,10 +2823,13 @@ def create_parser() -> argparse.ArgumentParser:
     ):
         action = sub.add_parser(name)
         add_connection(action, image=True)
+        action.add_argument("--artifacts", type=pathlib.Path)
         if name.startswith("flash-"):
             action.add_argument("--confirm", required=True)
         if name == "flash-toolhead":
             action.add_argument("--katapult-directory", default="/home/mks/katapult")
+        if name == "flash-toolhead-katapult":
+            action.add_argument("--backup-output", type=pathlib.Path)
         action.set_defaults(func=remote_action)
     return parser
 

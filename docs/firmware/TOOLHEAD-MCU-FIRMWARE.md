@@ -47,7 +47,7 @@ reports:
 
 This is the same upstream Klipper commit (`96ab9069`) recorded elsewhere in the
 lineage. The full extracted dictionary is committed at
-[`../analysis/firmware/toolhead-mcu-dictionary.json`](../analysis/firmware/toolhead-mcu-dictionary.json).
+[`../../analysis/firmware/toolhead-mcu-dictionary.json`](../../analysis/firmware/toolhead-mcu-dictionary.json).
 
 Reproduce the extraction from a dump with:
 

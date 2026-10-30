@@ -1,36 +1,27 @@
 # Documentation
 
-Human-readable findings and practical integration guidance:
+Choose a topic below. For source code, tools, or local files, use the
+[repository map](../README.md#repository-map).
 
-- [FIRMWARE-CHANGES.md](FIRMWARE-CHANGES.md) compares firmware 1.7.3 and 1.8.2
-  across Klipper, Moonraker, QIDI services, the touchscreen, and update payloads.
-- [FIRMWARE-LINEAGE.md](FIRMWARE-LINEAGE.md) extends that analysis backward
-  through the pristine factory 1.1.2 image.
-- [FIRMWARE-FLASHING.md](FIRMWARE-FLASHING.md) documents QIDI's update sources,
-  package flow, and the known flashing paths for each controller.
-- [MAINLINE-MIGRATION.md](MAINLINE-MIGRATION.md) provides the guarded,
-  SSH-first conversion workflow for a clean mainline host and MCU stack.
-- [AMS-COMPATIBILITY.md](AMS-COMPATIBILITY.md) focuses on QIDI Box and
-  third-party AMS interoperability.
-- [QIDI-BOX-CONFIG-REGENERATION.md](QIDI-BOX-CONFIG-REGENERATION.md) documents
-  how stock `box_detect` regenerates `box.cfg` from `/home/mks/cfg_with_N` and
-  the consequences for configuration synchronization.
-- [HAPPY-HARE-INTEGRATION.md](HAPPY-HARE-INTEGRATION.md) records the QIDI Box
-  hardware interface and possible Happy Hare integration approaches.
-- [HAPPY-HARE-INSTALLATION.md](HAPPY-HARE-INSTALLATION.md) provides the guarded
-  post-migration install, commissioning and OrcaSlicer workflow.
-- [SCREEN-BRIDGE.md](SCREEN-BRIDGE.md) defines the evidence, capture plan,
-  safety boundary, and staged independent replacement for QIDI's `xindi`.
-- [LIVE-HARDWARE-INVENTORY.md](LIVE-HARDWARE-INVENTORY.md) records the
-  sanitized runtime hardware, boot, MCU, USB, and service comparison.
-- [PLR-TIMER-TOO-CLOSE.md](PLR-TIMER-TOO-CLOSE.md) provides the standalone,
-  transactional repair and rollback procedure for the diagnosed QIDI
-  power-loss-recovery `Timer too close` failure.
-- [QIDI-BOX-OUTPUT-CLOCK-GUARD.md](QIDI-BOX-OUTPUT-CLOCK-GUARD.md) documents the
-  guarded stock-1.8.2 overlay that corrects QIDI Box output scheduling to use
-  the MCU that owns each output pin.
-- [QIDI-BOX-WATCHDOG-RESET.md](QIDI-BOX-WATCHDOG-RESET.md) records the 2026-08-06
-  Box MCU watchdog forensics, PB0 interrupt/debounce defect, safe containment,
-  and hardware isolation boundary.
+| Topic | What you will find |
+| --- | --- |
+| [Firmware research](firmware/README.md) | Version comparisons, update and recovery paths, MCU analysis, hardware inventory |
+| [Mainline migration](migration/README.md) | Host and MCU migration, the Box-printer runbook, post-migration Happy Hare installation |
+| [Integrations](integrations/README.md) | QIDI Box and AMS compatibility, configuration regeneration, Happy Hare and stock-screen research |
+| [Fixes and compatibility](fixes/README.md) | PLR repair, Box output timing and status overlays, disabling QIDILink |
+| [Historical notes](history/README.md) | Dated QIDI1 migration reviews, fixes, and upstream assessments |
 
-Generated evidence supporting these documents is under [`../analysis/`](../analysis/).
+## Common starting points
+
+- **Looking for v1.8.2 files?** See [firmware and backup locations](../data/README.md).
+- **Comparing stock firmware?** Start with the [1.1.2 → 1.7.3 → 1.8.2 lineage](firmware/FIRMWARE-LINEAGE.md).
+- **Planning a migration?** Read the [mainline guide](migration/MAINLINE-MIGRATION.md),
+  then the [Box-printer runbook](migration/MIGRATION-WITH-BOX.md) if applicable.
+- **Investigating a Box issue?** Start with [AMS compatibility](integrations/AMS-COMPATIBILITY.md)
+  and the [fixes index](fixes/README.md).
+
+Generated evidence is indexed under [analysis/](../analysis/README.md).
+Backup and regeneration commands are indexed under [tools/](../tools/README.md).
+
+The guides are grouped by topic; older links to `docs/NAME.md` now correspond
+to the same filename inside one of the topic directories above.
