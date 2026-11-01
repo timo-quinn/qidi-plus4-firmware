@@ -7,6 +7,7 @@ scope before using its installation procedure.
 
 | Guide | Problem or task |
 | --- | --- |
+| [Install the log-space and Box status fixes](INSTALL-LOG-AND-BOX-FIXES.md) | Beginner-friendly installation for the fixes used on QIDI1 with stock 1.8.2 |
 | [PLR `Timer too close` repair](PLR-TIMER-TOO-CLOSE.md) | Diagnosed stock power-loss-recovery failure, transactional repair and rollback |
 | [Box output clock guard](QIDI-BOX-OUTPUT-CLOCK-GUARD.md) | Stock-1.8.2 output scheduling with the MCU that owns each pin |
 | [Box status compatibility](QIDI-BOX-STATUS-COMPAT.md) | Missing tool-change status property in stock 1.8.2 Box modules |

@@ -27,10 +27,19 @@ class BoxStatusCompat:
         self._printer.register_event_handler('klippy:connect', self._handle_connect)
 
     def _handle_connect(self):
+        # box_detect can temporarily omit the Box config while detecting
+        # hardware and arranging another Klipper start. Do not block that cycle
+        # or force-load hardware that is absent from the current configuration.
+        box = self._printer.lookup_object('box_extras', None)
+        if box is None:
+            self._tool_change = None
+            self._state = 'inactive-no-box'
+            logger.info('QIDI Box status compatibility: inactive-no-box; '
+                        'waiting for a Klipper start with Box configuration')
+            return
         tool_change = None
         installed = False
         try:
-            box = self._printer.lookup_object('box_extras')
             tool_change = box.tool_change
             if tool_change.printer is not self._printer:
                 raise ValueError('ToolChange belongs to a different printer')

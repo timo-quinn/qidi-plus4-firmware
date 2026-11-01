@@ -14,6 +14,7 @@ for the QIDI Plus4. The research covers factory 1.1.2, installed 1.7.3 and
 | Migrate to mainline Klipper | [Migration guides](docs/migration/README.md) |
 | Work with QIDI Box, Happy Hare, or the stock screen | [Integration research](docs/integrations/README.md) |
 | Fix stock-firmware problems | [Fixes and compatibility](docs/fixes/README.md) |
+| Install the log-space and QIDI Box status fixes | [Short installation guide](docs/fixes/INSTALL-LOG-AND-BOX-FIXES.md) |
 | Back up a printer or regenerate research | [Tools](tools/README.md) |
 | Contribute or run checks | [Contributing](CONTRIBUTING.md) |
 

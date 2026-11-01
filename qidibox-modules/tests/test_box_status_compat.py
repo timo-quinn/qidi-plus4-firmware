@@ -21,7 +21,17 @@ def runtime():
     tool = ToolChange()
     box = SimpleNamespace(tool_change=tool)
     objects = {'box_extras': box, 'save_variables': variables}
-    printer = SimpleNamespace(lookup_object=objects.__getitem__,
+    missing = object()
+
+    def lookup_object(name, default=missing):
+        if name in objects:
+            return objects[name]
+        if default is missing:
+            raise ValueError(f"Unknown config object '{name}'")
+        return default
+
+    printer = SimpleNamespace(lookup_object=lookup_object,
+                              objects=objects,
                               register_event_handler=lambda *args: None)
     tool.printer = printer
     config = SimpleNamespace(get_printer=lambda: printer, error=ValueError)
@@ -85,6 +95,22 @@ def check_uninitialised_native_descriptor_is_not_overwritten(runtime):
 
 
 class BoxStatusCompatTests(unittest.TestCase):
+    def test_absent_box_does_not_halt_connect_and_can_recover(self):
+        overlay, tool, variables = runtime()
+        objects = tool.printer.objects
+        box = objects.pop('box_extras')
+        # box_detect can omit the Box config during its detection/restart cycle.
+        overlay._handle_connect()
+        self.assertEqual(overlay.get_status(),
+                         {'state': 'inactive-no-box', 'is_tool_change': None})
+        self.assertFalse(hasattr(type(tool), 'is_tool_change'))
+        self.assertEqual(variables.allVariables, {})
+        objects['box_extras'] = box
+        overlay._handle_connect()
+        self.assertEqual(overlay.get_status()['state'], 'corrected')
+        tool.cmd_TOOL_CHANGE_START()
+        self.assertTrue(tool.is_tool_change)
+
     def test_property_tracks_saved_state(self):
         check_property_tracks_current_saved_state_without_replacing_commands(runtime())
 

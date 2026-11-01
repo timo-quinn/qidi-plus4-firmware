@@ -1,5 +1,8 @@
 # QIDI Box status compatibility
 
+For copy-and-paste installation steps, use the
+[log-space and Box status installation guide](INSTALL-LOG-AND-BOX-FIXES.md#3-fix-the-qidi-box-is_tool_change-error).
+
 QIDI1's stock 1.8.2 `multi_color_controller.so` reads
 `box_extras.tool_change.is_tool_change`. Its installed `box_extras.so` does not
 provide that attribute, although its native `TOOL_CHANGE_START` and
@@ -11,8 +14,13 @@ missing read-only property at `klippy:connect`. It reads the current saved flag
 on every access, including changes made by native commands and macros. It
 does not replace the compiled modules, register command wrappers, move motors,
 write saved variables, or change heater control. Existing implementations of
-the attribute are retained. Missing or incompatible prerequisite APIs stop
-configuration loading with an explicit error.
+the attribute are retained. If `box_extras` is absent, the overlay reports
+`inactive-no-box` and permits startup. QIDI's `box_detect` can temporarily omit
+the Box configuration while detecting hardware and arranging another Klipper
+start; treating that state as fatal prevents its recovery cycle. The overlay
+does not force-load the Box or edit `box.cfg`. When the Box is loaded, missing
+or incompatible prerequisite APIs still stop configuration loading with an
+explicit error.
 
 Back up the managed configuration and any existing module before installation.
 Copy the extra to `~/klipper/klippy/extras/box_status_compat.py`, then add this
@@ -24,7 +32,8 @@ section after the Box configuration through the normal managed-config path:
 
 Reload Klipper while idle. For a changed Python module, restart the Klipper
 host service so it cannot reuse an old import. Check that Klipper is ready,
-the `box_status_compat` object reports `corrected` or `already-provided`, and
+the `box_status_compat` object reports `corrected` or `already-provided` when
+the Box is configured (or `inactive-no-box` when it is absent), and
 `multi_color_controller.operation.error` no longer reports the compatibility
 exception. Retain the original native `BOX_PRINT_START`, `INIT_MAPPING_VALUE`
 and `TRY_RESUME_PRINT` commands; replacing the whole Box module with an older
