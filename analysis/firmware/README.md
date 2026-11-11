@@ -7,6 +7,11 @@ cover factory 1.1.2 through 1.8.2 across Klipper, Moonraker,
 See [firmware flashing research](../../docs/firmware/FIRMWARE-FLASHING.md) for the recovered offline,
 online, toolhead, QIDI Box and touchscreen update paths.
 
+The [2.1.1 comparison](../../docs/firmware/FIRMWARE-2.1.1.md) extends the research
+with the newer OTA overlay against installed 1.8.2. Its
+[reviewed evidence](2.1.1/README.md) includes input hashes, matching-file and
+native component inventories, API deltas and the readable Moonraker patch.
+
 Supporting evidence:
 
 * `file-changes.csv` and `file-change-summary.json` contain the selected

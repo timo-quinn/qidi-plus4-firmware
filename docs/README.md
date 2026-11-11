@@ -15,6 +15,8 @@ Choose a topic below. For source code, tools, or local files, use the
 
 - **Looking for v1.8.2 files?** See [firmware and backup locations](../data/README.md).
 - **Comparing stock firmware?** Start with the [1.1.2 → 1.7.3 → 1.8.2 lineage](firmware/FIRMWARE-LINEAGE.md).
+  Continue with the [2.1.1 Box and Moonraker comparison](firmware/FIRMWARE-2.1.1.md)
+  for the newer OTA overlay.
 - **Planning a migration?** Read the [mainline guide](migration/MAINLINE-MIGRATION.md),
   then the [Box-printer runbook](migration/MIGRATION-WITH-BOX.md) if applicable.
 - **Investigating a Box issue?** Start with [AMS compatibility](integrations/AMS-COMPATIBILITY.md)

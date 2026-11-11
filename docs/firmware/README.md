@@ -9,6 +9,7 @@ or controller-specific reference.
 | --- | --- |
 | [Firmware lineage](FIRMWARE-LINEAGE.md) | Factory 1.1.2 → installed 1.7.3 → installed 1.8.2 |
 | [Firmware changes](FIRMWARE-CHANGES.md) | Detailed 1.7.3 vs. 1.8.2 comparison: Klipper, Moonraker, QIDI services, touchscreen, update payloads |
+| [Firmware 2.1.1](FIRMWARE-2.1.1.md) | 2.1.1 OTA overlay vs. installed 1.8.2: Box controller rewrite, Moonraker/MQTT integration, P2P and compatibility limits |
 | [Downloading and flashing](FIRMWARE-FLASHING.md) | Update sources, package flow, controller flashing and recovery paths |
 | [Toolhead MCU](TOOLHEAD-MCU-FIRMWARE.md) | Load-cell handling, timing, and recovered command dictionary |
 | [Hardware inventory](LIVE-HARDWARE-INVENTORY.md) | Captured hardware, boot, MCU, USB, and service comparison |

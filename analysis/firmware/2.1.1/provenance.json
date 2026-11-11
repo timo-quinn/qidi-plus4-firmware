@@ -1,0 +1,36 @@
+{
+  "model": "QIDI Plus4",
+  "analysis_date": "2026-11-11",
+  "new_firmware": {
+    "soc": "V2.1.1",
+    "ui": "V211",
+    "mcu": "V0.12.0",
+    "debian_package_version": "1.0.1"
+  },
+  "downloads": [
+    {
+      "filename": "QD_Plus4_SOC",
+      "url": "https://download_aliyun.qidi3dprinter.com/QD_Plus4/QD_Plus4_SOC",
+      "bytes": 17691376,
+      "sha256": "2548a0e1b0a59f6bb78ac28cb6955f828701bbbc6050ab015080a7010c4bb813",
+      "http_last_modified": "Mon, 19 Oct 2026 11:13:35 GMT"
+    },
+    {
+      "filename": "QD_Plus4_UI",
+      "url": "https://download_aliyun.qidi3dprinter.com/QD_Plus4/QD_Plus4_UI",
+      "bytes": 20540552,
+      "sha256": "df71c47d89a513a587a1ce7c50e0ed94af6f4cfc52aa26d4a359abd47a49071c",
+      "http_last_modified": "Mon, 19 Oct 2026 11:13:37 GMT"
+    }
+  ],
+  "baseline": {
+    "filename": "analysis-1.8.2.tar.gz",
+    "bytes": 334801897,
+    "sha256": "7ed9c5f8ec976f2c36d7a1d3fae698668a01b268b3a78189d74f5119019b3001",
+    "source": "Retained installed-printer snapshot"
+  },
+  "aws_mirror_status": "SOC and UI HEAD requests timed out; not verified",
+  "comparison_scope": "Overlay against matching captured paths; omitted paths are not deletions",
+  "execution": "Static inspection only; package scripts and firmware were not executed",
+  "ghidra_image": "blacktop/ghidra@sha256:2561c4ef8a3eb4c851bf8ce7eec4737c93f067fe607d773af021b60a62bf6a68"
+}

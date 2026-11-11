@@ -41,6 +41,10 @@ backups; MCU flash readbacks use the procedures in the
 - [`Generate-QidiCythonBaseline.py`](Generate-QidiCythonBaseline.py) creates Cython C templates from the published
   Python baseline.
 - [`ghidra/`](ghidra/) contains the Java scripts used by headless Ghidra.
+  [`ExportCoroutineBodies.java`](ghidra/ExportCoroutineBodies.java) exports
+  `__pyx_gb_` implementations omitted by the named-wrapper exporter. Use it
+  for async MQTT/agent logic; the [2.1.1 evidence guide](../analysis/firmware/2.1.1/README.md)
+  records the headless invocation and input hashes.
 
 See the [analysis indexes](../analysis/README.md) for output locations and
 component-specific regeneration instructions.

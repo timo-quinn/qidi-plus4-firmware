@@ -1,0 +1,1782 @@
+{
+  "description": "Function locators and identifiers, not original source or a runtime trace; raw files are retained locally",
+  "records": [
+    {
+      "component": "box_extras",
+      "symbol": "__pyx_pw_6extras_10box_extras_9BoxExtras_67_build_empty_box_status",
+      "elf_symbol": "__pyx_pw_6extras_10box_extras_9BoxExtras_67_build_empty_box_status",
+      "elf_symbol_address": "000000000001ffe8",
+      "methods": [
+        "BoxExtras._build_empty_box_status",
+        "extras.box_extras.BoxExtras._build_empty_box_status"
+      ],
+      "identifiers": [
+        "COMPAT_TEST_DATE",
+        "COMPAT_ZERO_COUNTS",
+        "aht20_humidity",
+        "aht20_temp",
+        "box_inserted_0",
+        "box_inserted_1",
+        "box_inserted_2",
+        "box_inserted_3",
+        "box_target_temp",
+        "default_box_slots_template",
+        "dry_state",
+        "end_time",
+        "filament_inserted_0",
+        "filament_inserted_1",
+        "filament_inserted_2",
+        "filament_inserted_3",
+        "hall_pulses",
+        "is_online",
+        "limit_4in1_change_count",
+        "limit_load_change_count",
+        "slot",
+        "slots",
+        "test_date"
+      ],
+      "local_raw_file": "native/box_extras/2.1.1/decompiled.c",
+      "local_raw_line": 2011
+    },
+    {
+      "component": "box_extras",
+      "symbol": "__pyx_pw_6extras_10box_extras_9BoxExtras_87_build_auto_refill",
+      "elf_symbol": "__pyx_pw_6extras_10box_extras_9BoxExtras_87_build_auto_refill",
+      "elf_symbol_address": "000000000004c398",
+      "methods": [
+        "BoxExtras._build_auto_refill",
+        "extras.box_extras.BoxExtras._build_auto_refill"
+      ],
+      "identifiers": [
+        "BoxExtras__build_auto_refill_loc",
+        "auto_refill",
+        "box_index",
+        "box_info",
+        "box_inserted",
+        "boxes",
+        "color",
+        "color_rgb_key",
+        "color_rgb_str",
+        "extras_box_extras",
+        "filament",
+        "filament_info",
+        "filament_info_by_slot",
+        "filament_str",
+        "get",
+        "grouped",
+        "item",
+        "key",
+        "slot",
+        "slot_index",
+        "slot_info",
+        "slot_label",
+        "slot_list",
+        "slots",
+        "sort",
+        "type"
+      ],
+      "local_raw_file": "native/box_extras/2.1.1/decompiled.c",
+      "local_raw_line": 37534
+    },
+    {
+      "component": "box_extras",
+      "symbol": "__pyx_pw_6extras_10box_extras_9BoxExtras_63get_status",
+      "elf_symbol": "__pyx_pw_6extras_10box_extras_9BoxExtras_63get_status",
+      "elf_symbol_address": "000000000006c6d8",
+      "methods": [
+        "BoxExtras.get_status",
+        "extras.box_extras.BoxExtras.get_status",
+        "extras.box_extras.BoxExtras.get_status.genexpr"
+      ],
+      "identifiers": [
+        "BoxExtras_get_status_locals_gene",
+        "auto_refill",
+        "b_endstop_state",
+        "box_button_state",
+        "box_count",
+        "boxes",
+        "buffer",
+        "buffer_status",
+        "build_auto_refill",
+        "build_boxes_status",
+        "diameter",
+        "e_endstop_state",
+        "eventtime",
+        "extras_box_extras",
+        "genexpr",
+        "get_value_by_key",
+        "hall_filament_width_sensor",
+        "hall_sensor",
+        "last_load_slot",
+        "loaded_slot",
+        "lookup_object",
+        "printer",
+        "slot16",
+        "slot_1"
+      ],
+      "local_raw_file": "native/box_extras/2.1.1/decompiled.c",
+      "local_raw_line": 62459
+    },
+    {
+      "component": "box_extras",
+      "symbol": "__pyx_pw_6extras_10box_extras_9BoxExtras_69_build_boxes_status",
+      "elf_symbol": "__pyx_pw_6extras_10box_extras_9BoxExtras_69_build_boxes_status",
+      "elf_symbol_address": "000000000008f278",
+      "methods": [
+        "BoxExtras._build_boxes_status",
+        "extras.box_extras.BoxExtras._build_boxes_status"
+      ],
+      "identifiers": [
+        "aht",
+        "aht20_humidity",
+        "aht20_temp",
+        "allVariables",
+        "box",
+        "box_aht_cache",
+        "box_count",
+        "box_drying_state",
+        "box_heater_cache",
+        "box_index",
+        "box_inserted",
+        "box_status",
+        "box_stepper_cache",
+        "box_target_temp",
+        "boxes",
+        "build_empty_box_status",
+        "build_filament_info",
+        "dry_state",
+        "drying_status",
+        "end_time",
+        "filament_info",
+        "get",
+        "global_slot",
+        "heater",
+        "humidity",
+        "inserted",
+        "is_online",
+        "local_slot",
+        "r_endstop_state",
+        "refresh_boxes_object_cache",
+        "save_variables",
+        "save_vars",
+        "save_vars_obj",
+        "slots",
+        "stepper",
+        "target_temp",
+        "temp"
+      ],
+      "local_raw_file": "native/box_extras/2.1.1/decompiled.c",
+      "local_raw_line": 90511
+    },
+    {
+      "component": "box_extras",
+      "symbol": "e843419@0004_00000030_38aac",
+      "elf_symbol": "e843419@0004_00000030_38aac",
+      "elf_symbol_address": "000000000009d010",
+      "methods": [
+        "extras.box_extras.BoxExtras._build_auto_refill"
+      ],
+      "identifiers": [],
+      "local_raw_file": "native/box_extras/2.1.1/decompiled.c",
+      "local_raw_line": 101892
+    },
+    {
+      "component": "box_stepper",
+      "symbol": "__pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_44slot_rfid_read",
+      "elf_symbol": "__pyx_pf_6extras_11box_stepper_18BoxExtruderStepper_44slot_rfid_read.isra.44",
+      "elf_symbol_address": "0000000000037e90",
+      "methods": [
+        "extras.box_stepper.BoxExtruderStepper.slot_rfid_read"
+      ],
+      "identifiers": [
+        "Code_QDE_004_011_Message_Detecte",
+        "Code_QDE_004_019_Message_Please",
+        "Code_QDE_004_020_Message_Detect",
+        "NEVER",
+        "NOW",
+        "b_endstop",
+        "b_endstop_state",
+        "b_endstop_timer",
+        "box_button_state",
+        "box_extras",
+        "box_rfid",
+        "card_reader",
+        "disable_stepper",
+        "do_home",
+        "do_move",
+        "dwell",
+        "gcode",
+        "get_endstops",
+        "get_value_by_key",
+        "home_success",
+        "lookup_object",
+        "printer",
+        "r_endstop_state",
+        "reactor",
+        "respond_info",
+        "respond_raw",
+        "rfid_device",
+        "rfid_state",
+        "save_variable",
+        "slot_load_length_3",
+        "slot_load_length_3_accel",
+        "slot_load_length_3_speed",
+        "start_rfid_read",
+        "stepper_name",
+        "stepper_num",
+        "stop_read",
+        "update_timer"
+      ],
+      "local_raw_file": "native/box_stepper/2.1.1/decompiled.c",
+      "local_raw_line": 34306
+    },
+    {
+      "component": "box_stepper",
+      "symbol": "__pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_45slot_rfid_read",
+      "elf_symbol": "__pyx_pw_6extras_11box_stepper_18BoxExtruderStepper_45slot_rfid_read",
+      "elf_symbol_address": "000000000003b568",
+      "methods": [
+        "BoxExtruderStepper.slot_rfid_read",
+        "extras.box_stepper.BoxExtruderStepper.slot_rfid_read"
+      ],
+      "identifiers": [],
+      "local_raw_file": "native/box_stepper/2.1.1/decompiled.c",
+      "local_raw_line": 36892
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_23rfid_init_read",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_23rfid_init_read",
+      "elf_symbol_address": "0000000000026070",
+      "methods": [
+        "BoxAdapterV2.rfid_init_read",
+        "extras.multi_color_controller.BoxAdapterV2.rfid_init_read"
+      ],
+      "identifiers": [],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 818
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_19try_resume_print",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_19try_resume_print",
+      "elf_symbol_address": "00000000000261f0",
+      "methods": [
+        "BoxAdapterV2.try_resume_print",
+        "extras.multi_color_controller.BoxAdapterV2.try_resume_print"
+      ],
+      "identifiers": [],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 904
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_11enable_box_drying",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_11enable_box_drying",
+      "elf_symbol_address": "0000000000026370",
+      "methods": [
+        "BoxAdapterV2.enable_box_drying",
+        "extras.multi_color_controller.BoxAdapterV2.enable_box_drying"
+      ],
+      "identifiers": [
+        "box_num",
+        "temp",
+        "time"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 990
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_9set_filament_information",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_9set_filament_information",
+      "elf_symbol_address": "0000000000026778",
+      "methods": [
+        "BoxAdapterV2.set_filament_information",
+        "extras.multi_color_controller.BoxAdapterV2.set_filament_information"
+      ],
+      "identifiers": [
+        "color",
+        "filament_id",
+        "slot"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 1179
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_5load_filament",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_5load_filament",
+      "elf_symbol_address": "0000000000026b80",
+      "methods": [
+        "BoxAdapterV2.load_filament",
+        "extras.multi_color_controller.BoxAdapterV2.load_filament"
+      ],
+      "identifiers": [],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 1369
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_11BaseAdapter_41set_filament_information",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_11BaseAdapter_41set_filament_information",
+      "elf_symbol_address": "0000000000026e80",
+      "methods": [
+        "BaseAdapter.set_filament_information",
+        "extras.multi_color_controller.BaseAdapter.set_filament_information"
+      ],
+      "identifiers": [
+        "color",
+        "filament",
+        "slot",
+        "vendor"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 1541
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_11BaseAdapter_9get_status",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_11BaseAdapter_9get_status",
+      "elf_symbol_address": "0000000000027ee0",
+      "methods": [
+        "BaseAdapter.get_status",
+        "extras.multi_color_controller.BaseAdapter.get_status"
+      ],
+      "identifiers": [
+        "eventtime"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 2438
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_8FlowTask_7stop",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_8FlowTask_7stop",
+      "elf_symbol_address": "0000000000029b80",
+      "methods": [
+        "FlowTask.stop",
+        "extras.multi_color_controller.FlowTask.stop"
+      ],
+      "identifiers": [
+        "current_step",
+        "is_cancelled",
+        "is_paused",
+        "queue"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 4109
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_16MaterialDatabase_19get_status",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_16MaterialDatabase_19get_status",
+      "elf_symbol_address": "0000000000029e60",
+      "methods": [
+        "MaterialDatabase.get_status",
+        "extras.multi_color_controller.MaterialDatabase.get_status"
+      ],
+      "identifiers": [
+        "colors",
+        "eventtime",
+        "filaments",
+        "vendors"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 4288
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_16TaskQueueManager_35get_status",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_16TaskQueueManager_35get_status",
+      "elf_symbol_address": "000000000002a598",
+      "methods": [
+        "TaskQueueManager.get_status",
+        "extras.multi_color_controller.TaskQueueManager.get_status"
+      ],
+      "identifiers": [
+        "current_flow_id",
+        "current_queue",
+        "current_step",
+        "current_task",
+        "eventtime",
+        "flow_id",
+        "is_paused",
+        "queue"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 4540
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_8FlowTask_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_8FlowTask_1__init__",
+      "elf_symbol_address": "000000000002aea0",
+      "methods": [
+        "FlowTask.__init__",
+        "extras.multi_color_controller.FlowTask.__init__"
+      ],
+      "identifiers": [
+        "current_flow_temp",
+        "current_step",
+        "flow_temp",
+        "gcode",
+        "index_2",
+        "is_cancelled",
+        "is_paused",
+        "method_map",
+        "on_complete",
+        "queue"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 5061
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_16MaterialDatabase_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_16MaterialDatabase_1__init__",
+      "elf_symbol_address": "000000000002ba30",
+      "methods": [
+        "MaterialDatabase.__init__",
+        "extras.multi_color_controller.MaterialDatabase.__init__"
+      ],
+      "identifiers": [
+        "colors",
+        "filaments",
+        "file_path",
+        "home_qidi_printer_data_config_o",
+        "load_config",
+        "vendors"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 5491
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_20MaterialDatabaseJosn_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_20MaterialDatabaseJosn_1__init__",
+      "elf_symbol_address": "000000000002c858",
+      "methods": [
+        "MaterialDatabaseJosn.__init__",
+        "extras.multi_color_controller.MaterialDatabaseJosn.__init__"
+      ],
+      "identifiers": [
+        "dirname",
+        "filament_0_4_json",
+        "file",
+        "file_path",
+        "home_mks_printer_data_config_fi",
+        "id_to_name_map",
+        "join",
+        "load_config",
+        "local_file_path",
+        "material_data",
+        "os",
+        "path"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 6304
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_16TaskQueueManager_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_16TaskQueueManager_1__init__",
+      "elf_symbol_address": "000000000002f260",
+      "methods": [
+        "TaskQueueManager.__init__",
+        "extras.multi_color_controller.TaskQueueManager.__init__"
+      ],
+      "identifiers": [
+        "current_flow_id",
+        "current_flow_temp",
+        "current_operation_slot",
+        "current_task",
+        "gcode",
+        "init_method_map",
+        "lookup_object",
+        "method_map",
+        "operation_adapter",
+        "printer",
+        "targer_eject_slot",
+        "target_load_slot",
+        "target_unload_slot"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 8583
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_16TaskQueueManager_31stop",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_16TaskQueueManager_31stop",
+      "elf_symbol_address": "0000000000031da0",
+      "methods": [
+        "TaskQueueManager.stop",
+        "extras.multi_color_controller.TaskQueueManager.stop"
+      ],
+      "identifiers": [
+        "Flow_stop_requested",
+        "M104_S0",
+        "clear_flow_parameters",
+        "current_flow_temp",
+        "current_task",
+        "end_operation",
+        "gcode",
+        "respond_info",
+        "run_script",
+        "stop"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 11022
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_1__init__",
+      "elf_symbol_address": "0000000000036c28",
+      "methods": [
+        "BoxAdapterV1.__init__",
+        "extras.multi_color_controller.BoxAdapterV1.__init__"
+      ],
+      "identifiers": [
+        "box1base",
+        "box_count",
+        "box_v1",
+        "gcode",
+        "gcode_move",
+        "identity",
+        "init",
+        "material_db",
+        "printer",
+        "save_vars",
+        "task_queue_manager"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 15208
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_5load_filament",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_5load_filament",
+      "elf_symbol_address": "0000000000037448",
+      "methods": [
+        "BoxAdapterV1.load_filament",
+        "extras.multi_color_controller.BoxAdapterV1.load_filament"
+      ],
+      "identifiers": [
+        "box1base",
+        "button_extruder_load",
+        "gcmd"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 15677
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_13enable_box_drying",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_13enable_box_drying",
+      "elf_symbol_address": "00000000000384c8",
+      "methods": [
+        "BoxAdapterV1.enable_box_drying",
+        "extras.multi_color_controller.BoxAdapterV1.enable_box_drying"
+      ],
+      "identifiers": [
+        "box1base",
+        "box_num",
+        "enable_box_drying",
+        "temp",
+        "time"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 16620
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_17try_resume_print",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_17try_resume_print",
+      "elf_symbol_address": "0000000000038e30",
+      "methods": [
+        "BoxAdapterV1.try_resume_print",
+        "extras.multi_color_controller.BoxAdapterV1.try_resume_print"
+      ],
+      "identifiers": [
+        "box1base",
+        "try_resume_print_box1"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 17154
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_25rfid_init_read",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_25rfid_init_read",
+      "elf_symbol_address": "0000000000039170",
+      "methods": [
+        "BoxAdapterV1.rfid_init_read",
+        "extras.multi_color_controller.BoxAdapterV1.rfid_init_read"
+      ],
+      "identifiers": [
+        "box1base",
+        "rfid_init_read_box1"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 17348
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_41get_status",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_41get_status",
+      "elf_symbol_address": "000000000003b338",
+      "methods": [
+        "BoxAdapterV2.get_status",
+        "extras.multi_color_controller.BoxAdapterV2.get_status"
+      ],
+      "identifiers": [
+        "copy",
+        "deepcopy",
+        "eventtime",
+        "refresh_status"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 19230
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_3_handle_klippy_ready",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_3_handle_klippy_ready",
+      "elf_symbol_address": "000000000003b8f8",
+      "methods": [
+        "MultiColorController._handle_klippy_ready",
+        "extras.multi_color_controller.MultiColorController._handle_klippy_ready"
+      ],
+      "identifiers": [
+        "BoxAdapterV1",
+        "BoxAdapterV2",
+        "MultiColorController_is_ready",
+        "SaveVariables",
+        "box_adapter",
+        "default",
+        "e",
+        "extre",
+        "fila_json",
+        "gcode",
+        "init_steps_method",
+        "initialized",
+        "logger",
+        "lookup_object",
+        "mode",
+        "printer",
+        "respond_info",
+        "save_variables",
+        "save_vars",
+        "set_operation_adapter",
+        "task_queue_manager",
+        "warning"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 19558
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_53get_status",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_53get_status",
+      "elf_symbol_address": "0000000000042df0",
+      "methods": [
+        "MultiColorController.get_status",
+        "extras.multi_color_controller.MultiColorController.get_status"
+      ],
+      "identifiers": [
+        "active_slot",
+        "allVariables",
+        "auto_init_detect",
+        "auto_read_rfid",
+        "auto_reload_detect",
+        "box",
+        "box_adapter",
+        "box_button_state",
+        "box_count",
+        "box_status",
+        "box_warning_info",
+        "diameter",
+        "enable_box",
+        "eventtime",
+        "extra",
+        "extre",
+        "extruder_limit_state",
+        "filament_dry_extra",
+        "get",
+        "get_operation_status",
+        "get_status",
+        "hall_filament_width_sensor",
+        "initialized",
+        "load_retry_num",
+        "lookup_object",
+        "operate_state",
+        "operation",
+        "printer",
+        "save_vars",
+        "slot16",
+        "task"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 26006
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_3_handle_klippy_ready",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_3_handle_klippy_ready",
+      "elf_symbol_address": "0000000000047288",
+      "methods": [
+        "ExternalAdapter._handle_klippy_ready",
+        "extras.multi_color_controller.ExternalAdapter._handle_klippy_ready"
+      ],
+      "identifiers": [
+        "SaveVariables",
+        "e",
+        "logger",
+        "lookup_object",
+        "printer",
+        "save_variables",
+        "save_vars",
+        "warning"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 28458
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_25get_status",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_25get_status",
+      "elf_symbol_address": "0000000000051e20",
+      "methods": [
+        "ExternalAdapter.get_status",
+        "extras.multi_color_controller.ExternalAdapter.get_status"
+      ],
+      "identifiers": [
+        "FAFAFA",
+        "LEGACY_RFID_COLOR_MAP",
+        "LEGACY_RFID_FILAMENT_ID_MAP",
+        "QFA00",
+        "allVariables",
+        "box_max_temp",
+        "box_min_temp",
+        "color_hex",
+        "color_index",
+        "color_rgb_str",
+        "color_str",
+        "eventtime",
+        "filament_id",
+        "filament_index",
+        "filament_info",
+        "filament_name",
+        "filament_per",
+        "filament_profile",
+        "filament_str",
+        "filament_type",
+        "get",
+        "get_filament_info_by_id",
+        "get_filament_name_by_id",
+        "get_filament_type_by_id",
+        "get_filament_vendor_by_id",
+        "identity",
+        "material_db",
+        "max_temp",
+        "min_temp",
+        "nozzle_temperature",
+        "save_vars",
+        "vendor_str"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 37272
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_8FlowTask_3run",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_8FlowTask_3run",
+      "elf_symbol_address": "0000000000054738",
+      "methods": [
+        "FlowTask.run",
+        "extras.multi_color_controller.FlowTask.run"
+      ],
+      "identifiers": [
+        "Flow_cancelled",
+        "Flow_cancelled_after_step_comple",
+        "Flow_completed_successfully",
+        "Flow_paused_at_step",
+        "M104_S0",
+        "Step",
+        "complete",
+        "current_step",
+        "failed_Pausing_flow",
+        "gcode",
+        "get",
+        "index_2",
+        "is_cancelled",
+        "is_paused",
+        "method",
+        "method_map",
+        "queue",
+        "respond_info",
+        "run_script_from_command",
+        "step",
+        "success"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 39349
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_21set_filament_information",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_21set_filament_information",
+      "elf_symbol_address": "0000000000057d58",
+      "methods": [
+        "BoxAdapterV1.set_filament_information",
+        "extras.multi_color_controller.BoxAdapterV1.set_filament_information"
+      ],
+      "identifiers": [
+        "LEGACY_RFID_COLOR_REVERSE_MAP",
+        "LEGACY_RFID_FILAMENT_ID_REVERSE",
+        "SAVE_VARIABLE_VARIABLE_color_slo",
+        "SAVE_VARIABLE_VARIABLE_filament_2",
+        "SAVE_VARIABLE_VARIABLE_vendor_sl",
+        "VALUE",
+        "VALUE_1",
+        "cmd_color",
+        "cmd_filament",
+        "cmd_vendor",
+        "color",
+        "color_index",
+        "color_str",
+        "filament",
+        "filament_index",
+        "gcode",
+        "get",
+        "run_script_from_command",
+        "slot"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 42137
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_27get_status",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV1_27get_status",
+      "elf_symbol_address": "000000000005b388",
+      "methods": [
+        "BoxAdapterV1.get_status",
+        "extras.multi_color_controller.BoxAdapterV1.get_status"
+      ],
+      "identifiers": [
+        "allVariables",
+        "b_endstop_state",
+        "box1base",
+        "box_count",
+        "boxes",
+        "buffer",
+        "buffer_status",
+        "copy",
+        "deepcopy",
+        "eventtime",
+        "flatten_boxes_and_buffer",
+        "get",
+        "get_status",
+        "identity",
+        "save_vars",
+        "status"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 44955
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_1__init__",
+      "elf_symbol_address": "000000000005cc50",
+      "methods": [
+        "ExternalAdapter.__init__",
+        "extras.multi_color_controller.ExternalAdapter.__init__"
+      ],
+      "identifiers": [
+        "external",
+        "filament_temp",
+        "gcode",
+        "handle_klippy_ready",
+        "identity",
+        "init",
+        "klippy_ready",
+        "load_length",
+        "material_db",
+        "printer",
+        "reactor",
+        "register_event_handler",
+        "save_vars",
+        "task_queue_manager"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 46248
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_7set_filament_information",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_7set_filament_information",
+      "elf_symbol_address": "000000000005e458",
+      "methods": [
+        "ExternalAdapter.set_filament_information",
+        "extras.multi_color_controller.ExternalAdapter.set_filament_information"
+      ],
+      "identifiers": [
+        "LEGACY_RFID_COLOR_REVERSE_MAP",
+        "LEGACY_RFID_FILAMENT_ID_REVERSE",
+        "SAVE_VARIABLE_VARIABLE_color_sl",
+        "SAVE_VARIABLE_VARIABLE_filament",
+        "SAVE_VARIABLE_VARIABLE_vendor_s",
+        "cmd",
+        "cmd_1",
+        "cmd_2",
+        "cmd_3",
+        "color",
+        "color_index",
+        "color_str",
+        "filament",
+        "filament_id",
+        "filament_index",
+        "filament_temp",
+        "gcode",
+        "get",
+        "get_fila_id",
+        "get_max_temp_by_single_id",
+        "material_db",
+        "run_script_from_command",
+        "slot",
+        "upper",
+        "vendor"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 47540
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_12BoxAdapterV2_1__init__",
+      "elf_symbol_address": "000000000005f838",
+      "methods": [
+        "BoxAdapterV2.__init__",
+        "extras.multi_color_controller.BoxAdapterV2.__init__"
+      ],
+      "identifiers": [
+        "box2base",
+        "box_count",
+        "box_v2",
+        "default",
+        "default_filament_info_template",
+        "gcode",
+        "gcode_move",
+        "identity",
+        "init",
+        "lookup_object",
+        "material_db",
+        "normalized_boxes",
+        "printer",
+        "save_vars",
+        "task_queue_manager"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 48512
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_1__init__",
+      "elf_symbol_address": "0000000000060340",
+      "methods": [
+        "MultiColorController.__init__",
+        "extras.multi_color_controller.MultiColorController.__init__"
+      ],
+      "identifiers": [
+        "BOX",
+        "BOX_START_DRYING",
+        "BOX_STOP_DRYING",
+        "EJECT_FILAMENT_CONTROL",
+        "EX_START_DRYING",
+        "EX_STOP_DRYING",
+        "ExternalAdapter",
+        "FLOW_RETRY",
+        "FLOW_STOP",
+        "LOAD_FILAMENT_CONTROL",
+        "MaterialDatabase",
+        "MaterialDatabaseJosn",
+        "READ_RFID",
+        "RFID",
+        "RFID_2",
+        "RFID_3",
+        "SET_BOX_TEMP_CONTROL",
+        "SET_ENABLE_AUTO_RELOAD",
+        "SET_ENABLE_INIT_READ_RFID",
+        "SET_ENABLE_RFID_READ",
+        "SET_FILAMENT_DRY",
+        "TaskQueueManager",
+        "UNLOAD_FILAMENT_CONTROL",
+        "UPDATE_FILAMENT_INFORMATION",
+        "box_adapter",
+        "cmd_BOX_START_DRYING",
+        "cmd_BOX_STOP_DRYING",
+        "cmd_EJECT_FILAMENT_CONTROL",
+        "cmd_EX_START_DRYING",
+        "cmd_EX_STOP_DRYING",
+        "cmd_FLOW_RETRY",
+        "cmd_FLOW_STOP",
+        "cmd_LOAD_FILAMENT_CONTROL",
+        "cmd_READ_RFID",
+        "cmd_SET_BOX_TEMP_CONTROL",
+        "cmd_SET_ENABLE_AUTO_RELOAD",
+        "cmd_SET_ENABLE_INIT_READ_RFID",
+        "cmd_SET_ENABLE_RFID_READ",
+        "cmd_UNLOAD_FILAMENT_CONTROL",
+        "cmd_UPDATE_FILAMENT_INFORMATION",
+        "cmd_set_filament_dry",
+        "config",
+        "desc",
+        "dry_state",
+        "end_time",
+        "extre",
+        "fila_json",
+        "fila_list",
+        "filament_dry_extra",
+        "gcode",
+        "get_printer",
+        "get_reactor",
+        "handle_flow_stop",
+        "handle_klippy_ready",
+        "handle_set_filament_info",
+        "heating_timer",
+        "initialized",
+        "klippy_ready",
+        "lookup_object",
+        "multi_color_controller_flow_stop",
+        "multi_color_controller_set_filam",
+        "poll_timer",
+        "printer",
+        "reactor",
+        "register_command",
+        "register_endpoint",
+        "register_event_handler",
+        "save_vars",
+        "status_timer",
+        "task_queue_manager",
+        "webhooks"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 49145
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_16TaskQueueManager_29retry",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_16TaskQueueManager_29retry",
+      "elf_symbol_address": "00000000000639f8",
+      "methods": [
+        "TaskQueueManager.retry",
+        "extras.multi_color_controller.TaskQueueManager.retry"
+      ],
+      "identifiers": [
+        "M109_S",
+        "No_failed_step_to_retry",
+        "can_next",
+        "current_flow_temp",
+        "current_step",
+        "current_task",
+        "gcode",
+        "goto_next_step",
+        "is_paused",
+        "on_complete",
+        "respond_info",
+        "run",
+        "run_script_from_command"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 51830
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_11BaseAdapter_23load_filament",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_11BaseAdapter_23load_filament",
+      "elf_symbol_address": "0000000000067cb0",
+      "methods": [
+        "BaseAdapter.load_filament",
+        "extras.multi_color_controller.BaseAdapter.load_filament"
+      ],
+      "identifiers": [
+        "gcmd"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 55410
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_15load_filament",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_15ExternalAdapter_15load_filament",
+      "elf_symbol_address": "00000000000686a0",
+      "methods": [
+        "ExternalAdapter.load_filament",
+        "extras.multi_color_controller.ExternalAdapter.load_filament"
+      ],
+      "identifiers": [
+        "G92_E0_G1_E80_F400_M400",
+        "cmd",
+        "gcmd",
+        "gcode",
+        "lookup_object",
+        "printer",
+        "run_script_from_command",
+        "toolhead",
+        "wait_moves"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 55946
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_9_handle_flow_stop",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_9_handle_flow_stop",
+      "elf_symbol_address": "000000000006a838",
+      "methods": [
+        "MultiColorController._handle_flow_stop",
+        "extras.multi_color_controller.MultiColorController._handle_flow_stop"
+      ],
+      "identifiers": [
+        "stop",
+        "task_queue_manager",
+        "web_request"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 57812
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_11BaseAdapter_1__init__",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_11BaseAdapter_1__init__",
+      "elf_symbol_address": "000000000006c700",
+      "methods": [
+        "BaseAdapter.__init__",
+        "extras.multi_color_controller.BaseAdapter.__init__"
+      ],
+      "identifiers": [
+        "active_slot",
+        "box_button_state",
+        "operate_state",
+        "printer",
+        "slot16"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 59544
+    },
+    {
+      "component": "multi_color_controller",
+      "symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_5_handle_set_filament_info",
+      "elf_symbol": "__pyx_pw_6extras_22multi_color_controller_20MultiColorController_5_handle_set_filament_info",
+      "elf_symbol_address": "0000000000077da8",
+      "methods": [
+        "MultiColorController._handle_set_filament_info",
+        "extras.multi_color_controller.MultiColorController._handle_set_filament_info"
+      ],
+      "identifiers": [
+        "Missing_filament_parameter",
+        "Missing_slot_parameter",
+        "box_adapter",
+        "color",
+        "color_value",
+        "error",
+        "extre",
+        "filament",
+        "filament_id",
+        "get_dict",
+        "get_v2_filament_id",
+        "message",
+        "num",
+        "set_filament_information",
+        "startswith",
+        "status",
+        "strip",
+        "vendor",
+        "web_request"
+      ],
+      "local_raw_file": "native/multi_color_controller/2.1.1/decompiled.c",
+      "local_raw_line": 69071
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_162send_moonraker_status",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_162send_moonraker_status",
+      "elf_symbol_address": "0000000000037100",
+      "methods": [
+        "MQTTClient.send_moonraker_status",
+        "moonraker.components.mqtt.MQTTClient.send_moonraker_status"
+      ],
+      "identifiers": [
+        "data",
+        "eventtime",
+        "is_connected",
+        "moonraker_status_2",
+        "moonraker_status_update_topic",
+        "payload",
+        "publish_topic",
+        "status",
+        "wrap_payload"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 1969
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_14_status_update",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_14_status_update",
+      "elf_symbol_address": "0000000000038170",
+      "methods": [
+        "MQTTClient._status_update",
+        "moonraker.components.mqtt.MQTTClient._status_update"
+      ],
+      "identifiers": [
+        "MQTTClient__status_update",
+        "data",
+        "moonraker_components_mqtt",
+        "status_update"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 2819
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_140_sync_klipper_subscription",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_140_sync_klipper_subscription",
+      "elf_symbol_address": "000000000003de40",
+      "methods": [
+        "MQTTClient._sync_klipper_subscription",
+        "moonraker.components.mqtt.MQTTClient._sync_klipper_subscription"
+      ],
+      "identifiers": [
+        "MQTTClient__sync_klipper_subscri",
+        "moonraker_components_mqtt",
+        "sync_klipper_subscription"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 7036
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_53_sync_frp_state",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_53_sync_frp_state",
+      "elf_symbol_address": "000000000003e810",
+      "methods": [
+        "MQTTClient._sync_frp_state",
+        "moonraker.components.mqtt.MQTTClient._sync_frp_state"
+      ],
+      "identifiers": [
+        "MQTTClient__sync_frp_state",
+        "moonraker_components_mqtt",
+        "sync_frp_state"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 7620
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_137_process_focus_command",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_137_process_focus_command",
+      "elf_symbol_address": "000000000004c5d8",
+      "methods": [
+        "MQTTClient._process_focus_command",
+        "moonraker.components.mqtt.MQTTClient._process_focus_command"
+      ],
+      "identifiers": [
+        "MQTTClient__process_focus_comman",
+        "moonraker_components_mqtt",
+        "process_focus_command",
+        "request"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 20017
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_131_check_focus_interval",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_131_check_focus_interval",
+      "elf_symbol_address": "000000000005bc18",
+      "methods": [
+        "MQTTClient._check_focus_interval",
+        "moonraker.components.mqtt.MQTTClient._check_focus_interval"
+      ],
+      "identifiers": [
+        "current_time_ms",
+        "focus_interval_ms",
+        "focus_last_report_time",
+        "time"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 25652
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_129_check_focus_active",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_129_check_focus_active",
+      "elf_symbol_address": "000000000005c780",
+      "methods": [
+        "MQTTClient._check_focus_active",
+        "moonraker.components.mqtt.MQTTClient._check_focus_active"
+      ],
+      "identifiers": [
+        "Focus_subscription_expired_at",
+        "current_time_ms",
+        "focus_active",
+        "focus_expire_at",
+        "focus_objects",
+        "info",
+        "logging",
+        "time"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 26260
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_92_check_and_publish_summary",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_92_check_and_publish_summary",
+      "elf_symbol_address": "0000000000079328",
+      "methods": [
+        "MQTTClient._check_and_publish_summary",
+        "moonraker.components.mqtt.MQTTClient._check_and_publish_summary"
+      ],
+      "identifiers": [
+        "Summary_check_error",
+        "Summary_published_event",
+        "current_print_state",
+        "data",
+        "debug",
+        "e",
+        "error",
+        "event_type",
+        "failCause",
+        "get",
+        "get_event_type",
+        "get_work_state",
+        "is_connected",
+        "job",
+        "jobState",
+        "job_state",
+        "last_summary",
+        "logging",
+        "moonraker_status_topic",
+        "online",
+        "online_2",
+        "publish_topic",
+        "raw",
+        "uid",
+        "workState",
+        "workState_2",
+        "work_state",
+        "wrap_payload",
+        "wrapped"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 36548
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_166_publish_status_update",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_166_publish_status_update",
+      "elf_symbol_address": "0000000000093ee8",
+      "methods": [
+        "MQTTClient._publish_status_update",
+        "moonraker.components.mqtt.MQTTClient._publish_status_update"
+      ],
+      "identifiers": [
+        "MQTT_SEND_topic",
+        "MQTT__publish_status_update_Fil",
+        "MQTT__publish_status_update_Foc",
+        "MQTT__publish_status_update_Foc_2",
+        "MQTT__publish_status_update_Ful",
+        "MQTT__publish_status_update_Inc",
+        "MQTT__publish_status_update_No",
+        "MQTT__publish_status_update_Rec",
+        "bytes_objects",
+        "check_focus_active",
+        "check_focus_interval",
+        "check_full_sync_interval",
+        "collect_focus_full_status",
+        "data",
+        "debug",
+        "eventtime",
+        "filter_status_by_focus",
+        "filtered_status",
+        "focus_last_full_sync_time",
+        "focus_need_full_sync",
+        "info",
+        "is_full_sync",
+        "keys",
+        "klipper_state_prefix",
+        "klipper_status_topic",
+        "logging",
+        "objects_3",
+        "objects_4",
+        "objects_objects",
+        "objkey",
+        "objval",
+        "payload",
+        "payload_2",
+        "payload_size",
+        "printer_subscribe_status",
+        "publish_split_status",
+        "publish_status",
+        "publish_topic",
+        "retain",
+        "statekey",
+        "status",
+        "time",
+        "topic",
+        "value",
+        "wrap_payload"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 50500
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_148_handle_agent_event",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_148_handle_agent_event",
+      "elf_symbol_address": "00000000000d5e58",
+      "methods": [
+        "MQTTClient._handle_agent_event",
+        "moonraker.components.mqtt.MQTTClient._handle_agent_event"
+      ],
+      "identifiers": [
+        "MQTTClient__handle_agent_event",
+        "data",
+        "handle_agent_event",
+        "moonraker_components_mqtt",
+        "name"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 77345
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_98_wrap_payload",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_4mqtt_10MQTTClient_98_wrap_payload",
+      "elf_symbol_address": "00000000000d75a8",
+      "methods": [
+        "MQTTClient._wrap_payload",
+        "moonraker.components.mqtt.MQTTClient._wrap_payload"
+      ],
+      "identifiers": [
+        "action",
+        "agent",
+        "agent_clients",
+        "app_args",
+        "client_data",
+        "data",
+        "event",
+        "get",
+        "get_app_args",
+        "get_clients_by_type",
+        "gethostname",
+        "isdigit",
+        "lookup_component",
+        "parts",
+        "serialNumber",
+        "serial_number",
+        "server",
+        "socket",
+        "split",
+        "time",
+        "ts",
+        "ui_version",
+        "v",
+        "ver",
+        "ver_str",
+        "version",
+        "websockets",
+        "ws_comp"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/decompiled.c",
+      "local_raw_line": 78633
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_54generator15",
+      "elf_symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_54generator15",
+      "elf_symbol_address": "0000000000038b30",
+      "methods": [
+        "_sync_frp_state"
+      ],
+      "identifiers": [
+        "is_account_bound",
+        "is_lan_mode",
+        "start_frp_if_needed",
+        "stop_frp_if_needed"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/coroutines.c",
+      "local_raw_line": 2346
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_141generator30",
+      "elf_symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_141generator30",
+      "elf_symbol_address": "000000000005a300",
+      "methods": [
+        "_sync_klipper_subscription",
+        "moonraker.components.mqtt.MQTTClient._sync_klipper_subscription"
+      ],
+      "identifiers": [
+        "Failed_to_sync_focus_subscriptio",
+        "error",
+        "focus_objects",
+        "klippy_apis",
+        "logging",
+        "lookup_component",
+        "server",
+        "subscribe_from_transport"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/coroutines.c",
+      "local_raw_line": 9826
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_149generator32",
+      "elf_symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_149generator32",
+      "elf_symbol_address": "000000000009c170",
+      "methods": [
+        "_handle_agent_event"
+      ],
+      "identifiers": [
+        "Publishing_error_update_to",
+        "info",
+        "jsonrpc",
+        "logging",
+        "method",
+        "moonraker_event_topic",
+        "notify",
+        "notify_from_printer",
+        "params",
+        "publish_topic",
+        "wrap_payload"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/coroutines.c",
+      "local_raw_line": 34578
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_15generator4",
+      "elf_symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_15generator4",
+      "elf_symbol_address": "00000000000aa830",
+      "methods": [
+        "_status_update"
+      ],
+      "identifiers": [
+        "CRITICAL_Failed_to_send_job_stat",
+        "MQTT_Job_Status_Updated_s",
+        "cancelled",
+        "check_and_publish_summary",
+        "complete",
+        "copy",
+        "current_print_state",
+        "error",
+        "exc_info",
+        "failCause",
+        "get",
+        "handle_slice_download_print",
+        "info",
+        "jobState",
+        "job_state",
+        "logging",
+        "native",
+        "print_stats",
+        "printing",
+        "printing_2",
+        "progress",
+        "state_2",
+        "time",
+        "timestamp",
+        "uid",
+        "virtual_sdcard"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/coroutines.c",
+      "local_raw_line": 41303
+    },
+    {
+      "component": "mqtt",
+      "symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_138generator29",
+      "elf_symbol": "__pyx_gb_9moonraker_10components_4mqtt_10MQTTClient_138generator29",
+      "elf_symbol_address": "00000000000b9de0",
+      "methods": [
+        "_process_focus_command"
+      ],
+      "identifiers": [
+        "Focus_renewed_expireAt",
+        "Focus_subscription_started_expir",
+        "action",
+        "eventloop",
+        "expireAt",
+        "focus_active",
+        "focus_expire_at",
+        "focus_full",
+        "focus_full_received_but_focus_is",
+        "focus_full_received_triggering_f",
+        "focus_full_sync_interval",
+        "focus_interval_ms",
+        "focus_last_full_sync_time",
+        "focus_last_report_time",
+        "focus_need_full_sync",
+        "focus_objects",
+        "focus_renew",
+        "focus_start",
+        "fullSyncIntervalSec",
+        "fullSyncIntervalSec_2",
+        "fullSyncIntervalSec_3",
+        "get",
+        "info",
+        "intervalMs",
+        "intervalMs_2",
+        "intervalMs_3",
+        "keys",
+        "logging",
+        "objects",
+        "objects_2",
+        "register_callback",
+        "sync_klipper_subscription",
+        "time",
+        "trigger_focus_full_report",
+        "warning"
+      ],
+      "local_raw_file": "native/mqtt/2.1.1/coroutines.c",
+      "local_raw_line": 47727
+    },
+    {
+      "component": "extensions",
+      "symbol": "__pyx_pw_9moonraker_10components_10extensions_16ExtensionManager_1__init__",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_10extensions_16ExtensionManager_1__init__",
+      "elf_symbol_address": "000000000001dce8",
+      "methods": [
+        "ExtensionManager.__init__",
+        "moonraker.components.extensions.ExtensionManager.__init__"
+      ],
+      "identifiers": [
+        "GET",
+        "POST",
+        "RequestType",
+        "TransportType",
+        "WEBSOCKET",
+        "agent_methods",
+        "agents",
+        "api_qidiclient_config_offical_f",
+        "api_qidiclient_files_list",
+        "api_qidiclient_files_stats",
+        "config",
+        "connection_register_remote_meth",
+        "connection_send_event",
+        "get_server",
+        "handle_agent_event",
+        "handle_call_agent",
+        "handle_list_extensions",
+        "handle_qidiclient_config_offica",
+        "handle_qidiclient_files_list",
+        "handle_qidiclient_files_stats",
+        "handle_send_event_to_all",
+        "printer_connection_send_event_t",
+        "register_agent_method",
+        "register_endpoint",
+        "server",
+        "server_extensions_list",
+        "server_extensions_request",
+        "transports",
+        "uds_server"
+      ],
+      "local_raw_file": "native/extensions/2.1.1/decompiled.c",
+      "local_raw_line": 6310
+    },
+    {
+      "component": "extensions",
+      "symbol": "__pyx_pw_9moonraker_10components_10extensions_16ExtensionManager_10_handle_send_event_to_all",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_10extensions_16ExtensionManager_10_handle_send_event_to_all",
+      "elf_symbol_address": "0000000000020268",
+      "methods": [
+        "ExtensionManager._handle_send_event_to_all",
+        "moonraker.components.extensions.ExtensionManager._handle_send_event_to_all"
+      ],
+      "identifiers": [
+        "ExtensionManager__handle_send_ev",
+        "handle_send_event_to_all",
+        "moonraker_components_extensions",
+        "web_request"
+      ],
+      "local_raw_file": "native/extensions/2.1.1/decompiled.c",
+      "local_raw_line": 8370
+    },
+    {
+      "component": "extensions",
+      "symbol": "__pyx_pw_9moonraker_10components_10extensions_16UnixSocketClient_1__init__",
+      "elf_symbol": "__pyx_pw_9moonraker_10components_10extensions_16UnixSocketClient_1__init__",
+      "elf_symbol_address": "000000000002bb80",
+      "methods": [
+        "UnixSocketClient.__init__",
+        "moonraker.components.extensions.UnixSocketClient.__init__"
+      ],
+      "identifiers": [
+        "Group_ID",
+        "Process_ID",
+        "Unix_Socket_Opened_Client_ID",
+        "User_ID",
+        "add_client",
+        "connected_time",
+        "eventloop",
+        "get",
+        "get_loop_time",
+        "gid",
+        "group_id",
+        "info",
+        "logging",
+        "on_create",
+        "peer_cred",
+        "peercred",
+        "pid",
+        "process_id",
+        "read_messages",
+        "reader",
+        "register_callback",
+        "server",
+        "uid",
+        "user_id",
+        "writer",
+        "wsm"
+      ],
+      "local_raw_file": "native/extensions/2.1.1/decompiled.c",
+      "local_raw_line": 13853
+    },
+    {
+      "component": "extensions",
+      "symbol": "__pyx_gb_9moonraker_10components_10extensions_16ExtensionManager_11generator1",
+      "elf_symbol": "__pyx_gb_9moonraker_10components_10extensions_16ExtensionManager_11generator1",
+      "elf_symbol_address": "0000000000017ae8",
+      "methods": [
+        "_handle_send_event_to_all"
+      ],
+      "identifiers": [
+        "No_connection_detected",
+        "Only_connections_of_the_agent_ty",
+        "agent",
+        "agent_agent_event",
+        "agent_event",
+        "client_data",
+        "data",
+        "error",
+        "event",
+        "get",
+        "get_client_connection",
+        "get_str",
+        "ok",
+        "send_event",
+        "send_notification",
+        "server",
+        "type"
+      ],
+      "local_raw_file": "native/extensions/2.1.1/coroutines.c",
+      "local_raw_line": 1244
+    }
+  ]
+}

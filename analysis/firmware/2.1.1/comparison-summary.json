@@ -1,0 +1,28 @@
+{
+  "payload_regular_files": 1165,
+  "status_counts": {
+    "not_in_snapshot": 1045,
+    "identical": 106,
+    "changed": 14
+  },
+  "matching_paths": 120,
+  "exclusions": [
+    "Absent payload paths are not removals",
+    "Paths absent from the baseline snapshot are not proven new",
+    "Installed printer/macro/Moonraker/generated Box configuration may include local state"
+  ],
+  "klipper": {
+    "files": 23,
+    "status_counts": {
+      "identical": 20,
+      "changed": 3
+    }
+  },
+  "moonraker": {
+    "files": 77,
+    "status_counts": {
+      "identical": 72,
+      "changed": 5
+    }
+  }
+}

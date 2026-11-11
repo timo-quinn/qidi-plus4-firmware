@@ -1,0 +1,310 @@
+--- 1.8.2/home/mks/moonraker/moonraker/common.py
++++ 2.1.1/home/mks/moonraker/moonraker/common.py
+@@ -472,6 +472,21 @@
+             'method': "notify_status_update",
+             'params': [status, eventtime]})
+ 
++    def send_moonraker_status(
++        self, 
++        status: Dict[str, Any], 
++        eventtime: float
++    ) -> None:
++        if not status:
++            return
++        
++        # 封装为独立的 JSON-RPC 通知方法，避免与 Klipper 原生的 notify_status_update 混淆
++        self.queue_message({
++            'jsonrpc': "2.0",
++            'method': "notify_moonraker_status_update",
++            'params': [status, eventtime]
++        })
++
+     def call_method_with_response(
+         self,
+         method: str,
+--- 1.8.2/home/mks/moonraker/moonraker/components/database.py
++++ 2.1.1/home/mks/moonraker/moonraker/components/database.py
+@@ -119,10 +119,16 @@
+     "user.nickname": "",
+     "user.avatarUrl": "",
+     "user.token": "",
++    "user.userId": "",
+     "user.region": "NA",
+     "user.alias": _alias_default,
+     "mqtt.account": "",
+-    "mqtt.password": ""
++    "mqtt.password": "",
++    "mqtt.shard": "",
++    "p2p.license": "",
++    "p2p.connect": "",
++    "p2p.peer": "",
++    "p2p.p2pPassword": ""
+ }
+ 
+ RECORD_ENCODE_FUNCS: Dict[Type, Callable[..., bytes]] = {
+@@ -406,7 +412,7 @@
+             parts = key.split('.')
+             cur = await self.get_value_from_config(parts[0], parts[1])
+             item = dict(await cur.fetchone() or {})
+-            logging.info(f"init item -> {item}")
++            # logging.info(f"init item -> {item}")
+             if item:
+                 self.config_items[key] = item['value']
+     
+@@ -895,7 +901,7 @@
+             }
+     
+     async def _handle_config_select_all_request(self, web_request: WebRequest) -> Dict[str, Any]:
+-        return self.get_config_items()
++        return self.config_items
+ 
+     async def _handle_config_update_request(self, web_request: WebRequest) -> Dict[str, Any]:
+         try:
+--- 1.8.2/home/mks/moonraker/moonraker/components/klippy_apis.py
++++ 2.1.1/home/mks/moonraker/moonraker/components/klippy_apis.py
+@@ -99,6 +99,9 @@
+         self.server.register_endpoint(
+             "/printer/breakmacro", RequestType.POST, self.breakmacro
+         )
++        self.server.register_endpoint(
++            "/printer/multi_color_controller/flow_stop", RequestType.POST, self.multi_color_flow_stop
++        )
+ 
+     def _on_klippy_disconnect(self) -> None:
+         self.host_subscription.clear()
+@@ -116,13 +119,45 @@
+     async def _gcode_start_print(self, web_request: WebRequest) -> str:
+         filename: str = web_request.get_str('filename')
+         user = web_request.get_current_user()
+-        return await self.start_print(filename, user=user)
++        plateindex: str = web_request.get_str('plateindex', '1')
++        uid: str = web_request.get_str('uid', "native")
++        need_extract: bool = web_request.get_boolean('need_extract', True)
++        # 判断是否是存在fileurl字段，是的话就下载，异步下载+开启打印，直接返回不阻塞，异步下载和开启打印时需要主动推送到mqtt的job主题进度
++        file_url: str = web_request.get_str('fileurl', '')
++        if file_url:
++            # 如果存在 fileurl，开启异步下载+打印任务
++            # 发送value参数
++            value_ts = web_request.get_json_list('consumable', [])
++            logging.info(f"value_ts -> {value_ts}")
++            await self.run_gcode(f"SAVE_VARIABLE VARIABLE=enable_box VALUE={int(bool(value_ts))}")
++            for index, value_t in enumerate(value_ts, start=0):
++                if value_t != -1:
++                   await self.run_gcode(f"SAVE_VARIABLE VARIABLE=value_t{index}  VALUE='\"slot{value_t}\"'")
++            # await self.run_gcode("G32") # 不在控制调平
++            
++            self.eventloop.register_callback(
++                self._async_download_and_start_print, 
++                file_url,            # url
++                filename,            # filename
++                False,               # wait_klippy_started: 明确传递默认值
++                user,                # user: 现在在正确位置
++                plateindex,          # plateindex
++                uid,                 # uid
++                need_extract         # need_extract: 现在在正确位置
++            )
++            # 直接返回，告诉前端任务已接纳
++            return "ok" 
++        # 非云切片的任务uid改为native
++        return await self.start_print(filename, user=user, plateindex = plateindex, uid = uid, need_extract = need_extract)
+ 
+     async def _gcode_restart(self, web_request: WebRequest) -> str:
+         return await self.do_restart("RESTART")
+ 
+     async def _gcode_firmware_restart(self, web_request: WebRequest) -> str:
+         return await self.do_restart("FIRMWARE_RESTART")
++
++    async def multi_color_flow_stop(self, web_request: WebRequest) -> Dict[str, Any]:
++        return await self.flow_stop()
+ 
+     async def _send_klippy_request(
+         self,
+@@ -153,7 +188,10 @@
+         self,
+         filename: str,
+         wait_klippy_started: bool = False,
+-        user: Optional[UserInfo] = None
++        user: Optional[UserInfo] = None,
++        plateindex: str = "1",
++        uid: str = "native",
++        need_extract: bool = True
+     ) -> str:
+         # WARNING: Do not call this method from within the following
+         # event handlers when "wait_klippy_started" is set to True:
+@@ -220,6 +258,13 @@
+             "breakheater", {}, default)
+         return await self._send_klippy_request(
+             "pause_resume/cancel", {}, default)
++
++    async def flow_stop(
++        self, default: Union[Sentinel, _T] = Sentinel.MISSING
++    ) -> Union[_T, str]:
++        logging.info("Cancel multicolor flow queue...")
++        return await self._send_klippy_request(
++            "multi_color_controller/flow_stop", {}, default)
+     
+     async def breakheater(
+         self, default: Union[Sentinel, _T] = Sentinel.MISSING
+@@ -258,89 +303,122 @@
+         filename: str,
+         wait_klippy_started: bool = False,
+         user: Optional[UserInfo] = None,
+-        #plateindex: str = "1",
+-        uid: str = "123456789",
++        plateindex: str = "1",
++        uid: str = "native",
+         need_extract: bool = False,
+     ):
+-        upload_dir = '/home/qidi/printer_data/.cache'
+-
++        upload_dir = '/home/mks/printer_data/.cache'
++        logging.info(f"[CloudPrint] 收到下载打印请求: filename={filename}, uid={uid}")
++
++        # 1. 清空目录内部（不删除目录本身）
+         try:
+             if os.path.exists(upload_dir):
+-                # 如果存在，直接递归删除整个文件夹及其内容
+-                shutil.rmtree(upload_dir)
+-                logging.info(f"已清理现有的目录: {upload_dir}")
+-            
+-            # 重新创建空目录
+-            # exist_ok=True 配合前面的删除，确保万无一失
+-            os.makedirs(upload_dir, mode=0o755, exist_ok=True)
+-            logging.info(f"空目录已就绪: {upload_dir}")
+-            
++                for item in os.listdir(upload_dir):
++                    item_path = os.path.join(upload_dir, item)
++                    try:
++                        if os.path.isfile(item_path) or os.path.islink(item_path):
++                            os.unlink(item_path)
++                        elif os.path.isdir(item_path):
++                            shutil.rmtree(item_path)
++                    except Exception as e:
++                        logging.warning(f"[CloudPrint] 清理缓存项 {item} 失败: {e}")
++            else:
++                os.makedirs(upload_dir, mode=0o755, exist_ok=True)
++            logging.info(f"[CloudPrint] 缓存目录 {upload_dir} 已就绪")
+         except Exception as e:
+-            logging.error(f"操作目录 {upload_dir} 失败: {e}")
++            logging.error(f"[CloudPrint] 操作目录 {upload_dir} 严重失败: {e}")
+             return
+ 
+         dest_path = os.path.join(upload_dir, filename)
+         tmp_path = dest_path + ".tmp"
+-        # TODO:方案，在mqtt注册事件回调，触发回调会把传入回调的信息发送到指定主题，现在有问题的是，如何获取下载进度呢？
++        
+         payload = {
+             'jobState': 'downloading',
+             'url': url,
+             'timestamp': int(time.time()),
+             'filename': filename,
+-            #'plateIndex': plateindex,
+-            'progress': 'downloading_0%'
++            'plateIndex': plateindex,
++            'progress': 'downloading_0%',
++            'uid': uid
+         }
+-        self.server.send_event("cloud:slice_download_print", payload)
+-        last_reported_progress = -1 # 用于控制上报频率
++
+         try:
+-            # 1.开始下载
++            # 2. 开始下载流程
++            self.server.send_event("cloud:slice_download_print", payload)
++            last_reported_progress = -1
++
+             async with aiohttp.ClientSession() as session:
+                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=600)) as response:
+                     if response.status != 200:
+-                        raise Exception(f"Download failed with status: {response.status}")
++                        raise Exception(f"HTTP Error: {response.status}")
+ 
+                     total_size = int(response.headers.get('content-length', 0))
+                     downloaded_size = 0
+-                    
+-                    # 使用标准的同步写，但在线程池中运行以防阻塞主循环
+-                    def save_chunk(chunk):
+-                        with open(tmp_path, 'ab') as f: # 使用 'ab' 追加写入
+-                            f.write(chunk)
++                    logging.info(f"[CloudPrint] 开始下载文件, 总大小: {total_size} bytes")
++
++                    # 定义磁盘写入任务
++                    def save_chunk(chunk_data):
++                        with open(tmp_path, 'ab') as f:
++                            f.write(chunk_data)
+ 
+                     async for chunk in response.content.iter_chunked(64 * 1024):
+-                        # 将阻塞的磁盘 IO 丢给线程池
++                        # 在线程池中执行磁盘 IO，绝对不阻塞 Moonraker 主线程
+                         await self.eventloop.run_in_thread(save_chunk, chunk)
+                         downloaded_size += len(chunk)
+                         
+                         if total_size > 0:
+                             progress = int((downloaded_size / total_size) * 100)
+-                            # 只有进度真的变化了，且是 5 的倍数时才上报
+                             if progress % 5 == 0 and progress != last_reported_progress: 
+                                 payload["progress"] = f"downloading_{progress}%"
+                                 payload["timestamp"] = int(time.time())
+                                 self.server.send_event("cloud:slice_download_print", payload)
+                                 last_reported_progress = progress
+ 
+-            # 下载完成，准备打印
++            # 3. 下载校验与更名
++            if not os.path.exists(tmp_path):
++                raise Exception("临时文件不存在，下载可能未成功")
++
+             if os.path.exists(dest_path):
+                 os.remove(dest_path)
+             os.rename(tmp_path, dest_path)
+-
+-            logging.info(f"Download completed: {dest_path}")
+-            payload["progress"] = "downloading_100%"
+-            payload["timestamp"] = int(time.time())
++            
++            logging.info(f"[CloudPrint] 下载完成并保存至: {dest_path}")
++            
++            payload.update({
++                "progress": "downloading_100%",
++                "timestamp": int(time.time())
++            })
+             self.server.send_event("cloud:slice_download_print", payload)
+-            # 2.开始打印
+-            await self.start_print(filename,  wait_klippy_started=wait_klippy_started, user=user, uid = uid, need_extract = need_extract)
+-            payload["jobState"] = f"started"
+-            payload["timestamp"] = int(time.time())
++
++            # 4. 触发打印
++            logging.info(f"[CloudPrint] 准备触发打印任务: {filename}")
++            await self.start_print(
++                "/home/mks/printer_data/.cache/" + filename, 
++                wait_klippy_started=wait_klippy_started, 
++                user=user, 
++                plateindex=plateindex, 
++                uid=uid, 
++                need_extract=need_extract
++            )
++            
++            payload.update({
++                "jobState": "started",
++                "timestamp": int(time.time())
++            })
+             self.server.send_event("cloud:slice_download_print", payload)
++            logging.info(f"[CloudPrint] 任务 {uid} 已成功下发给 Klippy")
+             
+         except Exception as e:
+-            logging.error("下载任务：%s, 报错：%s", url, e)
+-            payload["failCause"] = str(e)
+-            payload["timestamp"] = int(time.time())
++            logging.error(f"[CloudPrint] 任务 {uid} 执行异常: {str(e)}", exc_info=True)
++            payload.update({
++                "jobState": "failed",
++                "failCause": str(e),
++                "timestamp": int(time.time())
++            })
+             self.server.send_event("cloud:slice_download_print", payload)
++            # 清理残留的临时文件
++            if os.path.exists(tmp_path):
++                os.remove(tmp_path)
+ 
+     async def list_endpoints(self,
+                              default: Union[Sentinel, _T] = Sentinel.MISSING

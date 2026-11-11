@@ -14,6 +14,8 @@ documents QIDI's update sources and package flow.
 | Factory 1.1.2 analysis snapshot | `data/printer-backups/retained/analysis-1.1.2.tar.gz` |
 | Stock 1.7.3 analysis snapshot | `data/printer-backups/retained/analysis-1.7.3.tar.gz` |
 | Stock 1.8.2 analysis snapshot | `data/printer-backups/retained/analysis-1.8.2.tar.gz` |
+| Downloaded 2.1.1 host and screen payloads | `artifacts/vendor-firmware/2026-11-11/aliyun/QD_Plus4_SOC` and `QD_Plus4_UI` |
+| Unpacked 2.1.1 host payload | `artifacts/vendor-firmware/2026-11-11/aliyun/rootfs/` |
 | Stock 1.8.2 mainboard flash readback | `data/printer-backups/retained/recovery/1.8.2/mainboard-full-flash-1.8.2.bin` |
 | Stock 1.8.2 toolhead flash readback | `data/printer-backups/retained/recovery/1.8.2/toolhead-full-flash-1.8.2.bin` |
 | Stock 1.8.2 QIDI Box flash readback | `data/printer-backups/retained/recovery/1.8.2/qidi-box-full-flash-1.8.2.bin` |
@@ -23,6 +25,12 @@ documents QIDI's update sources and package flow.
 The analysis archives are filesystem/source snapshots. The recovery `.bin`
 files are full MCU flash readbacks; neither is a standard QIDI update package.
 Mainline build output is separate from the stock firmware evidence.
+
+The [2.1.1 comparison](../docs/firmware/FIRMWARE-2.1.1.md) and its
+[published provenance](../analysis/firmware/2.1.1/provenance.json) identify the
+downloaded OTA inputs. Downloads and raw native analysis are local and ignored;
+reviewed hashes, source changes and API metadata are published under
+`analysis/firmware/2.1.1/`.
 
 ## Private input layout
 

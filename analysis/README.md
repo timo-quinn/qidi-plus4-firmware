@@ -8,6 +8,7 @@ with these indexes before browsing the large generated trees.
 | Index | Contents |
 | --- | --- |
 | [Firmware evidence](firmware/README.md) | Filesystem comparisons, readable patches, touchscreen symbols and strings, update/USB protocol routines |
+| [2.1.1 comparison evidence](firmware/2.1.1/README.md) | 1.8.2 baseline vs. 2.1.1 OTA hashes, matched files, Box/Moonraker API deltas and source diff |
 | [Compiled components](components/INDEX.md) | Klipper and Moonraker component metadata, symbols, disassembly, Ghidra pseudocode, source estimates |
 | [Component methods](components/FUNCTION-COMPARISON.md) | Method-level navigation for changed Box modules between 1.7.3 and 1.8.2 |
 | [Published-source lineage](components/LINEAGE-ANALYSIS.md) | Comparison with earlier published Box Python source |

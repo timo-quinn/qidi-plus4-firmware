@@ -2,7 +2,8 @@
 
 Firmware research, recovery references, and mainline Klipper migration tools
 for the QIDI Plus4. The research covers factory 1.1.2, installed 1.7.3 and
-1.8.2 systems, and QIDI's published source releases from 1.3.2 to 1.7.1.
+1.8.2 systems, the 2.1.1 OTA overlay, and QIDI's published source releases from
+1.3.2 to 1.7.1.
 
 ## Find what you need
 
@@ -10,6 +11,7 @@ for the QIDI Plus4. The research covers factory 1.1.2, installed 1.7.3 and
 | --- | --- |
 | Find firmware files or backups, including v1.8.2 | [Firmware and backup locations](data/README.md) |
 | Understand firmware versions and changes | [Firmware research](docs/firmware/README.md) |
+| Compare 2.1.1 Box and Moonraker changes with 1.8.2 | [2.1.1 firmware comparison](docs/firmware/FIRMWARE-2.1.1.md) |
 | Understand downloading, flashing, and recovery | [Firmware flashing reference](docs/firmware/FIRMWARE-FLASHING.md) |
 | Migrate to mainline Klipper | [Migration guides](docs/migration/README.md) |
 | Work with QIDI Box, Happy Hare, or the stock screen | [Integration research](docs/integrations/README.md) |
